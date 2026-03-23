@@ -94,17 +94,17 @@ button, a.btn, .status-select, input, select, .custom-file-label {
 
 
 body {
-    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
     background-color: var(--background);
     color: var(--text-color);
-    line-height: 1.6;
+    line-height: 1.5;
 }
 
 /* Encabezado y navegación */
 header {
     background-color: var(--header-bg);
-    padding: 1rem 2rem;
-    animation: fadeIn 0.5s ease-out;
+    padding: 0.6rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .navbar {
@@ -115,8 +115,9 @@ header {
 }
 
 .navbar-logo h1 {
-    font-size: 1.8rem;
+    font-size: 1.4rem;
     color: var(--primary-color);
+    font-weight: 700;
 }
 
 .navbar-links {
@@ -170,19 +171,20 @@ header {
 
 /* Contenedor principal */
 .container {
-    width: 90%;
-    max-width: 1200px;
-    margin: 2rem auto;
-    padding: 1rem;
+    width: 96%;
+    max-width: 1600px;
+    margin: 0.75rem auto;
+    padding: 0.5rem;
 }
 
 /* Footer */
 footer {
     text-align: center;
-    padding: 1rem;
+    padding: 0.5rem;
     background-color: var(--header-bg);
     color: var(--text-color);
-    animation: fadeIn 0.5s ease-out;
+    font-size: 0.75rem;
+    border-top: 1px solid var(--border-color);
 }
 
 /* Formularios */

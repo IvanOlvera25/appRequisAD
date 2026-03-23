@@ -212,20 +212,21 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 /* Botones               */
 /* ===================== */
 .btn {
-  padding: .75rem 1.5rem;
+  padding: .5rem 1rem;
   border: none;
-  border-radius: 8px;
-  font-size: .95rem;
+  border-radius: 6px;
+  font-size: .85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all .3s ease;
+  transition: all .2s ease;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  gap: .5rem;
+  gap: .35rem;
   position: relative;
   overflow: hidden;
   color: #fff;
+  white-space: nowrap;
 }
 
 .btn::before {
@@ -253,7 +254,6 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 .btn:active {
   transform: translateY(0);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, .3);
 }
 
 .btn-primary {
@@ -303,9 +303,9 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 /* Acciones formulario */
 .form-actions {
   display: flex;
-  gap: 1rem;
+  gap: .75rem;
   justify-content: flex-end;
-  margin-top: 1.5rem;
+  margin-top: 1rem;
 }
 
 /* ===================== */
@@ -335,15 +335,21 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 .tabla-solicitudes thead th {
   text-align: left;
-  padding: .75rem 1rem;
-  border-bottom: 1px solid var(--border-color, #374151);
-  background: rgba(243, 124, 34, .08);
+  padding: .5rem .75rem;
+  border-bottom: 2px solid var(--border-color, #374151);
+  background: rgba(243, 124, 34, .06);
   font-weight: 600;
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: #9ca3af;
+  white-space: nowrap;
 }
 
 .tabla-solicitudes tbody td {
-  padding: .75rem 1rem;
-  border-top: 1px solid var(--border-color, #374151);
+  padding: .45rem .75rem;
+  border-top: 1px solid rgba(55, 65, 81, .5);
+  font-size: .85rem;
 }
 
 .summary-row {
@@ -352,8 +358,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .summary-row:hover {
-  background-color: rgba(243, 124, 34, .05);
-  transform: translateX(5px);
+  background-color: rgba(243, 124, 34, .04);
 }
 
 /* ► Estado "abierto" visual en la fila resumen */
@@ -399,23 +404,25 @@ button,
 /* Botones acción en la tabla */
 .action-buttons {
   display: flex;
-  gap: .5rem;
-  flex-wrap: wrap;
+  gap: .35rem;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 
 .action-buttons .btn {
-  padding: .5rem 1rem;
-  font-size: .875rem;
+  padding: .35rem .65rem;
+  font-size: .78rem;
 }
 
 /* Select de estado */
 .status-select {
-  padding: .5rem;
-  border: 2px solid var(--border-color, #374151);
+  padding: .35rem .5rem;
+  border: 1px solid var(--border-color, #374151);
   border-radius: 6px;
   background-color: var(--input-bg, #111827);
   color: var(--text-color, #e5e7eb);
-  transition: all .3s ease;
+  font-size: .78rem;
+  transition: all .2s ease;
   cursor: pointer;
 }
 
@@ -433,47 +440,48 @@ button,
 /* Bloques de detalles   */
 /* ===================== */
 .details-content {
-  padding: 1.5rem;
+  padding: 1rem;
   background: var(--input-bg, #0b1220);
   border-radius: 8px;
-  margin: .5rem;
+  margin: .25rem;
   border: 1px solid var(--border-color, #374151);
 }
 
 .details-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 .details-section {
   background: var(--header-bg, #111827);
-  padding: 1.5rem;
+  padding: 1rem;
   border-radius: 8px;
   border: 1px solid var(--border-color, #374151);
 }
 
 .details-section h4 {
-  margin: 0 0 1rem 0;
+  margin: 0 0 .75rem 0;
   color: var(--primary-color, #f37c22);
-  font-size: 1.1rem;
+  font-size: .95rem;
   display: flex;
   align-items: center;
-  gap: .5rem;
-  padding-bottom: .5rem;
-  border-bottom: 2px solid var(--border-color, #374151);
+  gap: .35rem;
+  padding-bottom: .35rem;
+  border-bottom: 1px solid var(--border-color, #374151);
 }
 
 .details-section p {
-  margin: .5rem 0;
-  line-height: 1.6;
+  margin: .35rem 0;
+  line-height: 1.5;
+  font-size: .85rem;
 }
 
 .details-full-width {
   grid-column: 1 / -1;
   background: var(--header-bg, #111827);
-  padding: 1.5rem;
+  padding: 1rem;
   border-radius: 8px;
   border: 1px solid var(--border-color, #374151);
 }
@@ -948,66 +956,162 @@ nav.card {
     width: 100%;
   }
 
-  /* Tabla con scroll horizontal */
+  /* ===================== */
+  /* CARD LAYOUT EN MÓVIL  */
+  /* ===================== */
   .table-card {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow-x: visible;
   }
 
   .tabla-solicitudes {
-    min-width: 900px;
-    font-size: 0.8rem;
+    min-width: 0;
+    font-size: 0.875rem;
   }
 
-  .tabla-solicitudes thead th {
-    position: sticky;
-    top: 0;
+  .tabla-solicitudes thead {
+    display: none;
+  }
+
+  .tabla-solicitudes tbody tr.summary-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.25rem 0.75rem;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--border-color, #374151);
+    border-radius: 12px;
     background: var(--header-bg, #111827);
-    z-index: 10;
-    white-space: nowrap;
+    position: relative;
+    border-left: 4px solid var(--primary-color, #f37c22);
   }
 
-  .tabla-solicitudes tbody td {
-    padding: 0.5rem 0.4rem;
-    white-space: nowrap;
+  .tabla-solicitudes tbody tr.summary-row:hover {
+    transform: none;
+    border-color: var(--primary-color, #f37c22);
+    box-shadow: 0 4px 12px rgba(243, 124, 34, 0.15);
+  }
+
+  .tabla-solicitudes tbody tr.summary-row td {
+    display: block;
+    border: none;
+    padding: 0.2rem 0;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .tabla-solicitudes tbody tr.summary-row td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #9ca3af;
+    margin-bottom: 0.15rem;
+  }
+
+  /* Checkbox - posición absoluta arriba derecha */
+  .tabla-solicitudes tbody tr.summary-row td.cell-check {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    width: auto;
+    grid-column: auto;
+  }
+
+  .tabla-solicitudes tbody tr.summary-row td.cell-check::before {
+    display: none;
+  }
+
+  /* Nombre y FP en la primera fila */
+  .tabla-solicitudes tbody tr.summary-row td:nth-child(2) {
+    grid-column: 1 / -1;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #fff;
+    padding-right: 2.5rem;
+  }
+
+  /* Monto destacado */
+  .tabla-solicitudes tbody tr.summary-row td.col-monto {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary-color, #f37c22);
+  }
+
+  /* Estado */
+  .tabla-solicitudes tbody tr.summary-row td:nth-child(9) {
+    grid-column: 1 / -1;
+  }
+
+  /* Acciones - fila completa */
+  .tabla-solicitudes tbody tr.summary-row td:last-child {
+    grid-column: 1 / -1;
+    padding-top: 0.75rem;
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--border-color, #374151);
   }
 
   /* Mejorar touch targets para checkboxes */
   .select-solicitud,
   #selectAll {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
   }
 
-  /* Acciones más compactas */
+  /* Acciones compactas en card */
   .action-buttons {
-    flex-direction: column;
-    gap: 0.25rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
   }
 
   .action-buttons .btn {
     width: 100%;
-    padding: 0.5rem;
-    font-size: 0.75rem;
+    padding: 0.6rem;
+    font-size: 0.8rem;
+    justify-content: center;
+    text-align: center;
   }
 
   .action-buttons .inline-form {
-    width: 100%;
+    display: contents;
   }
 
-  .status-select {
+  .action-buttons .inline-form .status-select {
+    grid-column: 1 / -1;
     width: 100%;
-    font-size: 0.75rem;
-    padding: 0.4rem;
+    font-size: 0.85rem;
+    padding: 0.6rem;
+  }
+
+  .action-buttons .inline-form .btn {
+    grid-column: 1 / -1;
   }
 
   /* Detalles expandidos */
+  .tabla-solicitudes tbody tr.details-row {
+    margin-bottom: 0.75rem;
+    border-radius: 0 0 12px 12px;
+    margin-top: -0.75rem;
+  }
+
+  .tabla-solicitudes tbody tr.details-row td {
+    border: none;
+    padding: 0;
+  }
+
+  .tabla-solicitudes tbody tr.details-row td::before {
+    display: none;
+  }
+
   .details-content {
     padding: 0.75rem;
   }
 
   .details-grid {
     gap: 0.75rem;
+    grid-template-columns: 1fr;
   }
 
   .details-section {
@@ -1026,6 +1130,12 @@ nav.card {
   }
 
   /* Paginación */
+  .card[style*="display:flex"][style*="justify-content:space-between"] {
+    flex-direction: column !important;
+    text-align: center;
+    gap: 0.75rem !important;
+  }
+
   .pagination {
     flex-wrap: wrap !important;
     justify-content: center !important;
@@ -1051,13 +1161,6 @@ nav.card {
 
   .modal-header h3 {
     font-size: 1rem;
-  }
-
-  /* Info text en paginación */
-  .card[style*="display:flex"][style*="justify-content:space-between"] {
-    flex-direction: column !important;
-    text-align: center;
-    gap: 0.75rem !important;
   }
 }
 
@@ -1087,21 +1190,29 @@ nav.card {
     font-size: 1.25rem;
   }
 
-  /* Tabla aún más compacta */
-  .tabla-solicitudes {
-    min-width: 750px;
-    font-size: 0.75rem;
+  /* Cards single column en pantallas muy pequeñas */
+  .tabla-solicitudes tbody tr.summary-row {
+    grid-template-columns: 1fr;
+    padding: 0.75rem;
   }
 
-  .tabla-solicitudes thead th,
-  .tabla-solicitudes tbody td {
-    padding: 0.4rem 0.3rem;
+  .tabla-solicitudes tbody tr.summary-row td:nth-child(2) {
+    font-size: 0.9rem;
+  }
+
+  .tabla-solicitudes tbody tr.summary-row td.col-monto {
+    font-size: 1rem;
+  }
+
+  /* Acciones: una sola columna */
+  .action-buttons {
+    grid-template-columns: 1fr;
   }
 
   /* Botones más pequeños */
   .action-buttons .btn {
-    padding: 0.4rem;
-    font-size: 0.7rem;
+    padding: 0.5rem;
+    font-size: 0.75rem;
   }
 
   /* Secciones de detalles */

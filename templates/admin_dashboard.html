@@ -87,12 +87,12 @@
 </style>
 
 <div class="dashboard-container">
-  <header class="dashboard-header">
-    <h1>Panel de Administración</h1>
+  <header class="dashboard-header" style="margin-bottom:.5rem;">
+    <h1 style="font-size:1.3rem; margin:0;">Panel de Administración</h1>
   </header>
 
   {% set c = counts or {} %}
-  <nav class="card" style="margin-bottom:1rem;">
+  <nav class="card" style="margin-bottom:.5rem;">
     <ul class="tabs-estados" style="display:flex; gap:.5rem; flex-wrap:wrap; list-style:none; padding:.5rem; margin:0;">
       <li>
         <a class="tab-pill {% if not estado_filtro %}active{% endif %}"
@@ -151,7 +151,7 @@
     </ul>
   </nav>
 
-  <div class="card filter-card">
+  <div class="card filter-card" style="margin-bottom:.5rem; padding:.5rem .75rem;">
     <form method="GET" action="{{ url_for('admin_dashboard') }}" class="filter-form">
       <input type="hidden" name="p" value="1">
       <input type="hidden" name="page_size" value="{{ page_size }}">
@@ -187,7 +187,7 @@
   </div>
 
  <!-- Barra de acciones -->
-<div style="margin-bottom:1rem; display:flex; gap:1rem; flex-wrap:wrap; align-items:center;">
+<div style="margin-bottom:.5rem; display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
   <a href="{{ url_for('ver_historial') }}" class="btn btn-primary">Ver Historial</a>
   <button type="button" class="btn btn-success" onclick="mostrarModalReporteConsolidado()">
     📊 Generar Reporte Consolidado
@@ -242,15 +242,15 @@
                      data-anticipo="{{ solicitud.anticipo }}"
                      onchange="updateSelectedCount()">
             </td>
-            <td>{{ solicitud.nombre }}</td>
-            <td>{{ solicitud.fp }}</td>
-            <td>{{ solicitud.fecha.split(' ')[0] if solicitud.fecha else '' }}</td>
-            <td>{{ solicitud.destinatario }}</td>
+            <td data-label="Solicitado por">{{ solicitud.nombre }}</td>
+            <td data-label="FP">{{ solicitud.fp }}</td>
+            <td data-label="Fecha">{{ solicitud.fecha.split(' ')[0] if solicitud.fecha else '' }}</td>
+            <td data-label="Destinatario">{{ solicitud.destinatario }}</td>
 
             <!-- Tipo Solicitud (sin badge aquí) -->
-            <td>{{ solicitud.tipo_solicitud }}</td>
+            <td data-label="Tipo Solicitud">{{ solicitud.tipo_solicitud }}</td>
 
-            <td>
+            <td data-label="Tipo Pago">
               {{ solicitud.tipo_pago }}
               {% if solicitud.tiene_comision == 1 %}
                 <span class="badge-comision" title="Comisión del {{ solicitud.porcentaje_comision }}%">
@@ -260,7 +260,7 @@
             </td>
 
             <!-- === MONTO TOTAL + BADGE DE ANTICIPO (NARANJA) === -->
-            <td class="col-monto">
+            <td class="col-monto" data-label="Monto Total">
               ${{ "{:,.2f}".format(solicitud.monto) }}
               {% if solicitud.anticipo and solicitud.anticipo|lower == "si" %}
                 {% set porc_tmp =
@@ -282,14 +282,14 @@
               {% endif %}
             </td>
 
-            <td>
+            <td data-label="Estado">
               <span class="estado-{{ clase_estado }}"
                     title="{% if solicitud.fecha_ultimo_cambio %}Último cambio: {{ solicitud.fecha_ultimo_cambio }}{% endif %}">
                 {{ solicitud.estado }}
               </span>
             </td>
 
-            <td>
+            <td data-label="Acciones">
               <div class="action-buttons">
                 <a href="{{ url_for('editar_solicitud', solicitud_id=solicitud.id) }}" class="btn btn-info">Editar</a>
                 <form method="POST" action="{{ url_for('actualizar_estado', solicitud_id=solicitud.id) }}" class="inline-form" enctype="multipart/form-data">
@@ -517,7 +517,7 @@
 
 
   <!-- Paginación -->
-  <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.75rem 1rem;">
+  <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:.5rem; padding:.5rem .75rem; margin-top:.5rem;">
     <div>
       Mostrando {{ solicitudes|length }} de {{ total_count }} registro(s)
       {% if estado_filtro %} en <strong>{{ estado_filtro }}</strong>{% endif %}.
