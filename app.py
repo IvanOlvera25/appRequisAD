@@ -83,7 +83,7 @@ def verify_and_fix_remote_tables():
                     'descripcion': "TEXT NOT NULL",
                     'datos_deposito': "TEXT NOT NULL",
                     'banco': "VARCHAR(255) NOT NULL",
-                    'clabe': "VARCHAR(20) NOT NULL",
+                    'clabe': "VARCHAR(255) NOT NULL",
                     'monto': "DECIMAL(15,2) NOT NULL",
                     'estado': "VARCHAR(50) NOT NULL",
                     'fecha': "DATETIME NOT NULL",
@@ -123,6 +123,17 @@ def verify_and_fix_remote_tables():
                         print(f"Creando índice: {index_name}")
                         cursor.execute(f"CREATE INDEX {index_name} ON Pagos ({column})")
 
+                # Ampliar columna clabe si es VARCHAR(20)
+                try:
+                    cursor.execute("SELECT CHARACTER_MAXIMUM_LENGTH FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Pagos' AND COLUMN_NAME='clabe' AND TABLE_SCHEMA=DATABASE()")
+                    clabe_info = cursor.fetchone()
+                    if clabe_info and clabe_info.get('CHARACTER_MAXIMUM_LENGTH', 0) < 255:
+                        print("Ampliando columna clabe de VARCHAR(20) a VARCHAR(255)...")
+                        cursor.execute("ALTER TABLE Pagos MODIFY COLUMN clabe VARCHAR(255) NOT NULL")
+                        print("Columna clabe ampliada exitosamente")
+                except Exception as e:
+                    print(f"Error verificando/ampliando columna clabe: {e}")
+
             else:
                 # La tabla no existe, crearla completamente
                 print("Creando tabla Pagos desde cero...")
@@ -139,7 +150,7 @@ def verify_and_fix_remote_tables():
                         descripcion TEXT NOT NULL,
                         datos_deposito TEXT NOT NULL,
                         banco VARCHAR(255) NOT NULL,
-                        clabe VARCHAR(20) NOT NULL,
+                        clabe VARCHAR(255) NOT NULL,
                         monto DECIMAL(15,2) NOT NULL,
                         estado VARCHAR(50) NOT NULL,
                         fecha DATETIME NOT NULL,
@@ -3500,68 +3511,29 @@ def editar_solicitud(solicitud_id):
         referencia = request.form.get("referencia", "")
         categoria_administrativa = request.form.get("categoria_administrativa", "")
 
-        # CORRECCIÓN: Procesar monto y comisión correctamente
-        monto_str = request.form.get("monto", "").replace(",", ".")
-        try:
-            monto_ingresado = float(monto_str)
-        except ValueError:
-            monto_ingresado = 0.0
+        # -------- montos y comisión (misma lógica que solicitar_pago) --------
+        import re as _re
+        def _to_float_edit(s):
+            if s is None:
+                return 0.0
+            s = str(s)
+            s = _re.sub(r"[^\d,.\-]", "", s)
+            s = s.replace(",", "")
+            try:
+                return float(s)
+            except ValueError:
+                return 0.0
 
-        # Determinar si el monto ingresado ya incluye comisión o es monto sin comisión
-        solicitud_anterior_tenia_comision = solicitud_dict.get('tiene_comision', 0) == 1
-        tipo_pago_anterior = solicitud_dict.get('tipo_pago', '')
-
-        # Verificar si tiene comisión (BBVA Sin factura)
-        tiene_comision = 0
-        porcentaje_comision = 0.0
-        monto_comision = 0.0
-        monto_sin_comision = monto_ingresado
-        monto = monto_ingresado
-
-        if tipo_pago == "BBVA Sin factura":
-            tiene_comision = 1
-            porcentaje_comision = 6.0  # 6% de comisión
-
-            # CORRECCIÓN PRINCIPAL: Determinar si el monto ingresado ya incluye comisión
-            if solicitud_anterior_tenia_comision and tipo_pago_anterior == "BBVA Sin factura":
-                # El monto ingresado probablemente ya incluye comisión de la edición anterior
-                # Necesitamos extraer el monto sin comisión usando la fórmula inversa
-                # Si monto_con_comision = (monto_sin_comision * 100) / 94, entonces:
-                # monto_sin_comision = (monto_con_comision * 94) / 100
-                monto_sin_comision = (monto_ingresado * 94) / 100
-                monto_comision = (monto_sin_comision * 100) / 94
-                monto = monto_comision  # El monto total es el resultado de la fórmula
-
-                print(f"DEBUG - Editando solicitud con comisión previa:")
-                print(f"  Monto ingresado: {monto_ingresado}")
-                print(f"  Monto sin comisión calculado: {monto_sin_comision}")
-                print(f"  Monto comisión: {monto_comision}")
-                print(f"  Monto total: {monto}")
-            else:
-                # El monto ingresado es sin comisión (primera vez que se asigna BBVA Sin factura)
-                monto_sin_comision = monto_ingresado
-                monto_comision = (monto_sin_comision * 100) / 94
-                monto = monto_comision  # El monto total es el resultado de la fórmula
-
-                print(f"DEBUG - Primera vez asignando BBVA Sin factura:")
-                print(f"  Monto sin comisión: {monto_sin_comision}")
-                print(f"  Monto comisión: {monto_comision}")
-                print(f"  Monto total: {monto}")
+        monto_sin_comision = _to_float_edit(request.form.get("monto"))
+        tiene_comision = 1 if tipo_pago == "BBVA Sin factura" else 0
+        porcentaje_comision = 6.0 if tiene_comision else 0.0
+        if tiene_comision:
+            # total bruto necesario para que neto sea monto_sin_comision
+            monto = round(monto_sin_comision / 0.94, 2)
+            monto_comision = round(monto - monto_sin_comision, 2)
         else:
-            # No tiene comisión
-            if solicitud_anterior_tenia_comision and tipo_pago_anterior == "BBVA Sin factura":
-                # Se cambió de BBVA Sin factura a otro tipo de pago
-                # El monto ingresado puede incluir la comisión anterior, necesitamos limpiarlo
-                # Pero en este caso, asumimos que el usuario ingresó el monto correcto sin comisión
-                monto_sin_comision = monto_ingresado
-                monto = monto_ingresado
-
-                print(f"DEBUG - Cambiando de BBVA Sin factura a otro tipo:")
-                print(f"  Monto final (sin comisión): {monto}")
-            else:
-                # Caso normal sin comisión
-                monto_sin_comision = monto_ingresado
-                monto = monto_ingresado
+            monto = round(monto_sin_comision, 2)
+            monto_comision = 0.0
 
         # -------- ARCHIVOS ADJUNTOS (3 archivos + legacy) --------
         archivo_adjunto = solicitud_dict.get("archivo_adjunto", "")
@@ -3640,13 +3612,10 @@ def editar_solicitud(solicitud_id):
 
         # LOGGING para debugging
         print(f"DEBUG - Actualización de solicitud {solicitud_id}:")
-        print(f"  Tipo pago anterior: {tipo_pago_anterior}")
         print(f"  Tipo pago nuevo: {tipo_pago}")
-        print(f"  Tenía comisión anterior: {solicitud_anterior_tenia_comision}")
-        print(f"  Tiene comisión nueva: {tiene_comision}")
-        print(f"  Monto ingresado: {monto_ingresado}")
-        print(f"  Monto sin comisión final: {monto_sin_comision}")
-        print(f"  Monto comisión final: {monto_comision}")
+        print(f"  Tiene comisión: {tiene_comision}")
+        print(f"  Monto sin comisión: {monto_sin_comision}")
+        print(f"  Monto comisión: {monto_comision}")
         print(f"  Monto total final: {monto}")
 
         # Actualizar la base de datos con todos los campos nuevos

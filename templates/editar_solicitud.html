@@ -577,11 +577,10 @@
         <div class="form-group">
           <label for="monto">
             Monto <span class="required">*</span>
-            <span id="label-monto-tipo">({% if solicitud.tiene_comision == 1 %}con comisión{% else %}sin comisión{%
-              endif %})</span>
+            <span id="label-monto-tipo">(sin comisión)</span>
           </label>
           <input type="text" name="monto" id="monto"
-            value="{{ '{:,.2f}'.format(solicitud.monto if solicitud.monto else 0) }}"
+            value="{{ '{:,.2f}'.format(solicitud.monto_sin_comision if solicitud.monto_sin_comision else (solicitud.monto if solicitud.monto else 0)) }}"
             oninput="formatMonto(this); calcularComision();" required>
           <div id="info-comision"
             style="display: {% if solicitud.tiene_comision == 1 %}block{% else %}none{% endif %}; margin-top: 0.5rem; padding: 0.75rem; background: var(--input-bg); border-radius: 6px; border: 1px solid var(--border-color);">
@@ -589,9 +588,9 @@
               <div>💡 Comisión BBVA (6%): <span id="monto-comision"
                   style="font-weight: 600; color: var(--primary-color);">${{ '{:,.2f}'.format(solicitud.monto_comision
                   if solicitud.monto_comision else 0) }}</span></div>
-              <div style="margin-top: 0.25rem;">💰 Monto sin comisión: <span id="monto-sin-comision"
+              <div style="margin-top: 0.25rem;">💰 Total con comisión: <span id="monto-total"
                   style="font-weight: 600; color: var(--success-color);">${{
-                  '{:,.2f}'.format(solicitud.monto_sin_comision if solicitud.monto_sin_comision else 0) }}</span></div>
+                  '{:,.2f}'.format(solicitud.monto if solicitud.monto else 0) }}</span></div>
             </div>
           </div>
         </div>
@@ -887,10 +886,8 @@
   // Variables globales
   var tieneComision = {{ 'true' if solicitud.tiene_comision == 1 else 'false' }};
   var porcentajeComision = 6.0;
-  var montoOriginal = {{ solicitud.monto if solicitud.monto else 0 }};
-  var montoSinComisionOriginal = {{ solicitud.monto_sin_comision if solicitud.monto_sin_comision else 0 }};
 
-  // Función para calcular comisión
+  // Función para calcular comisión (misma lógica que solicitar_pago: input = monto sin comisión)
   function calcularComision() {
     var tipoPago = document.getElementById('tipo_pago').value;
     tieneComision = (tipoPago === 'BBVA Sin factura');
@@ -903,25 +900,25 @@
     }
 
     if (labelMonto) {
-      labelMonto.textContent = tieneComision ? '(con comisión)' : '(sin comisión)';
+      labelMonto.textContent = '(sin comisión)';
     }
 
     if (tieneComision) {
       var montoInput = document.getElementById('monto');
-      var montoConComision = parseFloat(montoInput.value.replace(/,/g, '')) || 0;
+      var montoSinComision = parseFloat(montoInput.value.replace(/,/g, '')) || 0;
 
-      // Calcular monto sin comisión: monto_sin_comision = (monto_con_comision * 94) / 100
-      var montoSinComision = (montoConComision * 94) / 100;
-      var montoComision = montoConComision - montoSinComision;
+      // Calcular comisión hacia adelante (igual que solicitar_pago)
+      var montoComision = montoSinComision * (porcentajeComision / 100);
+      var montoTotal = montoSinComision + montoComision;
 
       var spanComision = document.getElementById('monto-comision');
-      var spanSinComision = document.getElementById('monto-sin-comision');
+      var spanTotal = document.getElementById('monto-total');
 
       if (spanComision) {
         spanComision.textContent = '$' + montoComision.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
       }
-      if (spanSinComision) {
-        spanSinComision.textContent = '$' + montoSinComision.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      if (spanTotal) {
+        spanTotal.textContent = '$' + montoTotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
       }
     }
 

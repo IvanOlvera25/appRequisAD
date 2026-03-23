@@ -1622,6 +1622,38 @@
     var box = document.getElementById('info-comision');
     if (box) box.style.display = tieneComision ? 'block' : 'none';
     calcularComision();
+
+    // Auto-agregar vmejia@ad17solutions.com cuando es BBVA Sin factura
+    var correosContainer = document.getElementById('correos-container');
+    var autoRow = document.getElementById('auto-vmejia-row');
+
+    if (tieneComision) {
+      // Verificar si vmejia ya está seleccionado en alguna fila existente
+      var yaExiste = false;
+      correosContainer.querySelectorAll('.correo-hidden').forEach(function(h) {
+        if (h.value === 'vmejia@ad17solutions.com') yaExiste = true;
+      });
+
+      if (!yaExiste && !autoRow) {
+        var div = document.createElement('div');
+        div.className = 'correo-row';
+        div.id = 'auto-vmejia-row';
+        div.innerHTML = `
+          <select class="correo-select" required>${CORREO_OPTIONS_HTML}</select>
+          <input type="email" class="correo-otro" placeholder="correo@empresa.com" style="display:none;">
+          <input type="hidden" name="correo" class="correo-hidden" value="vmejia@ad17solutions.com">
+          <button type="button" onclick="removerCorreo(this)" class="remove-btn">✕</button>
+        `;
+        correosContainer.appendChild(div);
+        // Pre-seleccionar vmejia en el select
+        var sel = div.querySelector('.correo-select');
+        sel.value = 'vmejia@ad17solutions.com';
+        initCorreoRow(div, false);
+      }
+    } else {
+      // Remover la fila auto-agregada si existe
+      if (autoRow) autoRow.remove();
+    }
   }
   document.addEventListener('DOMContentLoaded', detectarComision);
 </script>
