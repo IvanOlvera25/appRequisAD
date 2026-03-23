@@ -1,0 +1,87 @@
+Nompropio,N de empleado,Nombre(s),Apellido Paterno,Apellido Materno,Departamento,Puesto,Salario Neto,Diario,Género
+Adolfo García García,1,Adolfo,García,García,Producción,Diseñador gráfico,"$15,000.00",$500.00, M
+Alba Hernandez Bernal,2,Alba,Hernandez,Bernal,Costura,Ayudante A,"$12,000.00",$400.00, F
+Ana Valentina Estrada Blanquet,76,Ana Valentina,Estrada,Blanquet,Producción,Diseñador CAD,"$12,500.00",$416.67, F
+Angel Axel Diaz Ortiz,3,Angel Axel,Diaz,Ortiz,Costura,Ayudante C,"$8,000.00",$266.67, M
+Angel Díaz Betancourt,84,Angel,Díaz,Betancourt,Costura,Ayudante B,"$10,000.00",$333.33, M
+Angelica Delgado Hernandez,4,Angelica,Delgado,Hernandez,Especializados,Seguridad,"$9,000.00",$300.00, F
+Ariadna V. Toledano Y Huitron,5,Ariadna V.,Toledano,Y Huitron,Ventas,Gerente,"$25,000.00",$833.33, F
+Begonia Sierra Galindo,6,Begonia,Sierra,Galindo,Ventas,Ejecutivo de ventas,"$6,000.00",$200.00, F
+Brad Axel Torres Garcilazo,7,Brad Axel,Torres,Garcilazo,Metal,Ayudante B,"$12,000.00",$400.00, M
+Brandon Villalbazo Nussbaumer,8,Brandon,Villalbazo,Nussbaumer,Sistemas Inteligentes,"Coordinador de Sistemas Inteligentes, Soporte Técnico y Costeo de Proyectos","$15,000.00",$500.00, M
+Brian Ortega Malvaez,9,Brian,Ortega,Malvaez,Staging,Ayudante C,"$8,000.00",$266.67, M
+Carlos Alberto Sanchez Ojeda,10,Carlos Alberto,Sanchez,Ojeda,Metal,Ayudante C,"$8,000.00",$266.67, M
+Carlos David Herrera Mendoza,73,Carlos David,Herrera,Mendoza,Costura,Ayudante B,"$10,000.00",$333.33, M
+Carlos Gabriel Pimentel Vargas,80,Carlos Gabriel,Pimentel,Vargas,Administración,,"$15,000.00",$500.00, M
+Carlos Omar Arroyo Vallejo,11,Carlos Omar,Arroyo,Vallejo,Montaje,Ayudante B,"$14,000.00",$466.67, M
+Carolina Sanchez Garcia,12,Carolina,Sanchez,Garcia,Producción,Diseñador CAD,"$12,500.00",$416.67, F
+Cesar Daniel Romo Garcia,13,Cesar Daniel,Romo,Garcia,Impresión,Ayudante A,"$12,000.00",$400.00, M
+Cithya Gasca Martinez,14,Cithya,Gasca,Martinez,Costura,Ayudante C,"$8,000.00",$266.67, F
+Cristina Sherill Bordas Olvin,15,Cristina Sherill,Bordas,Olvin,Producción,Coordinador de Diseño Gráfico,"$16,500.00",$550.00, F
+Dafne De La Rosa Zamorano,16,Dafne,De La Rosa,Zamorano,Producción,Gerente,"$30,000.00","$1,000.00", F
+Daniel Alejandro García Toledano,17,Daniel Alejandro,García,Toledano,Producción,Coordinador,"$22,000.00",$733.33, M
+Dante Adolfo Torres Garcilazo,72,Dante Adolfo,Torres,Garcilazo,Metal,Ayudante C,"$8,000.00",$266.67, M
+David Adrián García Toledano,18,David Adrián,García,Toledano,Ventas,Ejecutivo de ventas,"$12,000.00",$400.00, M
+Dennisse Velazquez Rangel,19,Dennisse,Velazquez,Rangel,Sistemas Inteligentes,Encargado de Análisis de Costos,"$15,000.00",$500.00, F
+Diego Andre García Toledano,20,Diego Andre,García,Toledano,Ventas,Ayudante A,"$12,000.00",$400.00, M
+Domingo Ayala Villaseñor,21,Domingo,Ayala,Villaseñor,Montaje,Ayudante B,"$9,000.00",$300.00, M
+Edgar Javier Villela Garcilazo,22,Edgar Javier,Villela,Garcilazo,Montaje,Ayudante B,"$10,000.00",$333.33, M
+Edgar Medina Flores,78,Edgar,Medina,Flores,Especializados,Seguridad,"$9,000.00",$300.00, M
+Eduardo Nava Ortiz,23,Eduardo,Nava,Ortiz,Metal,Jefe de Taller,"$18,000.00",$600.00, M
+Fatima Poleth Gasca Martinez,25,Fatima Poleth,Gasca,Martinez,Costura,Ayudante B,"$10,000.00",$333.33, F
+Fernando Carbajal Avalos,26,Fernando,Carbajal,Avalos,Administración,Encargado de Compras,"$15,000.00",$500.00, M
+Fernando Rodriguez Espino,27,Fernando,Rodriguez,Espino,Staging,Supervisor de Staging,"$18,643.00",$621.43, M
+Francisco Ramirez Cuellar,28,Francisco,Ramirez,Cuellar,Metal,Ayudante B,"$10,000.00",$333.33, M
+Geraldine Renoud Magaña,29,Geraldine,Renoud,Magaña,Ventas,Coordinador,"$22,500.00",$750.00, F
+Gerardo de la Rosa,29,Gerardo,de la Rosa,Magaña,Compras,Coordinador,"$22,500.00",$750.00, M
+Gildardo Sánchez Villalbazo,30,Gildardo,Sánchez,Villalbazo,Logística,Gerente,"$25,000.00",$833.33, M
+Gustavo Lorenzo Rosales,31,Gustavo,Lorenzo,Rosales,Montaje,Ayudante C,"$8,000.00",$266.67, M
+Idulia Sanchez Ojeda,32,Idulia,Sanchez,Ojeda,Costura,Supervisor de Taller,"$15,000.00",$500.00, F
+Isabela García Toledano,33,Isabela,García,Toledano,Ventas,Ejecutivo de ventas,"$7,500.00",$250.00, F
+Isidro Carmona Lazcano,34,Isidro,Carmona,Lazcano,Metal,Ayudante C,"$8,000.00",$266.67, M
+Ivan Uriel Olvera Perez,81,Ivan Uriel,Olvera,Perez,Sistemas Inteligentes,Desarrollador de Sistemas Inteligentes,"$15,000.00",$500.00, M
+Jair Esteban Romero Moctezuma,79,Jair Esteban,Romero,Moctezuma,Staging,Ayudante C,"$8,000.00",$266.67, M
+Jaqzel Fatima Villafuerte Lopez,35,Jaqzel Fatima,Villafuerte,Lopez,Administración,Almacén,"$10,000.00",$333.33, F
+Jesus Fabian Ramirez Lopez,36,Jesus Fabian,Ramirez,Lopez,Costura,Ayudante A,"$12,000.00",$400.00, M
+Jesus Silvestre Grijalva Salas,37,Jesus Silvestre,Grijalva,Salas,Logística,Chofer,"$10,000.00",$333.33, M
+Jorge Daniel García Flores,39,Jorge Daniel,García,Flores,Metal,Ayudante B,"$10,000.00",$333.33, M
+Jorge Gonzalez Rubio,38,Jorge,Gonzalez,Rubio,Impresión,Supervisor de Taller,"$15,000.00",$500.00, M
+Jose Felipe Barriga Rodriguez,40,Jose Felipe,Barriga,Rodriguez,Especializados,Seguridad,"$9,000.00",$300.00, M
+Jose Guillermo Gonzalez Contreras,77,Jose Guillermo,Gonzalez,Contreras,Especializados,Seguridad,"$10,000.00",$333.33, M
+Juan Carlos Blancas Martinez,41,Juan Carlos,Blancas,Martinez,Metal,Supervisor de Taller,"$15,000.00",$500.00, M
+Juan Carlos Enriquez García,42,Juan Carlos,Enriquez,García,Staging,Ayudante B,"$10,000.00",$333.33, M
+Juan Carlos Marquez Castro,43,Juan Carlos,Marquez,Castro,Impresión,Ayudante A,"$12,000.00",$400.00, M
+Juan Gonzalez Rubio,82,Juan,Gonzalez,Rubio,Staging,Ayudante C,"$8,000.00",$266.67, M
+Juan Ignacio Rodriguez Garcilazo,44,Juan Ignacio,Rodriguez,Garcilazo,Metal,Ayudante B,"$12,000.00",$400.00, M
+Juan Manuel Salazar Muciño,45,Juan Manuel,Salazar,Muciño,Metal,Ayudante B,"$10,000.00",$333.33, M
+Juan Pablo Malpica Romero,46,Juan Pablo,Malpica,Romero,Metal,Ayudante B,"$10,000.00",$333.33, M
+Juana Ayala Villaseñor,47,Juana,Ayala,Villaseñor,Especializados,Limpieza,"$9,000.00",$300.00, F
+Karen Paulina Tellez Islas,48,Karen Paulina,Tellez,Islas,Producción,Coordinador,"$22,500.00",$750.00, F
+Karla Baltierrez Luis,49,Karla,Baltierrez,Luis,Logística,Auxiliar,"$7,500.00",$250.00, F
+Karla Citlalli Gandarilla Espinosa,50,Karla Citlalli,Gandarilla,Espinosa,Administración,Auxiliar,"$7,500.00",$250.00, F
+Landi Cristina Garcilazo Marquez,51,Landi Cristina,Garcilazo,Marquez,Administración,Almacén,"$10,000.00",$333.33, F
+Lorenza Ramirez Cuellar,52,Lorenza,Ramirez,Cuellar,Especializados,Limpieza,"$9,000.00",$300.00, F
+Lucio Rueda Cruz,53,Lucio,Rueda,Cruz,Montaje,Supervisor de Montaje,"$15,000.00",$500.00, M
+Magdaleno Rivera Rivera,54,Magdaleno,Rivera,Rivera,Montaje,Supervisor de Montaje,"$18,000.00",$600.00, M
+Marcos Gabriel Mojarro Pardo,55,Marcos Gabriel,Mojarro,Pardo,Logística,Chofer,"$10,000.00",$333.33, M
+Martin Rivero,55,Martin,Rivero,Pardo,Administracion,Coordinador de admin,"$10,000.00",$333.33, M
+María Del Socorro Mota García,56,María Del Socorro,Mota,García,Costura,Ayudante A,"$17,200.00",$573.33, F
+María Guadalupe López Hernández,57,María Guadalupe,López,Hernández,Costura,Ayudante A,"$12,000.00",$400.00, F
+Mario Camacho García,83,Mario,Camacho,García,Logística,Chofer,"$10,000.00",$333.33, M
+Mauricio Granados Obando,58,Mauricio,Granados,Obando,Administración,Almacén,"$8,000.00",$266.67, M
+Miguel Angel Enriquez García,59,Miguel Angel,Enriquez,García,Metal,Ayudante B,"$10,000.00",$333.33, M
+Paulina Elizabeth Gonzalez Gonzalez,60,Paulina Elizabeth,Gonzalez,Gonzalez,Producción,Diseñador Gráfico,"$10,000.00",$333.33, F
+Ramón Hernández García,61,Ramón,Hernández,García,Administración,Encargado,"$23,650.00",$788.33, M
+Rogelio Casas Hérnandez,62,Rogelio,Casas,Hérnandez,Montaje,Ayudante C,"$8,000.00",$266.67, M
+Rosa Maria Ortiz Barcenas,63,Rosa Maria,Ortiz,Barcenas,Costura,Jefe de Taller,"$18,000.00",$600.00, F
+Rosalina Villafuerte Cedillo,75,Rosalina,Villafuerte,Cedillo,Costura,Ayudante C,"$8,000.00",$266.67, F
+Rubén García,50,Rubén,García,Cedillo,Costura,Director General,"$80,000.00",$2,660.67, M
+Sandra Cristina Chamor Lugo,65,Sandra Cristina,Chamor,Lugo,Costura,Ayudante C,"$8,000.00",$266.67, F
+Shendel Guadalupe The Escoto,66,Shendel Guadalupe,The,Escoto,Ventas,Ejecutivo de ventas,"$16,000.00",$533.33, F
+Teresita Sepulveda Morfín,67,Teresita,Sepulveda,Morfín,Ventas,Cobranza,"$12,000.00",$400.00, F
+Valeria Astorga Herrera,68,Valeria,Astorga,Herrera,Ventas,Ejecutivo de ventas,"$8,000.00",$266.67, F
+Veronica Mejía,75,Veronica,Mejía,Herrera,Administracion,Ejecutivo de ventas,"$8,000.00",$266.67, F
+Victor Caballero Fernández,69,Victor,Caballero,Fernández,Impresión,Jefe de Taller,"$18,000.00",$600.00, M
+Xochitl Cruz Guillen,74,Xochitl,Cruz,Guillen,Producción,Diseñador CAD,"$10,000.00",$333.33, F
+Yafet Rafael Gasca Martinez,70,Yafet Rafael,Gasca,Martinez,Montaje,Ayudante B,"$10,000.00",$333.33, M
+Zaida Morales Rodriguez,71,Zaida,Morales,Rodriguez,Staging,Ayudante B,"$10,000.00",$333.33, F

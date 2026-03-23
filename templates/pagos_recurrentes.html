@@ -1,0 +1,353 @@
+{% extends "layout.html" %}
+{% block title %}Pagos Recurrentes{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root{
+    --bg:#0e0f12; --panel:#171a1f; --panel-2:#1d2128; --text:#e7eaf0; --muted:#9aa3b2;
+    --accent:#3b82f6; --accent-2:#f59e0b; --success:#10b981; --danger:#ef4444; --border:#2a2f38; --chip:#222734;
+  }
+  body{background:var(--bg); color:var(--text);}
+  .wrap{max-width:1120px; margin:28px auto; padding:0 16px;}
+  .page-head h1{font-size:26px; margin:0 0 6px;}
+  .page-head p{margin:0 0 14px; color:var(--muted);}
+
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;}
+  .btn{
+    display:inline-flex; align-items:center; gap:8px; border:1px solid var(--border);
+    background:var(--panel); color:var(--text); padding:9px 12px; border-radius:10px; cursor:pointer; text-decoration:none;
+    transition:transform .06s ease, background .15s ease;
+  }
+  .btn:hover{background:var(--panel-2);}
+  .btn:active{transform:scale(0.98);}
+  .btn-primary{background:var(--accent); border-color:transparent;}
+  .btn-warn{background:var(--accent-2); border-color:transparent; color:#0d0f14;}
+  .btn-danger{background:var(--danger); border-color:transparent;}
+  .btn-ghost{background:transparent;}
+  .btn-sm{padding:6px 9px; border-radius:9px; font-size:13px; line-height:1;}
+
+  .cards{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px;}
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px;}
+  .card h4{margin:0 0 6px; color:var(--muted); font-weight:500; font-size:13px;}
+  .card .kpi{font-size:24px; font-weight:700;}
+
+  .filter{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px;}
+  .input, select, textarea{
+    background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    padding:9px 11px; border-radius:9px; outline:none; width:100%;
+  }
+  .input:focus, select:focus, textarea:focus{border-color:var(--accent);}
+
+  /* Tabla responsiva */
+  .table-card{background:var(--panel); border:1px solid var(--border); border-radius:14px; overflow:hidden;}
+  .table-scroll{width:100%; overflow-x:auto;}
+  table{min-width:1100px; width:100%; border-collapse:separate; border-spacing:0;}
+  thead th{position:sticky; top:0; background:#0f141b; color:#c6d0e0; font-weight:600; text-align:left; padding:12px; border-bottom:1px solid var(--border); z-index:1;}
+  tbody td{padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:middle;}
+  tbody tr:hover{background:#141821;}
+  .td-mono{font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12.5px;}
+  .ellipsis{max-width:280px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:inline-block; vertical-align:bottom;}
+  .col-sm{max-width:160px;}
+  .col-xs{max-width:120px;}
+  .chip{background:var(--chip); color:#cbd5e1; padding:4px 8px; border-radius:999px; font-size:12px;}
+  .chip.ok{background:#052d22; color:#9ae6b4;}
+  .chip.bad{background:#2a1111; color:#fecaca;}
+
+  /* Acciones compactas con iconos */
+  .row-actions{display:flex; gap:6px; flex-wrap:wrap;}
+  .icon-btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:30px; height:30px; border-radius:8px; border:1px solid var(--border); background:var(--panel-2);
+  }
+  .icon-btn:hover{background:#1f2430;}
+  .tippy{position:relative;}
+  .tippy:hover::after{
+    content:attr(aria-label); position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%);
+    background:#0f141b; color:#cbd5e1; border:1px solid var(--border); padding:4px 6px; border-radius:6px; white-space:nowrap; font-size:12px;
+  }
+
+  /* Modal */
+  .modal{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:50;}
+  .modal.show{display:flex;}
+  .modal-card{width:100%; max-width:760px; background:var(--panel); border:1px solid var(--border); border-radius:14px; overflow:hidden;}
+  .modal-head{display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:#12161d; border-bottom:1px solid var(--border);}
+  .modal-head h3{margin:0; font-size:18px;}
+  .modal-body{padding:14px;}
+  .grid{display:grid; gap:10px;}
+  .g-2{grid-template-columns:1fr 1fr;}
+  .g-3{grid-template-columns:1fr 1fr 1fr;}
+  .modal-foot{display:flex; justify-content:flex-end; gap:8px; padding:12px 14px; border-top:1px solid var(--border); background:#12161d;}
+  .help{font-size:12px; color:var(--muted);}
+  @media (max-width:900px){
+    .cards{grid-template-columns:1fr}
+    .g-2,.g-3{grid-template-columns:1fr}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap">
+
+  <div class="page-head">
+    <h1>Pagos Recurrentes</h1>
+    <p>Administra pagos automáticos, recordatorios y próximos vencimientos.</p>
+  </div>
+
+  <div class="toolbar">
+    <a class="btn btn-ghost" href="{{ url_for('admin_dashboard') }}"><i class="fa fa-gauge"></i> Dashboard</a>
+    <a class="btn btn-ghost" href="{{ url_for('run_recurring_reminders_now') }}"><i class="fa fa-paper-plane"></i> Enviar recordatorios ahora</a>
+    <button id="btn-add" class="btn btn-primary"><i class="fa fa-plus"></i> Agregar</button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="cards">
+    <div class="card"><h4>Activos</h4><div class="kpi">{{ pagos|selectattr('activo')|list|length }}</div></div>
+    <div class="card"><h4>Inactivos</h4><div class="kpi">{{ pagos|rejectattr('activo')|list|length }}</div></div>
+    <div class="card"><h4>Total registros</h4><div class="kpi">{{ pagos|length }}</div></div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filter">
+    <div style="flex:1; min-width:220px;">
+      <input id="q" type="text" class="input" placeholder="Buscar: concepto, proveedor, correo…" />
+    </div>
+    <div style="width:170px;">
+      <label class="help">Estado</label>
+      <select id="f-estado">
+        <option value="">Todos</option>
+        <option value="1">Activos</option>
+        <option value="0">Inactivos</option>
+      </select>
+    </div>
+    <div style="width:200px;">
+      <label class="help">Periodicidad</label>
+      <select id="f-per">
+        <option value="">Todas</option>
+        <option value="semanal">Semanal</option>
+        <option value="quincenal">Quincenal</option>
+        <option value="mensual">Mensual</option>
+        <option value="bimestral">Bimestral</option>
+        <option value="anual">Anual</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Tabla (con scroll horizontal) -->
+  <div class="table-card">
+    <div class="table-scroll">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th class="col-sm">Concepto</th>
+            <th class="col-sm">Proveedor</th>
+            <th class="col-xs">Periodicidad</th>
+            <th class="col-xs">Próximo pago</th>
+            <th class="col-xs">Monto</th>
+            <th class="col-xs">Días aviso</th>
+            <th class="col-sm">Correos</th>
+            <th class="col-xs">Estado</th>
+            <th class="col-xs">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if pagos %}
+            {% for p in pagos %}
+              <tr data-row
+                  data-id="{{ p.id }}"
+                  data-nombre="{{ p.nombre|e }}"
+                  data-proveedor="{{ p.proveedor|e }}"
+                  data-descripcion="{{ p.descripcion|e }}"
+                  data-monto="{{ '%.2f'|format(p.monto or 0) }}"
+                  data-metodo_pago="{{ p.metodo_pago|e }}"
+                  data-banco="{{ p.banco|e }}"
+                  data-clabe="{{ p.clabe|e }}"
+                  data-periodicidad="{{ p.periodicidad }}"
+                  data-fecha_proximo_pago="{{ p.fecha_proximo_pago }}"
+                  data-dias_recordatorio="{{ p.dias_recordatorio }}"
+                  data-correos="{{ p.correos|e }}"
+                  data-activo="{{ p.activo }}">
+                <td><span class="ellipsis" title="{{ p.nombre }}">{{ p.nombre }}</span></td>
+                <td><span class="ellipsis" title="{{ p.proveedor or '' }}">{{ p.proveedor or '-' }}</span></td>
+                <td><span class="chip">{{ p.periodicidad|capitalize }}</span></td>
+                <td class="td-mono">{{ p.fecha_proximo_pago }}</td>
+                <td class="td-mono">${{ '%.2f'|format(p.monto or 0) }}</td>
+                <td class="td-mono">{{ p.dias_recordatorio }}</td>
+                <td><span class="ellipsis" style="max-width:220px" title="{{ p.correos or '' }}">{{ p.correos or '-' }}</span></td>
+                <td>
+                  {% if p.activo %}
+                    <span class="chip ok">Activo</span>
+                  {% else %}
+                    <span class="chip bad">Inactivo</span>
+                  {% endif %}
+                </td>
+                <td class="row-actions">
+                  <form method="post" action="{{ url_for('toggle_pago_recurrente', pid=p.id) }}" style="display:inline">
+                    <button class="icon-btn tippy" aria-label="{{ 'Desactivar' if p.activo else 'Activar' }}" title="{{ 'Desactivar' if p.activo else 'Activar' }}">
+                      <i class="fa {{ 'fa-toggle-on' if p.activo else 'fa-toggle-off' }}"></i>
+                    </button>
+                  </form>
+                  <form method="post" action="{{ url_for('avanzar_fecha_pago_recurrente', pid=p.id) }}" style="display:inline">
+                    <button class="icon-btn tippy" aria-label="Avanzar fecha" title="Avanzar fecha">
+                      <i class="fa fa-forward"></i>
+                    </button>
+                  </form>
+                  <button class="icon-btn tippy" aria-label="Editar" title="Editar" data-edit="{{ p.id }}">
+                    <i class="fa fa-pen"></i>
+                  </button>
+                  <form method="post" action="{{ url_for('eliminar_pago_recurrente', pid=p.id) }}"
+                        onsubmit="return confirm('¿Eliminar este pago recurrente?')"
+                        style="display:inline">
+                    <button class="icon-btn tippy" aria-label="Eliminar" title="Eliminar" style="background:#2a1212;border-color:#3a1a1a;">
+                      <i class="fa fa-trash"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="9" style="text-align:center; padding:22px; color:var(--muted)">No hay pagos recurrentes registrados.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Agregar/Editar -->
+<div class="modal" id="modal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 id="modal-title">Agregar pago recurrente</h3>
+      <button class="btn btn-sm" id="btn-close">Cerrar</button>
+    </div>
+    <form id="frm" method="post" action="{{ url_for('crear_pago_recurrente') }}">
+      <div class="modal-body">
+        <div class="grid g-2">
+          <label>Concepto / Nombre
+            <input class="input" name="nombre" required />
+          </label>
+          <label>Proveedor / Destinatario
+            <input class="input" name="proveedor" />
+          </label>
+        </div>
+
+        <label>Descripción
+          <textarea class="input" name="descripcion" rows="3" placeholder="Detalles, referencia, etc."></textarea>
+        </label>
+
+        <div class="grid g-3">
+          <label>Método de pago
+            <input class="input" name="metodo_pago" placeholder="Transferencia, SPEI, tarjeta…" />
+          </label>
+          <label>Banco
+            <input class="input" name="banco" />
+          </label>
+          <label>CLABE
+            <input class="input" name="clabe" />
+          </label>
+        </div>
+
+        <div class="grid g-3">
+          <label>Periodicidad
+            <select name="periodicidad" required>
+              <option value="semanal">Semanal</option>
+              <option value="quincenal">Quincenal</option>
+              <option value="mensual" selected>Mensual</option>
+              <option value="bimestral">Bimestral</option>
+              <option value="anual">Anual</option>
+            </select>
+          </label>
+          <label>Próximo pago
+            <input class="input" name="fecha_proximo_pago" type="date" required />
+          </label>
+          <label>Días de recordatorio
+            <input class="input" name="dias_recordatorio" type="number" min="0" value="2" />
+          </label>
+        </div>
+
+        <div class="grid g-2">
+          <label>Monto
+            <input class="input" name="monto" type="number" step="0.01" min="0" required />
+          </label>
+          <label>Correos (separados por coma)
+            <input class="input" name="correos" placeholder="correo@empresa.com, otro@empresa.com" />
+          </label>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn" id="btn-cancel">Cancelar</button>
+        <button class="btn btn-primary" id="btn-submit">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+
+  const modal = $("#modal");
+  const frm = $("#frm");
+  const title = $("#modal-title");
+  const btnAdd = $("#btn-add");
+  const btnClose = $("#btn-close");
+  const btnCancel = $("#btn-cancel");
+
+  function openModal(){ modal.classList.add("show"); }
+  function closeModal(){ modal.classList.remove("show"); }
+
+  btnAdd.addEventListener("click", () => {
+    title.textContent = "Agregar pago recurrente";
+    frm.action = "{{ url_for('crear_pago_recurrente') }}";
+    frm.reset();
+    openModal();
+  });
+  btnClose.addEventListener("click", closeModal);
+  btnCancel.addEventListener("click", closeModal);
+  modal.addEventListener("click", (e)=>{ if(e.target === modal) closeModal(); });
+
+  // Editar: llenar modal con datos del <tr>
+  $$("button[data-edit]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-edit");
+      const tr = btn.closest("tr[data-row]");
+      title.textContent = "Editar pago recurrente";
+      frm.action = `/pagos_recurrentes/${id}/editar`;
+
+      frm.elements["nombre"].value = tr.dataset.nombre || "";
+      frm.elements["proveedor"].value = tr.dataset.proveedor || "";
+      frm.elements["descripcion"].value = tr.dataset.descripcion || "";
+      frm.elements["monto"].value = tr.dataset.monto || "";
+      frm.elements["metodo_pago"].value = tr.dataset.metodo_pago || "";
+      frm.elements["banco"].value = tr.dataset.banco || "";
+      frm.elements["clabe"].value = tr.dataset.clabe || "";
+      frm.elements["periodicidad"].value = tr.dataset.periodicidad || "mensual";
+      frm.elements["fecha_proximo_pago"].value = tr.dataset.fecha_proximo_pago || "";
+      frm.elements["dias_recordatorio"].value = tr.dataset.dias_recordatorio || 2;
+      frm.elements["correos"].value = tr.dataset.correos || "";
+      openModal();
+    });
+  });
+
+  /* Filtros rápidos en cliente */
+  function applyFilters(){
+    const q = ($("#q").value || "").toLowerCase();
+    const fe = $("#f-estado").value;
+    const fp = $("#f-per").value;
+
+    $$("#tbl tbody tr[data-row]").forEach(tr => {
+      const txt = (tr.dataset.nombre + " " + tr.dataset.proveedor + " " + tr.dataset.correos).toLowerCase();
+      let ok = true;
+      if(q && !txt.includes(q)) ok = false;
+      if(fe !== "" && tr.dataset.activo !== fe) ok = false;
+      if(fp && tr.dataset.periodicidad !== fp) ok = false;
+      tr.style.display = ok ? "" : "none";
+    });
+  }
+  $("#q").addEventListener("input", applyFilters);
+  $("#f-estado").addEventListener("change", applyFilters);
+  $("#f-per").addEventListener("change", applyFilters);
+</script>
+{% endblock %}

@@ -1,0 +1,152 @@
+{% extends "layout.html" %}
+{% block title %}Calendario{% endblock %}
+{% block content %}
+<div class="container my-4">
+  <h2 class="text-center mb-4">Calendario de Pagos Aprobados</h2>
+  <div id="calendar"></div>
+</div>
+
+<!-- Modal para mostrar detalles del evento -->
+<div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="eventModalLabel">Detalles del Evento</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <!-- Se llenará dinámicamente -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Contenedor oculto para los datos JSON de los eventos -->
+<script id="events-data" type="application/json">
+{{ events_json|safe }}
+</script>
+
+<!-- FullCalendar CSS -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.7/main.min.css" rel="stylesheet" />
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+<!-- FullCalendar (versión global) y Bootstrap Bundle JS -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.7/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<style>
+  /* Contenedor del calendario: ocupa el 80% de la altura del viewport y tiene fondo y sombra */
+  #calendar {
+      width: 100%;
+      height: 80vh;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #2C2C2C;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+  /* Estilos para la toolbar de FullCalendar */
+  .fc .fc-toolbar {
+      background-color: #1F1F1F;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+  }
+  .fc .fc-toolbar-title {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #F37C22;
+  }
+  .fc-button {
+      background-color: #F37C22;
+      border: none;
+      color: #fff;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+      margin-right: 5px;
+  }
+  .fc-button:hover {
+      background-color: #e06d17;
+  }
+  /* Estilos para los días del mes */
+  .fc-daygrid-day-number {
+      font-weight: bold;
+      color: #EAEAEA;
+  }
+  .fc-daygrid-day-frame {
+      border: 1px solid #444;
+  }
+  /* Estilos para los eventos */
+  .fc-event {
+      background-color: #F37C22;
+      border: 1px solid #F37C22;
+      color: #fff;
+      font-weight: bold;
+      padding: 2px 4px;
+      border-radius: 4px;
+      cursor: pointer;
+  }
+  /* Fuente y color global para FullCalendar */
+  .fc {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      color: #040000;
+  }
+</style>
+
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    // Recupera y parsea el JSON de eventos del elemento con id "events-data"
+    var eventsDataEl = document.getElementById('events-data');
+    var events = [];
+    try {
+        events = JSON.parse(eventsDataEl.textContent.trim());
+    } catch (error) {
+        console.error("Error al parsear JSON de eventos:", error);
+    }
+    console.log("Eventos:", events); // Para depuración
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        themeSystem: 'bootstrap5',
+        dayMaxEvents: 3,
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        events: events,
+        eventClick: function(info) {
+            var eventObj = info.event;
+            var details = '<div class="container">' +
+                '<h4>' + eventObj.title + '</h4>' +
+                '<p><strong>Fecha Límite de Pago:</strong> ' + eventObj.startStr + '</p>' +
+                '<p><strong>Correo(s):</strong> ' + eventObj.extendedProps.correo + '</p>' +
+                '<p><strong>Departamento:</strong> ' + eventObj.extendedProps.departamento + '</p>' +
+                '<p><strong>Tipo Solicitud:</strong> ' + eventObj.extendedProps.tipo_solicitud + '</p>' +
+                '<p><strong>Tipo de Pago:</strong> ' + eventObj.extendedProps.tipo_pago + '</p>' +
+                '<p><strong>Descripción:</strong> ' + eventObj.extendedProps.descripcion + '</p>' +
+                '<p><strong>Datos de Depósito:</strong> ' + eventObj.extendedProps.datos_deposito + '</p>' +
+                '<p><strong>Banco:</strong> ' + eventObj.extendedProps.banco + '</p>' +
+                '<p><strong>CLABE:</strong> ' + eventObj.extendedProps.clabe + '</p>' +
+                '<p><strong>Monto:</strong> $' + Number(eventObj.extendedProps.monto).toFixed(2) + '</p>' +
+                '<p><strong>Fecha de Solicitud:</strong> ' + eventObj.extendedProps.fecha + '</p>' +
+                '<p><strong>Estado:</strong> ' + eventObj.extendedProps.estado + '</p>' +
+                '</div>';
+            document.getElementById('modalBody').innerHTML = details;
+            var eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+            eventModal.show();
+        },
+        eventDidMount: function(info) {
+            info.el.style.backgroundColor = '#F37C22';
+            info.el.style.borderColor = '#F37C22';
+        }
+    });
+    calendar.render();
+});
+</script>
+{% endblock %}

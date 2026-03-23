@@ -1,0 +1,1121 @@
+{% extends "layout.html" %}
+{% block title %}Editar Solicitud{% endblock %}
+
+{% block content %}
+<style>
+  .form-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 1.5rem;
+  }
+
+  .form-header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #e06d17 100%);
+    color: var(--text-color);
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  .form-header h2 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 300;
+  }
+
+  .form-header p {
+    margin: 0.5rem 0 0 0;
+    opacity: 0.9;
+    font-size: 1rem;
+  }
+
+  .form-section {
+    background: var(--header-bg);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  .section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--border-color);
+  }
+
+  .form-grid {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 768px) {
+    .form-grid-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .required {
+    color: var(--error-color);
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    padding: 0.75rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(243, 124, 34, 0.1);
+  }
+
+  .checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--input-bg);
+    border-radius: 8px;
+    border: 2px solid var(--border-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .checkbox-group:hover {
+    background: var(--header-bg);
+    border-color: var(--primary-color);
+  }
+
+  .checkbox-group input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--primary-color);
+    cursor: pointer;
+  }
+
+  .dynamic-section {
+    background: var(--input-bg);
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+  }
+
+  .dynamic-section.active {
+    background: var(--header-bg);
+    border-color: var(--primary-color);
+  }
+
+  .btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+
+  .btn-primary {
+    background: var(--primary-color);
+    color: var(--text-color);
+  }
+
+  .btn-primary:hover {
+    background: #e06d17;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(243, 124, 34, 0.4);
+  }
+
+  .btn-secondary {
+    background: #6b7280;
+    color: var(--text-color);
+  }
+
+  .btn-secondary:hover {
+    background: #4b5563;
+  }
+
+  .submit-section {
+    background: linear-gradient(135deg, var(--input-bg) 0%, var(--header-bg) 100%);
+    padding: 2rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .submit-btn {
+    font-size: 1rem;
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, var(--primary-color) 0%, #e06d17 100%);
+    box-shadow: 0 4px 20px rgba(243, 124, 34, 0.3);
+  }
+
+  .submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(243, 124, 34, 0.4);
+  }
+
+  /* Estilos para archivos adjuntos */
+  .archivos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .archivo-item {
+    background: var(--input-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    transition: all 0.2s ease;
+  }
+
+  .archivo-item:hover {
+    border-color: var(--primary-color);
+    background: var(--header-bg);
+  }
+
+  .archivo-item-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    color: var(--text-color);
+  }
+
+  .archivo-item-header .emoji {
+    font-size: 1.25rem;
+  }
+
+  .file-input-wrapper {
+    position: relative;
+  }
+
+  .file-input-wrapper input[type="file"] {
+    display: none;
+  }
+
+  .file-input-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: var(--header-bg);
+    border: 2px dashed var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+    color: var(--text-color);
+  }
+
+  .file-input-label:hover {
+    border-color: var(--primary-color);
+    background: var(--input-bg);
+  }
+
+  .file-display {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--success-color);
+    display: none;
+  }
+
+  .file-display.active {
+    display: block;
+  }
+
+  .archivo-actual {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: var(--header-bg);
+    border-radius: 6px;
+    border: 1px solid var(--success-color);
+  }
+
+  .archivo-actual-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--success-color);
+    margin-bottom: 0.5rem;
+  }
+
+  .archivo-actual-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--primary-color);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+  }
+
+  .archivo-actual-link:hover {
+    color: #e06d17;
+    text-decoration: underline;
+  }
+
+  .info-tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+  }
+
+  .info-tooltip .tooltip-text {
+    visibility: hidden;
+    width: 200px;
+    background-color: var(--header-bg);
+    color: var(--text-color);
+    text-align: center;
+    border-radius: 6px;
+    padding: 0.5rem;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.75rem;
+    border: 1px solid var(--border-color);
+  }
+
+  .info-tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  .correo-row {
+    background: var(--header-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 0.5rem 0;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .correo-row input,
+  .correo-row select {
+    margin: 0;
+  }
+
+  .remove-btn {
+    background: var(--error-color);
+    color: var(--text-color);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .remove-btn:hover {
+    background: #c82333;
+    transform: scale(1.1);
+  }
+
+  @media (max-width: 767px) {
+    .form-container {
+      padding: 0.5rem;
+    }
+
+    .form-section {
+      padding: 1.5rem;
+    }
+
+    .form-grid-2 {
+      grid-template-columns: 1fr;
+    }
+
+    .archivos-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .submit-section {
+      flex-direction: column;
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+
+<div class="form-container">
+  <div class="form-header">
+    <h2>✏️ Editar Solicitud de Pago</h2>
+    <p>ID: {{ solicitud.id }} | FP: {{ solicitud.fp }}</p>
+  </div>
+
+  <form method="POST" enctype="multipart/form-data">
+    <!-- Sección 1: Información del Solicitante -->
+    <div class="form-section">
+      <div class="section-title">
+        👤 Información del Solicitante
+      </div>
+
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label for="nombre">
+            Nombre del Solicitante <span class="required">*</span>
+          </label>
+          <input type="text" name="nombre" id="nombre" value="{{ solicitud.nombre }}" required>
+        </div>
+
+        <div class="form-group">
+          <label for="fp">
+            Folio de Proyecto (FP) <span class="required">*</span>
+          </label>
+          <input type="text" name="fp" id="fp" value="{{ solicitud.fp }}" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="departamento">
+          Departamento <span class="required">*</span>
+        </label>
+        <input type="text" name="departamento" id="departamento" value="{{ solicitud.departamento }}" required>
+      </div>
+    </div>
+
+    <!-- Sección 2: Destinatario y Tipo de Pago -->
+    <div class="form-section">
+      <div class="section-title">
+        🏢 Información del Destinatario
+      </div>
+
+      <div class="form-group">
+        <label for="destinatario">
+          Destinatario (A quién se le pagará) <span class="required">*</span>
+        </label>
+        <input type="text" name="destinatario" id="destinatario" value="{{ solicitud.destinatario }}" required>
+      </div>
+
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label for="banco">
+            Banco (Cuenta destino) <span class="required">*</span>
+          </label>
+          <input type="text" name="banco" id="banco" value="{{ solicitud.banco }}" required>
+        </div>
+
+        <div class="form-group">
+          <label for="clabe">
+            CLABE (Cuenta destino) <span class="required">*</span>
+          </label>
+          <input type="text" name="clabe" id="clabe" value="{{ solicitud.clabe }}" required maxlength="18">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="referencia">
+          Referencia del Proveedor
+        </label>
+        <input type="text" name="referencia" id="referencia" value="{{ solicitud.referencia or '' }}">
+      </div>
+    </div>
+
+    <!-- Sección 3: Detalles de la Solicitud -->
+    <div class="form-section">
+      <div class="section-title">
+        📋 Detalles de la Solicitud
+      </div>
+
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label for="tipo_solicitud">
+            Tipo de Solicitud <span class="required">*</span>
+          </label>
+          <select name="tipo_solicitud" id="tipo_solicitud" required onchange="toggleCategoriaAdministrativa()">
+            <option value="Viáticos" {% if solicitud.tipo_solicitud=="Viáticos" %}selected{% endif %}>💼 Viáticos
+            </option>
+            <option value="Compras" {% if solicitud.tipo_solicitud=="Compras" %}selected{% endif %}>🛒 Compras</option>
+            <option value="Administrativos" {% if solicitud.tipo_solicitud=="Administrativos" %}selected{% endif %}>📄
+              Administrativos</option>
+            <option value="Otro" {% if solicitud.tipo_solicitud=="Otro" %}selected{% endif %}>📂 Otro</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="categoria-administrativa-container"
+          style="display: {% if solicitud.tipo_solicitud == 'Administrativos' %}block{% else %}none{% endif %};">
+          <label for="categoria_administrativa">
+            Categoría Administrativa <span class="required">*</span>
+          </label>
+          <select name="categoria_administrativa" id="categoria_administrativa">
+            <option value="">--Seleccione una categoría--</option>
+            {% for concepto in conceptos_indirectos %}
+            <option value="{{ concepto.concepto }}" {% if solicitud.categoria_administrativa==concepto.concepto
+              %}selected{% endif %}>{{ concepto.concepto }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="tipo_pago">
+            Tipo de Pago <span class="required">*</span>
+          </label>
+          <select name="tipo_pago" id="tipo_pago" required onchange="calcularComision()">
+            <option value="BBVA Sin factura" {% if solicitud.tipo_pago=="BBVA Sin factura" %}selected{% endif %}>🏦 BBVA
+              Sin factura</option>
+            <option value="BBVA Con factura" {% if solicitud.tipo_pago=="BBVA Con factura" %}selected{% endif %}>🏦 BBVA
+              Con factura</option>
+            <option value="Santander" {% if solicitud.tipo_pago=="Santander" %}selected{% endif %}>🏦 Santander</option>
+            <option value="HSBC" {% if solicitud.tipo_pago=="HSBC" %}selected{% endif %}>🏦 HSBC</option>
+            <option value="TDC Corp" {% if solicitud.tipo_pago=="TDC Corp" %}selected{% endif %}>💳 TDC Corp</option>
+            <option value="TDC personal" {% if solicitud.tipo_pago=="TDC personal" %}selected{% endif %}>💳 TDC personal
+            </option>
+            <option value="Efectivo" {% if solicitud.tipo_pago=="Efectivo" %}selected{% endif %}>💵 Efectivo</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label for="estado">
+            Estado <span class="required">*</span>
+          </label>
+          <select name="estado" id="estado" required>
+            <option value="Pendiente" {% if solicitud.estado=="Pendiente" %}selected{% endif %}>Pendiente</option>
+            <option value="Aprobado" {% if solicitud.estado=="Aprobado" %}selected{% endif %}>Aprobado</option>
+            <option value="Aprobado con anticipo" {% if solicitud.estado=="Aprobado con anticipo" %}selected{% endif %}>
+              Aprobado con Anticipo</option>
+            <option value="Liquidado" {% if solicitud.estado=="Liquidado" %}selected{% endif %}>Liquidado</option>
+            <option value="Liquidado con anticipo" {% if solicitud.estado=="Liquidado con anticipo" %}selected{% endif
+              %}>Liquidado con Anticipo</option>
+            <option value="Liquidacion total" {% if solicitud.estado=="Liquidacion total" %}selected{% endif %}>
+              Liquidación Total</option>
+            <option value="Programado" {% if solicitud.estado=="Programado" %}selected{% endif %}>Programado</option>
+            <option value="Declinada" {% if solicitud.estado=="Declinada" %}selected{% endif %}>Declinada</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="fecha_limite">
+            Fecha Límite de Pago <span class="required">*</span>
+          </label>
+          <input type="date" name="fecha_limite" id="fecha_limite" value="{{ solicitud.fecha_limite }}" required>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sección 4: Información Financiera y Contacto -->
+    <div class="form-section">
+      <div class="section-title">
+        💰 Información Financiera y Contacto
+      </div>
+
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label for="monto">
+            Monto <span class="required">*</span>
+            <span id="label-monto-tipo">({% if solicitud.tiene_comision == 1 %}con comisión{% else %}sin comisión{%
+              endif %})</span>
+          </label>
+          <input type="text" name="monto" id="monto"
+            value="{{ '{:,.2f}'.format(solicitud.monto if solicitud.monto else 0) }}"
+            oninput="formatMonto(this); calcularComision();" required>
+          <div id="info-comision"
+            style="display: {% if solicitud.tiene_comision == 1 %}block{% else %}none{% endif %}; margin-top: 0.5rem; padding: 0.75rem; background: var(--input-bg); border-radius: 6px; border: 1px solid var(--border-color);">
+            <div style="font-size: 0.875rem; color: var(--text-color);">
+              <div>💡 Comisión BBVA (6%): <span id="monto-comision"
+                  style="font-weight: 600; color: var(--primary-color);">${{ '{:,.2f}'.format(solicitud.monto_comision
+                  if solicitud.monto_comision else 0) }}</span></div>
+              <div style="margin-top: 0.25rem;">💰 Monto sin comisión: <span id="monto-sin-comision"
+                  style="font-weight: 600; color: var(--success-color);">${{
+                  '{:,.2f}'.format(solicitud.monto_sin_comision if solicitud.monto_sin_comision else 0) }}</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="checkbox-group" onclick="toggleCheckbox('anticipo')">
+            <input type="checkbox" name="anticipo" id="anticipo" {% if solicitud.anticipo and
+              solicitud.anticipo|lower=='si' %}checked{% endif %} onchange="toggleAnticipoField(this)">
+            <label for="anticipo" style="cursor: pointer; font-weight: 500;">
+              💳 Se dará anticipo para este pago
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sección de Anticipo -->
+      <div id="anticipo-container"
+        style="display:{% if solicitud.anticipo and solicitud.anticipo|lower == 'si' %}block{% else %}none{% endif %};"
+        class="dynamic-section active">
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label for="tipo_anticipo">
+              Tipo de Anticipo <span class="required">*</span>
+            </label>
+            <select name="tipo_anticipo" id="tipo_anticipo" onchange="toggleTipoAnticipo()">
+              <option value="porcentaje" {% if solicitud.tipo_anticipo=='porcentaje' or not solicitud.tipo_anticipo
+                %}selected{% endif %}>Por Porcentaje (%)</option>
+              <option value="cantidad" {% if solicitud.tipo_anticipo=='cantidad' %}selected{% endif %}>Por Cantidad ($)
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group" id="anticipo-porcentaje-group"
+            style="display: {% if solicitud.tipo_anticipo == 'cantidad' %}none{% else %}block{% endif %};">
+            <label for="porcentaje_anticipo">
+              Porcentaje de Anticipo (%) <span class="required">*</span>
+            </label>
+            <input type="number" name="porcentaje_anticipo" id="porcentaje_anticipo" min="0" max="100" step="0.01"
+              value="{{ solicitud.porcentaje_anticipo if solicitud.porcentaje_anticipo else 0 }}"
+              oninput="calcularAnticipoPorcentaje()">
+          </div>
+
+          <div class="form-group" id="anticipo-cantidad-group"
+            style="display: {% if solicitud.tipo_anticipo == 'cantidad' %}block{% else %}none{% endif %};">
+            <label for="monto_anticipo">
+              Monto de Anticipo ($) <span class="required">*</span>
+            </label>
+            <input type="text" name="monto_anticipo" id="monto_anticipo"
+              value="{{ '{:,.2f}'.format(solicitud.monto_anticipo if solicitud.monto_anticipo else 0) }}"
+              oninput="formatMonto(this); calcularAnticipoCantidad()">
+          </div>
+        </div>
+
+        <div
+          style="margin-top: 1rem; padding: 1rem; background: var(--input-bg); border-radius: 6px; border: 1px solid var(--border-color);">
+          <div style="font-size: 0.875rem; color: var(--text-color);">
+            <div>💵 Anticipo: <span id="display-anticipo" style="font-weight: 600; color: var(--primary-color);">${{
+                '{:,.2f}'.format(solicitud.monto_anticipo if solicitud.monto_anticipo else 0) }}</span> <span
+                id="display-anticipo-porcentaje" style="color: #6b7280;">({{
+                '{:.2f}'.format(solicitud.porcentaje_anticipo if solicitud.porcentaje_anticipo else 0) }}%)</span></div>
+            <div style="margin-top: 0.25rem;">💰 Monto restante: <span id="display-restante"
+                style="font-weight: 600; color: var(--success-color);">${{ '{:,.2f}'.format(solicitud.monto_restante if
+                solicitud.monto_restante else 0) }}</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Correos -->
+      <div class="form-group">
+        <label for="correo-dropdown">
+          Correos Electrónicos de Notificación <span class="required">*</span>
+        </label>
+        <div id="correos-container">
+          {% set correos_list = solicitud.correo.split(',') if solicitud.correo else [] %}
+          {% for correo in correos_list %}
+          <div class="correo-row">
+            <select class="correo-select" required>
+              <option value="">--Seleccione un correo--</option>
+              <option value="dagarcia@ad17solutions.com" {% if correo.strip()=='dagarcia@ad17solutions.com' %}selected{%
+                endif %}>dagarcia@ad17solutions.com</option>
+              <option value="marivero@ad17solutions.com" {% if correo.strip()=='marivero@ad17solutions.com' %}selected{%
+                endif %}>marivero@ad17solutions.com</option>
+              <option value="vmejia@ad17solutions.com" {% if correo.strip()=='vmejia@ad17solutions.com' %}selected{%
+                endif %}>vmejia@ad17solutions.com</option>
+              <option value="gadelarosa@ad17solutions.com" {% if correo.strip()=='gadelarosa@ad17solutions.com'
+                %}selected{% endif %}>gadelarosa@ad17solutions.com</option>
+              <option value="datoledano@ad17solutions.com" {% if correo.strip()=='datoledano@ad17solutions.com'
+                %}selected{% endif %}>datoledano@ad17solutions.com</option>
+              <option value="otro" {% if correo.strip() not in
+                ['dagarcia@ad17solutions.com', 'marivero@ad17solutions.com' , 'vmejia@ad17solutions.com'
+                , 'gadelarosa@ad17solutions.com' , 'datoledano@ad17solutions.com' ] %}selected{% endif %}>Otro…</option>
+            </select>
+            <input type="email" class="correo-otro" placeholder="correo@empresa.com"
+              value="{% if correo.strip() not in ['dagarcia@ad17solutions.com', 'marivero@ad17solutions.com', 'vmejia@ad17solutions.com', 'gadelarosa@ad17solutions.com', 'datoledano@ad17solutions.com'] %}{{ correo.strip() }}{% endif %}"
+              style="display:{% if correo.strip() not in ['dagarcia@ad17solutions.com', 'marivero@ad17solutions.com', 'vmejia@ad17solutions.com', 'gadelarosa@ad17solutions.com', 'datoledano@ad17solutions.com'] %}block{% else %}none{% endif %};">
+            <input type="hidden" name="correo" class="correo-hidden" value="{{ correo.strip() }}">
+            {% if loop.first %}
+            <button type="button" onclick="agregarCorreo()" class="btn btn-primary"
+              style="padding: 0.5rem 1rem; font-size: 0.875rem;">➕ Agregar</button>
+            {% else %}
+            <button type="button" onclick="removerCorreo(this)" class="remove-btn">✕</button>
+            {% endif %}
+          </div>
+          {% endfor %}
+          {% if correos_list|length == 0 %}
+          <div class="correo-row">
+            <select class="correo-select" required>
+              <option value="">--Seleccione un correo--</option>
+              <option value="dagarcia@ad17solutions.com">dagarcia@ad17solutions.com</option>
+              <option value="marivero@ad17solutions.com">marivero@ad17solutions.com</option>
+              <option value="vmejia@ad17solutions.com">vmejia@ad17solutions.com</option>
+              <option value="gadelarosa@ad17solutions.com">gadelarosa@ad17solutions.com</option>
+              <option value="datoledano@ad17solutions.com">datoledano@ad17solutions.com</option>
+              <option value="otro">Otro…</option>
+            </select>
+            <input type="email" class="correo-otro" placeholder="correo@empresa.com" style="display:none;">
+            <input type="hidden" name="correo" class="correo-hidden">
+            <button type="button" onclick="agregarCorreo()" class="btn btn-primary"
+              style="padding: 0.5rem 1rem; font-size: 0.875rem;">➕ Agregar</button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Sección 5: Descripción y Archivos -->
+    <div class="form-section">
+      <div class="section-title">
+        📝 Información Adicional
+      </div>
+
+      <div class="form-group">
+        <label for="descripcion">
+          Descripción del Pago
+          <div class="info-tooltip">ℹ️
+            <span class="tooltip-text">Describa brevemente el concepto del pago</span>
+          </div>
+        </label>
+        <textarea name="descripcion" id="descripcion" rows="4"
+          placeholder="Describa el concepto del pago, materiales, servicios, etc."
+          maxlength="500">{{ solicitud.descripcion or '' }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="datos_deposito">
+          Datos de Depósito
+        </label>
+        <textarea name="datos_deposito" id="datos_deposito" rows="3"
+          placeholder="Información adicional sobre el depósito">{{ solicitud.datos_deposito or '' }}</textarea>
+      </div>
+
+      <!-- ARCHIVOS ADJUNTOS (3 tipos + legacy) -->
+      <div class="form-group">
+        <label>Archivos Adjuntos <span style="color: #6b7280; font-weight: 400;">(PDF, PNG, JPG, ZIP,
+            RAR)</span></label>
+
+        <div class="archivos-grid">
+          <!-- Factura -->
+          <div class="archivo-item">
+            <div class="archivo-item-header">
+              <span class="emoji">🧾</span>
+              <span>Factura</span>
+            </div>
+            {% if solicitud.archivo_factura %}
+            <div class="archivo-actual">
+              <div class="archivo-actual-header">
+                ✅ Archivo actual:
+              </div>
+              <a href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_factura) }}" target="_blank"
+                class="archivo-actual-link">
+                📥 {{ solicitud.archivo_factura }}
+              </a>
+            </div>
+            {% endif %}
+            <div class="file-input-wrapper" style="margin-top: 0.75rem;">
+              <input type="file" name="factura_file" id="factura_file" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar"
+                onchange="updateFileDisplay('factura_file', 'file-display-factura')">
+              <label for="factura_file" class="file-input-label">
+                📎 {% if solicitud.archivo_factura %}Cambiar{% else %}Seleccionar{% endif %} Factura
+              </label>
+              <div id="file-display-factura" class="file-display"></div>
+            </div>
+          </div>
+
+          <!-- Recibo -->
+          <div class="archivo-item">
+            <div class="archivo-item-header">
+              <span class="emoji">🧾</span>
+              <span>Recibo</span>
+            </div>
+            {% if solicitud.archivo_recibo %}
+            <div class="archivo-actual">
+              <div class="archivo-actual-header">
+                ✅ Archivo actual:
+              </div>
+              <a href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_recibo) }}" target="_blank"
+                class="archivo-actual-link">
+                📥 {{ solicitud.archivo_recibo }}
+              </a>
+            </div>
+            {% endif %}
+            <div class="file-input-wrapper" style="margin-top: 0.75rem;">
+              <input type="file" name="recibo_file" id="recibo_file" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar"
+                onchange="updateFileDisplay('recibo_file', 'file-display-recibo')">
+              <label for="recibo_file" class="file-input-label">
+                📎 {% if solicitud.archivo_recibo %}Cambiar{% else %}Seleccionar{% endif %} Recibo
+              </label>
+              <div id="file-display-recibo" class="file-display"></div>
+            </div>
+          </div>
+
+          <!-- Orden de Compra -->
+          <div class="archivo-item">
+            <div class="archivo-item-header">
+              <span class="emoji">📋</span>
+              <span>Orden de Compra</span>
+            </div>
+            {% if solicitud.archivo_orden_compra %}
+            <div class="archivo-actual">
+              <div class="archivo-actual-header">
+                ✅ Archivo actual:
+              </div>
+              <a href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_orden_compra) }}" target="_blank"
+                class="archivo-actual-link">
+                📥 {{ solicitud.archivo_orden_compra }}
+              </a>
+            </div>
+            {% endif %}
+            <div class="file-input-wrapper" style="margin-top: 0.75rem;">
+              <input type="file" name="orden_compra_file" id="orden_compra_file" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar"
+                onchange="updateFileDisplay('orden_compra_file', 'file-display-orden')">
+              <label for="orden_compra_file" class="file-input-label">
+                📎 {% if solicitud.archivo_orden_compra %}Cambiar{% else %}Seleccionar{% endif %} Orden
+              </label>
+              <div id="file-display-orden" class="file-display"></div>
+            </div>
+          </div>
+
+          <!-- Archivo Adjunto (Legacy) -->
+          {% if solicitud.archivo_adjunto %}
+          <div class="archivo-item">
+            <div class="archivo-item-header">
+              <span class="emoji">📎</span>
+              <span>Otro Adjunto</span>
+            </div>
+            <div class="archivo-actual">
+              <div class="archivo-actual-header">
+                ✅ Archivo actual:
+              </div>
+              <a href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_adjunto) }}" target="_blank"
+                class="archivo-actual-link">
+                📥 {{ solicitud.archivo_adjunto }}
+              </a>
+            </div>
+            <div class="file-input-wrapper" style="margin-top: 0.75rem;">
+              <input type="file" name="adjunto_file" id="adjunto_file" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar"
+                onchange="updateFileDisplay('adjunto_file', 'file-display-adjunto')">
+              <label for="adjunto_file" class="file-input-label">
+                📎 Cambiar Archivo
+              </label>
+              <div id="file-display-adjunto" class="file-display"></div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Sección de Envío -->
+    <div class="submit-section">
+      <button type="submit" class="btn submit-btn">
+        💾 Guardar Cambios
+      </button>
+      <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary" style="padding: 1rem 2rem; font-size: 1rem;">
+        ❌ Cancelar
+      </a>
+    </div>
+  </form>
+</div>
+
+<script>
+  // Constantes
+  const CORREO_OPTIONS_HTML = `
+  <option value="">--Seleccione un correo--</option>
+  <option value="dagarcia@ad17solutions.com">dagarcia@ad17solutions.com</option>
+  <option value="marivero@ad17solutions.com">marivero@ad17solutions.com</option>
+  <option value="vmejia@ad17solutions.com">vmejia@ad17solutions.com</option>
+  <option value="gadelarosa@ad17solutions.com">gadelarosa@ad17solutions.com</option>
+  <option value="datoledano@ad17solutions.com">datoledano@ad17solutions.com</option>
+  <option value="otro">Otro…</option>
+`;
+
+  // Variables globales
+  var tieneComision = {{ 'true' if solicitud.tiene_comision == 1 else 'false' }};
+  var porcentajeComision = 6.0;
+  var montoOriginal = {{ solicitud.monto if solicitud.monto else 0 }};
+  var montoSinComisionOriginal = {{ solicitud.monto_sin_comision if solicitud.monto_sin_comision else 0 }};
+
+  // Función para calcular comisión
+  function calcularComision() {
+    var tipoPago = document.getElementById('tipo_pago').value;
+    tieneComision = (tipoPago === 'BBVA Sin factura');
+
+    var infoComision = document.getElementById('info-comision');
+    var labelMonto = document.getElementById('label-monto-tipo');
+
+    if (infoComision) {
+      infoComision.style.display = tieneComision ? 'block' : 'none';
+    }
+
+    if (labelMonto) {
+      labelMonto.textContent = tieneComision ? '(con comisión)' : '(sin comisión)';
+    }
+
+    if (tieneComision) {
+      var montoInput = document.getElementById('monto');
+      var montoConComision = parseFloat(montoInput.value.replace(/,/g, '')) || 0;
+
+      // Calcular monto sin comisión: monto_sin_comision = (monto_con_comision * 94) / 100
+      var montoSinComision = (montoConComision * 94) / 100;
+      var montoComision = montoConComision - montoSinComision;
+
+      var spanComision = document.getElementById('monto-comision');
+      var spanSinComision = document.getElementById('monto-sin-comision');
+
+      if (spanComision) {
+        spanComision.textContent = '$' + montoComision.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      }
+      if (spanSinComision) {
+        spanSinComision.textContent = '$' + montoSinComision.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      }
+    }
+
+    // Recalcular anticipo si está activo
+    if (document.getElementById('anticipo').checked) {
+      var tipoAnticipo = document.getElementById('tipo_anticipo').value;
+      if (tipoAnticipo === 'porcentaje') {
+        calcularAnticipoPorcentaje();
+      } else {
+        calcularAnticipoCantidad();
+      }
+    }
+  }
+
+  // Función para mostrar/ocultar selector de categoría administrativa
+  function toggleCategoriaAdministrativa() {
+    var tipoSolicitud = document.getElementById('tipo_solicitud').value;
+    var categoriaContainer = document.getElementById('categoria-administrativa-container');
+    var categoriaSelect = document.getElementById('categoria_administrativa');
+
+    if (tipoSolicitud === 'Administrativos') {
+      categoriaContainer.style.display = 'block';
+      categoriaSelect.setAttribute('required', 'required');
+    } else {
+      categoriaContainer.style.display = 'none';
+      categoriaSelect.removeAttribute('required');
+    }
+  }
+
+  // Función para formatear monto
+  function formatMonto(input) {
+    var value = input.value.replace(/[^0-9.]/g, '');
+    var parts = value.split('.');
+    if (parts.length > 2) {
+      value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    if (parts.length === 2) {
+      value = parts[0] + '.' + parts[1].slice(0, 2);
+    }
+    input.value = value;
+
+    if (input.id === 'monto') {
+      calcularComision();
+    }
+  }
+
+  // Anticipo
+  function toggleCheckbox(id) {
+    const checkbox = document.getElementById(id);
+    checkbox.checked = !checkbox.checked;
+    if (id === 'anticipo') {
+      toggleAnticipoField(checkbox);
+    }
+  }
+
+  function toggleAnticipoField(cb) {
+    var container = document.getElementById('anticipo-container');
+    if (cb.checked) {
+      container.style.display = 'block';
+      container.classList.add('active');
+      toggleTipoAnticipo();
+      calcularAnticipoPorcentaje();
+    } else {
+      container.style.display = 'none';
+      container.classList.remove('active');
+      document.getElementById('porcentaje_anticipo').value = '';
+      document.getElementById('monto_anticipo').value = '';
+    }
+  }
+
+  function toggleTipoAnticipo() {
+    var tipo = document.getElementById('tipo_anticipo').value;
+    var porcentajeGroup = document.getElementById('anticipo-porcentaje-group');
+    var cantidadGroup = document.getElementById('anticipo-cantidad-group');
+
+    if (tipo === 'porcentaje') {
+      porcentajeGroup.style.display = 'block';
+      cantidadGroup.style.display = 'none';
+      document.getElementById('monto_anticipo').value = '';
+      calcularAnticipoPorcentaje();
+    } else {
+      porcentajeGroup.style.display = 'none';
+      cantidadGroup.style.display = 'block';
+      document.getElementById('porcentaje_anticipo').value = '';
+      calcularAnticipoCantidad();
+    }
+  }
+
+  function calcularAnticipoPorcentaje() {
+    var montoBase = parseFloat(document.getElementById('monto').value.replace(/,/g, '')) || 0;
+    var porcentaje = parseFloat(document.getElementById('porcentaje_anticipo').value) || 0;
+    var montoAnticipo = montoBase * (porcentaje / 100);
+    var montoRestante = montoBase - montoAnticipo;
+    actualizarDisplayAnticipo(montoAnticipo, porcentaje, montoRestante);
+  }
+
+  function calcularAnticipoCantidad() {
+    var montoBase = parseFloat(document.getElementById('monto').value.replace(/,/g, '')) || 0;
+    var montoAnticipo = parseFloat(document.getElementById('monto_anticipo').value.replace(/,/g, '')) || 0;
+    var porcentaje = montoBase > 0 ? (montoAnticipo / montoBase) * 100 : 0;
+    var montoRestante = montoBase - montoAnticipo;
+
+    if (montoAnticipo > montoBase) {
+      alert('El anticipo no puede ser mayor al monto total');
+      document.getElementById('monto_anticipo').value = montoBase.toFixed(2);
+      montoAnticipo = montoBase;
+      porcentaje = 100;
+      montoRestante = 0;
+    }
+    actualizarDisplayAnticipo(montoAnticipo, porcentaje, montoRestante);
+  }
+
+  function actualizarDisplayAnticipo(montoAnticipo, porcentaje, montoRestante) {
+    document.getElementById('display-anticipo').textContent = '$' + montoAnticipo.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    document.getElementById('display-anticipo-porcentaje').textContent = '(' + porcentaje.toFixed(2) + '%)';
+    document.getElementById('display-restante').textContent = '$' + montoRestante.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  // Correos
+  function initCorreoRow(row, isFirst = false) {
+    const select = row.querySelector('.correo-select');
+    const inputOtro = row.querySelector('.correo-otro');
+    const hidden = row.querySelector('.correo-hidden');
+    const addBtn = row.querySelector('.btn.btn-primary');
+
+    if (!isFirst && addBtn) { addBtn.remove(); }
+
+    function syncCorreo() {
+      if (select.value === 'otro') {
+        inputOtro.style.display = 'block';
+        inputOtro.required = true;
+        hidden.value = (inputOtro.value || '').trim();
+      } else {
+        inputOtro.style.display = 'none';
+        inputOtro.required = false;
+        hidden.value = select.value || '';
+      }
+    }
+
+    select.addEventListener('change', syncCorreo);
+    inputOtro.addEventListener('input', syncCorreo);
+    syncCorreo();
+  }
+
+  function agregarCorreo() {
+    const cont = document.getElementById('correos-container');
+    const div = document.createElement('div');
+    div.className = 'correo-row';
+    div.innerHTML = `
+    <select class="correo-select" required>${CORREO_OPTIONS_HTML}</select>
+    <input type="email" class="correo-otro" placeholder="correo@empresa.com" style="display:none;">
+    <input type="hidden" name="correo" class="correo-hidden">
+    <button type="button" onclick="removerCorreo(this)" class="remove-btn">✕</button>
+  `;
+    cont.appendChild(div);
+    initCorreoRow(div, false);
+  }
+
+  function removerCorreo(btn) {
+    btn.parentElement.remove();
+  }
+
+  // Mostrar nombre de archivo seleccionado
+  function updateFileDisplay(inputId, displayId) {
+    const input = document.getElementById(inputId);
+    const display = document.getElementById(displayId);
+    if (input.files[0]) {
+      display.innerHTML = `✅ Nuevo: ${input.files[0].name}`;
+      display.classList.add('active');
+    } else {
+      display.innerHTML = '';
+      display.classList.remove('active');
+    }
+  }
+
+  // Inicialización
+  document.addEventListener('DOMContentLoaded', function () {
+    // Inicializar correos existentes
+    document.querySelectorAll('#correos-container .correo-row').forEach((row, index) => {
+      initCorreoRow(row, index === 0);
+    });
+
+    // Calcular comisión inicial
+    calcularComision();
+
+    // Validación de CLABE
+    document.getElementById('clabe').addEventListener('input', function () {
+      if (this.value.length === 18) {
+        this.style.borderColor = '#10b981';
+      } else {
+        this.style.borderColor = 'var(--border-color)';
+      }
+    });
+  });
+</script>
+
+{% endblock %}

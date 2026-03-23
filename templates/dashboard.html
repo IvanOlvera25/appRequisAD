@@ -1,0 +1,499 @@
+{% extends "layout.html" %}
+
+{% block title %}Administración de Créditos | AD17 Solutions{% endblock %}
+
+{% block content %}
+<div class="creditos-container">
+    <div class="creditos-header">
+        <h1>Administración de Créditos</h1>
+        <a href="{{ url_for('nuevo_credito') }}" class="btn btn-primary">Nuevo Crédito</a>
+    </div>
+
+    <!-- Tarjetas de resumen -->
+    <div class="tarjetas-resumen">
+        <div class="tarjeta">
+            <h3>Total de Créditos</h3>
+            <p class="numero">{{ total_creditos|default(0) }}</p>
+            <p class="monto">${{ "{:,.2f}".format(monto_total_creditos|default(0)) }}</p>
+        </div>
+        <div class="tarjeta">
+            <h3>Créditos Activos</h3>
+            <p class="numero">{{ total_activos|default(0) }}</p>
+            <p class="monto">${{ "{:,.2f}".format(monto_activos|default(0)) }}</p>
+        </div>
+        <div class="tarjeta">
+            <h3>Pago Mensual Total</h3>
+            <p class="monto">${{ "{:,.2f}".format(pago_mensual_total|default(0)) }}</p>
+        </div>
+    </div>
+
+    <!-- Filtros y búsqueda -->
+    <div class="filtros-container">
+        <form method="GET" action="{{ url_for('creditos_dashboard') }}" class="filtro-form">
+            <div class="filtro-grupo">
+                <label for="estado">Estado:</label>
+                <select name="estado" id="estado" onchange="this.form.submit()">
+                    <option value="todos" {% if estado_filtro == "todos" %}selected{% endif %}>Todos</option>
+                    <option value="Activo" {% if estado_filtro == "Activo" %}selected{% endif %}>Activos</option>
+                    <option value="Liquidado" {% if estado_filtro == "Liquidado" %}selected{% endif %}>Liquidados</option>
+                    <option value="Suspendido" {% if estado_filtro == "Suspendido" %}selected{% endif %}>Suspendidos</option>
+                </select>
+            </div>
+
+            <div class="busqueda-grupo">
+                <input type="text" name="busqueda" placeholder="Buscar por nombre, entidad, proveedor..." value="{{ busqueda|default('') }}">
+                <button type="submit" class="btn btn-secondary">Buscar</button>
+            </div>
+        </form>
+
+        <div class="acciones-grupo">
+            <a href="{{ url_for('estadisticas_creditos') }}" class="btn btn-info">Estadísticas</a>
+        </div>
+    </div>
+
+    <!-- Tabla de créditos -->
+    <div class="tabla-responsive">
+        <table class="tabla-creditos">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Entidad</th>
+                    <th>Proveedor</th>
+                    <th>Tipo</th>
+                    <th>Monto Total</th>
+                    <th>Pagado</th>
+                    <th>Pendiente</th>
+                    <th>Progreso</th>
+                    <th>Pago Mensual</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if creditos %}
+                    {% for credito in creditos %}
+                    <tr class="{% if credito.estado == 'Liquidado' %}estado-liquidado{% elif credito.estado == 'Suspendido' %}estado-suspendido{% endif %}">
+                        <td><a href="{{ url_for('detalle_credito', credito_id=credito.id) }}" class="link-credito">{{ credito.nombre }}</a></td>
+                        <td>{{ credito.entidad }}</td>
+                        <td class="proveedor">
+                            {% if credito.nombre_proveedor %}
+                                <span class="badge-proveedor">{{ credito.nombre_proveedor }}</span>
+                            {% else %}
+                                <span class="sin-proveedor">Sin asignar</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ credito.tipo_credito }}</td>
+                        <td class="monto">${{ "{:,.2f}".format(credito.monto_total|default(0)) }}</td>
+                        <td class="monto">${{ "{:,.2f}".format(credito.monto_pagado|default(0)) }}</td>
+                        <td class="monto">${{ "{:,.2f}".format(credito.saldo_pendiente|default(0)) }}</td>
+                        <td>
+                            <div class="barra-progreso">
+                                <div class="progreso" style="width: {{ (credito.porcentaje_pagado|default(0))|round }}%"></div>
+                            </div>
+                            <span class="porcentaje">{{ (credito.porcentaje_pagado|default(0))|round }}%</span>
+                        </td>
+                        <td class="monto">${{ "{:,.2f}".format(credito.pago_mensual|default(0)) }}</td>
+                        <td>
+                            <span class="etiqueta-estado estado-{{ credito.estado|lower }}">{{ credito.estado }}</span>
+                        </td>
+                        <td class="acciones">
+                            <a href="{{ url_for('detalle_credito', credito_id=credito.id) }}" class="btn btn-info btn-sm" title="Ver detalles">Ver</a>
+                            <a href="{{ url_for('editar_credito', credito_id=credito.id) }}" class="btn btn-secondary btn-sm" title="Editar">Editar</a>
+                            <a href="{{ url_for('nuevo_pago', credito_id=credito.id) }}" class="btn btn-update-status btn-sm" title="Registrar pago">Pagar</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="11" class="no-resultados">No hay créditos registrados.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .creditos-container {
+        background-color: var(--header-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        animation: fadeIn 0.5s ease-out;
+    }
+
+    .creditos-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .creditos-header h1 {
+        margin: 0;
+        color: var(--primary-color);
+        font-size: 1.8rem;
+    }
+
+    /* Tarjetas de resumen */
+    .tarjetas-resumen {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+        gap: 1rem;
+    }
+
+    .tarjeta {
+        background-color: var(--input-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1.5rem;
+        flex: 1;
+        text-align: center;
+        transition: all 0.3s ease;
+        animation: fadeIn 0.5s ease-out;
+    }
+
+    .tarjeta:hover {
+        transform: translateY(-2px);
+        border-color: var(--primary-color);
+    }
+
+    .tarjeta h3 {
+        margin: 0 0 1rem;
+        font-size: 1rem;
+        color: var(--text-color);
+        font-weight: bold;
+    }
+
+    .tarjeta .numero {
+        font-size: 2rem;
+        font-weight: bold;
+        margin: 0;
+        color: var(--primary-color);
+    }
+
+    .tarjeta .monto {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin: 0.5rem 0 0;
+        color: var(--success-color);
+    }
+
+    /* Filtros */
+    .filtros-container {
+        background-color: var(--input-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .filtro-form {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .filtro-grupo {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filtro-grupo label {
+        font-weight: bold;
+        color: var(--text-color);
+        white-space: nowrap;
+    }
+
+    .filtro-grupo select {
+        background-color: var(--input-bg);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 0.5rem;
+    }
+
+    .busqueda-grupo {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .busqueda-grupo input {
+        background-color: var(--input-bg);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 0.5rem;
+        width: 280px;
+    }
+
+    .busqueda-grupo input::placeholder {
+        color: #bbb;
+    }
+
+    .acciones-grupo {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn-sm {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.85rem;
+    }
+
+    /* Tabla de créditos */
+    .tabla-responsive {
+        overflow-x: auto;
+    }
+
+    .tabla-creditos {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        background-color: var(--input-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        overflow: hidden;
+        min-width: 1200px; /* Ancho mínimo para acomodar la nueva columna */
+    }
+
+    .tabla-creditos thead tr {
+        background-color: var(--header-bg);
+    }
+
+    .tabla-creditos th,
+    .tabla-creditos td {
+        text-align: left;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+    }
+
+    .tabla-creditos th {
+        font-weight: bold;
+        color: var(--primary-color);
+    }
+
+    .tabla-creditos tbody tr:hover {
+        background-color: rgba(243, 124, 34, 0.1);
+    }
+
+    .tabla-creditos .monto {
+        text-align: right;
+        font-weight: 500;
+    }
+
+    .link-credito {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .link-credito:hover {
+        text-decoration: underline;
+    }
+
+    /* Estilos para la columna de proveedor */
+    .proveedor {
+        max-width: 150px;
+        word-wrap: break-word;
+    }
+
+    .badge-proveedor {
+        display: inline-block;
+        background-color: rgba(243, 124, 34, 0.1);
+        color: var(--primary-color);
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        border: 1px solid rgba(243, 124, 34, 0.3);
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .sin-proveedor {
+        color: #bbb;
+        font-style: italic;
+        font-size: 0.9rem;
+    }
+
+    .barra-progreso {
+        width: 100%;
+        height: 8px;
+        background-color: var(--background);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 5px;
+        border: 1px solid var(--border-color);
+    }
+
+    .progreso {
+        height: 100%;
+        background-color: var(--success-color);
+        border-radius: 4px;
+        transition: width 0.3s ease;
+    }
+
+    .porcentaje {
+        font-size: 0.8rem;
+        color: var(--text-color);
+    }
+
+    .etiqueta-estado {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+
+    .estado-activo {
+        background-color: rgba(40, 167, 69, 0.2);
+        color: var(--success-color);
+        border: 1px solid var(--success-color);
+    }
+
+    .estado-liquidado {
+        background-color: rgba(23, 162, 184, 0.2);
+        color: #17a2b8;
+        border: 1px solid #17a2b8;
+    }
+
+    .estado-suspendido {
+        background-color: rgba(220, 53, 69, 0.2);
+        color: var(--error-color);
+        border: 1px solid var(--error-color);
+    }
+
+    .estado-liquidado {
+        background-color: rgba(23, 162, 184, 0.05);
+    }
+
+    .estado-suspendido {
+        background-color: rgba(220, 53, 69, 0.05);
+    }
+
+    .acciones {
+        white-space: nowrap;
+    }
+
+    .acciones .btn {
+        margin-right: 0.25rem;
+    }
+
+    .no-resultados {
+        text-align: center;
+        padding: 2rem;
+        color: #bbb;
+        font-style: italic;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .tarjetas-resumen {
+            flex-direction: column;
+        }
+
+        .filtros-container {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filtro-form {
+            justify-content: center;
+        }
+
+        .busqueda-grupo input {
+            width: 100%;
+        }
+
+        .acciones-grupo {
+            justify-content: center;
+        }
+
+        .tabla-creditos {
+            font-size: 0.9rem;
+            min-width: 1000px;
+        }
+
+        .tabla-creditos th,
+        .tabla-creditos td {
+            padding: 0.5rem;
+        }
+
+        /* En pantallas medianas, ocultar algunas columnas menos importantes */
+        .tabla-creditos th:nth-child(4), /* Tipo */
+        .tabla-creditos td:nth-child(4) {
+            display: none;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .creditos-header {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+
+        .filtro-form {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filtro-grupo {
+            justify-content: space-between;
+        }
+
+        .acciones .btn {
+            display: block;
+            margin-bottom: 0.25rem;
+            text-align: center;
+        }
+
+        .tabla-creditos {
+            min-width: 800px;
+        }
+
+        /* En móviles, ocultar más columnas para ahorrar espacio */
+        .tabla-creditos th:nth-child(3), /* Proveedor */
+        .tabla-creditos td:nth-child(3),
+        .tabla-creditos th:nth-child(4), /* Tipo */
+        .tabla-creditos td:nth-child(4),
+        .tabla-creditos th:nth-child(6), /* Pagado */
+        .tabla-creditos td:nth-child(6) {
+            display: none;
+        }
+
+        .busqueda-grupo input {
+            font-size: 16px; /* Prevenir zoom en iOS */
+        }
+    }
+
+    @media (max-width: 480px) {
+        .tabla-creditos {
+            min-width: 600px;
+        }
+
+        /* En pantallas muy pequeñas, mostrar solo lo esencial */
+        .tabla-creditos th:nth-child(8), /* Progreso */
+        .tabla-creditos td:nth-child(8) {
+            display: none;
+        }
+    }
+</style>
+{% endblock %}

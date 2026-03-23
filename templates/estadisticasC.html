@@ -1,0 +1,470 @@
+{% extends "layout.html" %}
+
+{% block title %}Estadísticas de Créditos | AD17 Solutions{% endblock %}
+
+{% block content %}
+<div class="estadisticas-container">
+    <div class="estadisticas-header">
+        <h1>📊 Estadísticas de Créditos</h1>
+        <a href="{{ url_for('creditos_dashboard') }}" class="btn btn-secondary">Volver al Listado</a>
+    </div>
+
+    <!-- Tarjetas de resumen -->
+    <div class="stats-summary">
+        <div class="card">
+            <h3>Total de Créditos</h3>
+            <p class="numero">{{ total_creditos|default(0) }}</p>
+            <p class="monto">${{ "{:,.2f}".format(monto_total_creditos|default(0)) }}</p>
+        </div>
+        <div class="card">
+            <h3>Créditos Activos</h3>
+            <p class="numero">{{ total_activos|default(0) }}</p>
+            <p class="monto">${{ "{:,.2f}".format(monto_activos|default(0)) }}</p>
+        </div>
+        <div class="card">
+            <h3>Créditos Liquidados</h3>
+            <p class="numero">{{ total_liquidados|default(0) }}</p>
+            <p class="monto">${{ "{:,.2f}".format(monto_liquidados|default(0)) }}</p>
+        </div>
+        <div class="card">
+            <h3>Pago Mensual Total</h3>
+            <p class="monto">${{ "{:,.2f}".format(pago_mensual_total|default(0)) }}</p>
+        </div>
+    </div>
+
+    <!-- Distribución por tipo de crédito -->
+    <div class="chart">
+        <h2>📈 Distribución por Tipo de Crédito</h2>
+        
+        {% if tipos_credito %}
+        <div class="grafico-container">
+            {% if grafico_tipo %}
+            <img src="data:image/png;base64,{{ grafico_tipo }}" alt="Gráfico de distribución por tipo" class="grafico-img">
+            {% else %}
+            <div class="no-data">No hay suficientes datos para generar el gráfico</div>
+            {% endif %}
+        </div>
+        
+        <div class="tabla-container">
+            <table class="tabla-estadisticas">
+                <thead>
+                    <tr>
+                        <th>Tipo de Crédito</th>
+                        <th>Cantidad</th>
+                        <th>Monto Total</th>
+                        <th>Porcentaje</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tipo in tipos_credito %}
+                    <tr>
+                        <td>{{ tipo.tipo_credito }}</td>
+                        <td class="numero">{{ tipo.cantidad }}</td>
+                        <td class="monto">${{ "{:,.2f}".format(tipo.monto|default(0)) }}</td>
+                        <td class="porcentaje">{{ "{:.1f}".format((tipo.monto / monto_total_creditos) * 100 if monto_total_creditos else 0) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="no-data">No hay datos disponibles</div>
+        {% endif %}
+    </div>
+
+    <!-- Distribución por entidad financiera -->
+    <div class="chart">
+        <h2>🏦 Distribución por Entidad Financiera</h2>
+        
+        {% if entidades %}
+        <div class="tabla-container">
+            <table class="tabla-estadisticas">
+                <thead>
+                    <tr>
+                        <th>Entidad</th>
+                        <th>Cantidad</th>
+                        <th>Monto Total</th>
+                        <th>Porcentaje</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entidad in entidades %}
+                    <tr>
+                        <td>{{ entidad.entidad }}</td>
+                        <td class="numero">{{ entidad.cantidad }}</td>
+                        <td class="monto">${{ "{:,.2f}".format(entidad.monto|default(0)) }}</td>
+                        <td class="porcentaje">{{ "{:.1f}".format((entidad.monto / monto_total_creditos) * 100 if monto_total_creditos else 0) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="no-data">No hay datos disponibles</div>
+        {% endif %}
+    </div>
+
+    <!-- Historial de pagos mensuales -->
+    <div class="chart">
+        <h2>💳 Historial de Pagos Mensuales</h2>
+        
+        {% if pagos_por_mes %}
+        <div class="grafico-container">
+            {% if grafico_pagos %}
+            <img src="data:image/png;base64,{{ grafico_pagos }}" alt="Gráfico de pagos mensuales" class="grafico-img">
+            {% else %}
+            <div class="no-data">No hay suficientes datos para generar el gráfico</div>
+            {% endif %}
+        </div>
+        
+        <div class="tabla-scroll-container">
+            <div class="tabla-dual">
+                <div class="tabla-section">
+                    <h3>Pagos Históricos</h3>
+                    <table class="tabla-estadisticas">
+                        <thead>
+                            <tr>
+                                <th>Mes</th>
+                                <th>Monto Pagado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pago in pagos_por_mes %}
+                            <tr>
+                                <td>{{ pago.mes }}</td>
+                                <td class="monto">${{ "{:,.2f}".format(pago.monto|default(0)) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="tabla-section">
+                    <h3>Proyección de Pagos</h3>
+                    {% if pago_mensual_total|default(0) > 0 %}
+                    <div class="proyeccion-info">
+                        <div class="info-item">
+                            <label>Pago Mensual Actual:</label>
+                            <span class="valor">${{ "{:,.2f}".format(pago_mensual_total|default(0)) }}</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Proyección Anual:</label>
+                            <span class="valor">${{ "{:,.2f}".format((pago_mensual_total|default(0)) * 12) }}</span>
+                        </div>
+                    </div>
+                    <table class="tabla-estadisticas">
+                        <thead>
+                            <tr>
+                                <th>Mes</th>
+                                <th>Proyección</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pago in proyeccion_pagos[:6] %}
+                            <tr>
+                                <td>{{ pago.mes }}</td>
+                                <td class="monto">${{ "{:,.2f}".format(pago.monto|default(0)) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="no-data">No hay créditos activos para generar proyecciones</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="no-data">No hay datos de pagos disponibles</div>
+        {% endif %}
+    </div>
+
+    <!-- Acciones -->
+   
+</div>
+
+<style>
+    .estadisticas-container {
+        margin-bottom: 2rem;
+        animation: fadeIn 0.5s ease-out;
+    }
+
+    .estadisticas-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        background-color: var(--header-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1.5rem;
+    }
+
+    .estadisticas-header h1 {
+        margin: 0;
+        color: var(--primary-color);
+        font-size: 1.8rem;
+    }
+
+    /* Redefinir stats-summary para créditos */
+    .stats-summary {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 2rem;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .stats-summary .card {
+        background-color: var(--header-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1.5rem;
+        text-align: center;
+        animation: fadeIn 0.5s ease-out;
+        min-width: 200px;
+        flex: 1;
+        max-width: 250px;
+        transition: all 0.3s ease;
+    }
+
+    .stats-summary .card:hover {
+        transform: translateY(-2px);
+        border-color: var(--primary-color);
+    }
+
+    .stats-summary .card h3 {
+        margin-bottom: 1rem;
+        color: var(--text-color);
+        font-size: 1rem;
+        font-weight: bold;
+    }
+
+    .stats-summary .card .numero {
+        font-size: 2rem;
+        font-weight: bold;
+        margin: 0.5rem 0;
+        color: var(--primary-color);
+    }
+
+    .stats-summary .card .monto {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin: 0;
+        color: var(--success-color);
+    }
+
+    /* Redefinir charts-container para créditos */
+    .chart {
+        background-color: var(--header-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        animation: fadeIn 0.5s ease-out;
+    }
+
+    .chart h2 {
+        margin-top: 0;
+        margin-bottom: 1.5rem;
+        color: var(--primary-color);
+        font-size: 1.3rem;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0.5rem;
+    }
+
+    /* Gráficos */
+    .grafico-container {
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+
+    .grafico-img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+
+    /* Tablas */
+    .tabla-container {
+        overflow-x: auto;
+    }
+
+    .tabla-scroll-container {
+        overflow-x: auto;
+    }
+
+    .tabla-dual {
+        display: flex;
+        gap: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .tabla-section {
+        flex: 1;
+        min-width: 300px;
+    }
+
+    .tabla-section h3 {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        color: var(--primary-color);
+        font-size: 1.1rem;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0.5rem;
+    }
+
+    .tabla-estadisticas {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: var(--input-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+
+    .tabla-estadisticas thead tr {
+        background-color: var(--header-bg);
+    }
+
+    .tabla-estadisticas th,
+    .tabla-estadisticas td {
+        text-align: left;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+    }
+
+    .tabla-estadisticas th {
+        font-weight: bold;
+        color: var(--primary-color);
+    }
+
+    .tabla-estadisticas tbody tr:hover {
+        background-color: rgba(243, 124, 34, 0.1);
+    }
+
+    .tabla-estadisticas .numero {
+        text-align: center;
+        font-weight: 500;
+    }
+
+    .tabla-estadisticas .monto {
+        text-align: right;
+        font-weight: 500;
+        color: var(--success-color);
+    }
+
+    .tabla-estadisticas .porcentaje {
+        text-align: center;
+        font-weight: 500;
+        color: var(--primary-color);
+    }
+
+    /* Proyección */
+    .proyeccion-info {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background-color: var(--input-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+    }
+
+    .proyeccion-info .info-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .proyeccion-info .info-item label {
+        font-weight: bold;
+        color: var(--text-color);
+    }
+
+    .proyeccion-info .info-item .valor {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: var(--primary-color);
+    }
+
+    /* Mensaje de no datos */
+    .no-data {
+        padding: 2rem;
+        text-align: center;
+        color: #bbb;
+        font-style: italic;
+        background-color: var(--input-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+    }
+
+    /* Acciones */
+    .acciones-container {
+        display: flex;
+        justify-content: center;
+        margin-top: 2rem;
+        padding: 1rem;
+        background-color: var(--header-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .estadisticas-header {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+        
+        .stats-summary {
+            flex-direction: column;
+        }
+
+        .stats-summary .card {
+            max-width: none;
+        }
+
+        .tabla-dual {
+            flex-direction: column;
+        }
+
+        .tabla-section {
+            min-width: auto;
+        }
+
+        .proyeccion-info {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .tabla-estadisticas {
+            font-size: 0.9rem;
+        }
+
+        .tabla-estadisticas th,
+        .tabla-estadisticas td {
+            padding: 0.5rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .chart {
+            padding: 1rem;
+        }
+
+        .stats-summary .card {
+            padding: 1rem;
+        }
+
+        .chart h2 {
+            font-size: 1.1rem;
+        }
+    }
+</style>
+{% endblock %}

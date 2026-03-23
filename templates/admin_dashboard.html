@@ -1,0 +1,968 @@
+{% extends "layout.html" %}
+{% block title %}Panel Admin{% endblock %}
+
+{% block content %}
+<style>
+  /* Estilo del badge de anticipo (naranja) */
+  .badge-anticipo {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    background: #ff8a1d;
+    color: #111;
+    font-weight: 700;
+    font-size: .75rem;
+    line-height: 1;
+    padding: .25rem .5rem;
+    border-radius: 999px;
+    border: 1px solid rgba(0,0,0,.15);
+    vertical-align: middle;
+  }
+  .col-monto .badge-anticipo { margin-left:.35rem; }
+
+  /* Estilos para archivos adjuntos */
+  .archivos-adjuntos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .archivo-adjunto-card {
+    padding: 0.75rem;
+    background: var(--input-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+  }
+
+  .archivo-adjunto-card:hover {
+    border-color: var(--primary-color);
+    background: var(--header-bg);
+  }
+
+  .archivo-adjunto-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-color);
+  }
+
+  .archivo-adjunto-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--primary-color);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+  }
+
+  .archivo-adjunto-link:hover {
+    color: #e06d17;
+    text-decoration: underline;
+  }
+
+  .sin-archivos {
+    padding: 1rem;
+    text-align: center;
+    color: #6b7280;
+    font-style: italic;
+    background: var(--input-bg);
+    border-radius: 8px;
+    border: 1px dashed var(--border-color);
+  }
+
+  /* Estilos para filas seleccionadas */
+  tr.selected {
+    background-color: rgba(255, 138, 29, 0.1) !important;
+  }
+
+  tr.selected td {
+    border-color: rgba(255, 138, 29, 0.3) !important;
+  }
+</style>
+
+<div class="dashboard-container">
+  <header class="dashboard-header">
+    <h1>Panel de Administración</h1>
+  </header>
+
+  {% set c = counts or {} %}
+  <nav class="card" style="margin-bottom:1rem;">
+    <ul class="tabs-estados" style="display:flex; gap:.5rem; flex-wrap:wrap; list-style:none; padding:.5rem; margin:0;">
+      <li>
+        <a class="tab-pill {% if not estado_filtro %}active{% endif %}"
+           href="{{ url_for('admin_dashboard', estado='', busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=1, page_size=page_size) }}">
+          Todos <span class="badge">{{ total_count or 0 }}</span>
+        </a>
+      </li>
+      <li>
+        <a class="tab-pill {% if estado_filtro=='Pendiente' %}active{% endif %}"
+           href="{{ url_for('admin_dashboard', estado='Pendiente', busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=1, page_size=page_size) }}">
+          Pendientes <span class="badge">{{ c.get('pendiente',0) }}</span>
+        </a>
+      </li>
+      <li>
+        <a class="tab-pill {% if estado_filtro=='Aprobado' %}active{% endif %}"
+           href="{{ url_for('admin_dashboard', estado='Aprobado', busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=1, page_size=page_size) }}">
+          Aprobados <span class="badge">{{ c.get('aprobado',0) }}</span>
+        </a>
+      </li>
+      <li>
+        <a class="tab-pill {% if estado_filtro=='Aprobado con anticipo' %}active{% endif %}"
+           href="{{ url_for('admin_dashboard', estado='Aprobado con anticipo', busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=1, page_size=page_size) }}">
+          Aprob. c/anticipo <span class="badge">{{ c.get('aprobado con anticipo',0) }}</span>
+        </a>
+      </li>
+      <li>
+        <a class="tab-pill {% if estado_filtro=='Liquidado' %}active{% endif %}"
+           href="{{ url_for('admin_dashboard', estado='Liquidado', busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=1, page_size=page_size) }}">
+          Liquidados <span class="badge">{{ c.get('liquidado',0) }}</span>
+        </a>
+      </li>
+      <li>
+        <a class="tab-pill {% if estado_filtro=='Liquidado con anticipo' %}active{% endif %}"
+           href="{{ url_for('admin_dashboard', estado='Liquidado con anticipo', busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=1, page_size=page_size) }}">
+          Liq. c/anticipo <span class="badge">{{ c.get('liquidado con anticipo',0) }}</span>
+        </a>
+      </li>
+      <li>
+        <a class="tab-pill {% if estado_filtro=='Liquidacion total' %}active{% endif %}"
+           href="{{ url_for('admin_dashboard', estado='Liquidacion total', busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=1, page_size=page_size) }}">
+          Liquidación Total <span class="badge">{{ c.get('liquidacion total',0) }}</span>
+        </a>
+      </li>
+      <li>
+        <a class="tab-pill {% if estado_filtro=='Programado' %}active{% endif %}"
+           href="{{ url_for('admin_dashboard', estado='Programado', busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=1, page_size=page_size) }}">
+          Programados <span class="badge">{{ c.get('programado',0) }}</span>
+        </a>
+      </li>
+      <li>
+        <a class="tab-pill {% if estado_filtro=='Declinada' %}active{% endif %}"
+           href="{{ url_for('admin_dashboard', estado='Declinada', busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=1, page_size=page_size) }}">
+          Declinadas <span class="badge">{{ c.get('declinada',0) }}</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <div class="card filter-card">
+    <form method="GET" action="{{ url_for('admin_dashboard') }}" class="filter-form">
+      <input type="hidden" name="p" value="1">
+      <input type="hidden" name="page_size" value="{{ page_size }}">
+      <div class="form-group">
+        <input type="text" name="busqueda" placeholder="Buscar..." value="{{ busqueda }}">
+      </div>
+      <div class="form-group">
+        <label for="criterio_busqueda" class="visually-hidden">Buscar por:</label>
+        <select name="criterio_busqueda" id="criterio_busqueda">
+          <option value="todos" {% if criterio_busqueda == "todos" %}selected{% endif %}>Todos</option>
+          <option value="fp" {% if criterio_busqueda == "fp" %}selected{% endif %}>FP</option>
+          <option value="monto" {% if criterio_busqueda == "monto" %}selected{% endif %}>Monto</option>
+          <option value="nombre" {% if criterio_busqueda == "nombre" %}selected{% endif %}>Nombre</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <select name="estado">
+          <option value="">Todos los estados</option>
+          <option value="Aprobado" {% if estado_filtro == "Aprobado" %}selected{% endif %}>Aprobado</option>
+          <option value="Pendiente" {% if estado_filtro == "Pendiente" %}selected{% endif %}>Pendiente</option>
+          <option value="Programado" {% if estado_filtro == "Programado" %}selected{% endif %}>Programado</option>
+          <option value="Aprobado con anticipo" {% if estado_filtro == "Aprobado con anticipo" %}selected{% endif %}>Aprobado con Anticipo</option>
+          <option value="Liquidado con anticipo" {% if estado_filtro == "Liquidado con anticipo" %}selected{% endif %}>Liquidado con Anticipo</option>
+          <option value="Liquidacion total" {% if estado_filtro == "Liquidacion total" %}selected{% endif %}>Liquidación Total</option>
+          <option value="Declinada" {% if estado_filtro == "Declinada" %}selected{% endif %}>Declinada</option>
+          <option value="Liquidado" {% if estado_filtro == "Liquidado" %}selected{% endif %}>Liquidado</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <button type="submit" class="btn btn-secondary">Filtrar</button>
+      </div>
+    </form>
+  </div>
+
+ <!-- Barra de acciones -->
+<div style="margin-bottom:1rem; display:flex; gap:1rem; flex-wrap:wrap; align-items:center;">
+  <a href="{{ url_for('ver_historial') }}" class="btn btn-primary">Ver Historial</a>
+  <button type="button" class="btn btn-success" onclick="mostrarModalReporteConsolidado()">
+    📊 Generar Reporte Consolidado
+  </button>
+  <button type="button" class="btn btn-info" onclick="mostrarModalReporteAnual()">
+    📆 Generar Reporte Anual
+  </button>
+  <button type="button"
+          id="btnActualizacionMasiva"
+          class="btn btn-warning"
+          style="display:none;"
+          onclick="mostrarModalActualizacionMasiva()">
+    ✏️ Actualizar Seleccionados (<span id="contadorSeleccionados">0</span>)
+  </button>
+  <button type="button"
+          id="btnLimpiarSeleccion"
+          class="btn btn-secondary"
+          style="display:none;"
+          onclick="limpiarSeleccion()">
+    🗑️ Limpiar Selección
+  </button>
+</div>
+
+  <div class="card table-card">
+    <table class="tabla-solicitudes">
+      <thead>
+        <tr>
+          <th style="width: 40px;">
+            <input type="checkbox" id="selectAll" onclick="toggleSelectAll()" title="Seleccionar todos">
+          </th>
+          <th>Solicitado por:</th>
+          <th>FP</th>
+          <th>Fecha creación</th>
+          <th>Destinatario</th>
+          <th>Tipo Solicitud</th>
+          <th>Tipo Pago</th>
+          <th>Monto Total</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for solicitud in solicitudes %}
+          {% set clase_estado = solicitud.estado|lower|replace(' ', '-') %}
+          <tr class="summary-row" data-details-id="details-{{ solicitud.id }}">
+            <td class="cell-check" onclick="event.stopPropagation();">
+              <input type="checkbox"
+                     class="select-solicitud"
+                     value="{{ solicitud.id }}"
+                     data-fp="{{ solicitud.fp }}"
+                     data-nombre="{{ solicitud.nombre }}"
+                     data-anticipo="{{ solicitud.anticipo }}"
+                     onchange="updateSelectedCount()">
+            </td>
+            <td>{{ solicitud.nombre }}</td>
+            <td>{{ solicitud.fp }}</td>
+            <td>{{ solicitud.fecha.split(' ')[0] if solicitud.fecha else '' }}</td>
+            <td>{{ solicitud.destinatario }}</td>
+
+            <!-- Tipo Solicitud (sin badge aquí) -->
+            <td>{{ solicitud.tipo_solicitud }}</td>
+
+            <td>
+              {{ solicitud.tipo_pago }}
+              {% if solicitud.tiene_comision == 1 %}
+                <span class="badge-comision" title="Comisión del {{ solicitud.porcentaje_comision }}%">
+                  +{{ solicitud.porcentaje_comision }}% com.
+                </span>
+              {% endif %}
+            </td>
+
+            <!-- === MONTO TOTAL + BADGE DE ANTICIPO (NARANJA) === -->
+            <td class="col-monto">
+              ${{ "{:,.2f}".format(solicitud.monto) }}
+              {% if solicitud.anticipo and solicitud.anticipo|lower == "si" %}
+                {% set porc_tmp =
+                    (solicitud.porcentaje_anticipo if solicitud.porcentaje_anticipo is not none and solicitud.porcentaje_anticipo|float > 0
+                    else ((solicitud.monto_anticipo|float / solicitud.monto|float) * 100 if solicitud.monto and solicitud.monto|float > 0 and solicitud.monto_anticipo is not none else 0)) %}
+                {% set porc = porc_tmp|round(0, 'floor') %}
+                {% set pie = "○" %}
+                {% if porc >= 88 %}{% set pie = "●" %}
+                {% elif porc >= 63 %}{% set pie = "◕" %}
+                {% elif porc >= 38 %}{% set pie = "◑" %}
+                {% elif porc >= 13 %}{% set pie = "◔" %}
+                {% endif %}
+                <span class="badge-anticipo" title="Anticipo pagado">
+                  {{ pie }} {{ porc|int }}%
+                </span>
+              {% endif %}
+              {% if solicitud.tiene_comision == 1 %}
+                <br><small class="text-muted">Sin com: ${{ "{:,.2f}".format(solicitud.monto_sin_comision) }}</small>
+              {% endif %}
+            </td>
+
+            <td>
+              <span class="estado-{{ clase_estado }}"
+                    title="{% if solicitud.fecha_ultimo_cambio %}Último cambio: {{ solicitud.fecha_ultimo_cambio }}{% endif %}">
+                {{ solicitud.estado }}
+              </span>
+            </td>
+
+            <td>
+              <div class="action-buttons">
+                <a href="{{ url_for('editar_solicitud', solicitud_id=solicitud.id) }}" class="btn btn-info">Editar</a>
+                <form method="POST" action="{{ url_for('actualizar_estado', solicitud_id=solicitud.id) }}" class="inline-form" enctype="multipart/form-data">
+                  <select id="nuevo_estado_{{ solicitud.id }}" name="nuevo_estado" class="status-select" required onchange="toggleLiquidadoFile(this, '{{ solicitud.id }}')">
+                    <option value="">--Selecciona--</option>
+                    {% if solicitud.estado|lower == "programado" %}
+                      <option value="Pendiente">Pendiente</option>
+                      {% if solicitud.anticipo|lower == "si" %}
+                        <option value="Aprobado con anticipo">Aprobado con Anticipo</option>
+                      {% else %}
+                        <option value="Aprobado">Aprobado</option>
+                      {% endif %}
+                    {% else %}
+                      {% if solicitud.anticipo|lower == "si" %}
+                        <option value="Aprobado con anticipo">Aprobado con Anticipo</option>
+                        <option value="Liquidado con anticipo">Liquidado con Anticipo</option>
+                        <option value="Liquidacion total">Liquidacion Total</option>
+                      {% else %}
+                        <option value="Aprobado">Aprobado</option>
+                        <option value="Liquidado">Liquidado</option>
+                      {% endif %}
+                      <option value="Pendiente">Pendiente</option>
+                    {% endif %}
+                    <option value="Programado">Programado</option>
+                    <option value="Declinada">Declinada</option>
+                  </select>
+                  <div id="file-container-{{ solicitud.id }}" style="display:none;">
+                    <input type="file" name="liquidado_file" id="liquidado_file_{{ solicitud.id }}" class="custom-file-input" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar">
+                    <label for="liquidado_file_{{ solicitud.id }}" class="custom-file-label">Seleccionar Archivo</label>
+                  </div>
+                  <button type="submit" class="btn btn-success">Actualizar</button>
+                </form>
+                <form method="POST" action="{{ url_for('eliminar_solicitud', solicitud_id=solicitud.id) }}" class="inline-form" onsubmit="return confirm('¿Seguro que deseas eliminar esta solicitud?');">
+                  <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+
+          <!-- DETALLES -->
+          <tr id="details-{{ solicitud.id }}" class="details-row" style="display: none;">
+            <td colspan="10">
+              <div class="details-content">
+                <div class="details-grid">
+                  <div class="details-section">
+                    <h4>📋 Información General</h4>
+                    <p><strong>Nombre:</strong> {{ solicitud.nombre }}</p>
+                    <p><strong>Correo(s):</strong> {{ solicitud.correo }}</p>
+                    <p><strong>Departamento:</strong> {{ solicitud.departamento }}</p>
+                    <p><strong>Fecha de Solicitud:</strong> {{ solicitud.fecha }}</p>
+                    {% if solicitud.fecha_limite %}
+                      <p><strong>Fecha Límite:</strong> {{ solicitud.fecha_limite }}</p>
+                    {% endif %}
+                  </div>
+
+                  <div class="details-section">
+                    <h4>📅 Historial de Estados</h4>
+                    {% if solicitud.fecha_aprobado %}
+                      <p><strong>Fecha Aprobado:</strong> {{ solicitud.fecha_aprobado }}</p>
+                    {% endif %}
+                    {% if solicitud.fecha_liquidado %}
+                      <p><strong>Fecha Liquidado:</strong> {{ solicitud.fecha_liquidado }}</p>
+                    {% endif %}
+                    {% if solicitud.fecha_ultimo_cambio %}
+                      <p><strong>Último Cambio:</strong> {{ solicitud.fecha_ultimo_cambio }}</p>
+                    {% endif %}
+
+                    {% if solicitud.historial_estados and solicitud.historial_estados != '[]' %}
+                      <div class="historial-mini">
+                        <strong>Cambios recientes:</strong>
+                        {% set historial = solicitud.historial_estados|fromjson %}
+                        {% for cambio in historial[-3:] %}
+                          <div class="historial-item">
+                            {{ cambio.estado_anterior }} → {{ cambio.estado_nuevo }}
+                            <span class="historial-fecha">({{ cambio.fecha }})</span>
+                          </div>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+
+                  <!-- INFORMACIÓN FINANCIERA -->
+                  <div class="details-section">
+                    <h4>💰 Información Financiera</h4>
+                    <p><strong>Banco:</strong> {{ solicitud.banco }}</p>
+                    <p><strong>CLABE:</strong> {{ solicitud.clabe }}</p>
+                    <p><strong>Referencia:</strong> {{ solicitud.referencia or 'No especificada' }}</p>
+
+                    {% if solicitud.tiene_comision == 1 %}
+                      <p><strong>Monto sin comisión:</strong> ${{ "{:,.2f}".format(solicitud.monto_sin_comision) }}</p>
+                      <p><strong>Comisión ({{ solicitud.porcentaje_comision }}%):</strong> ${{ "{:,.2f}".format(solicitud.monto_comision) }}</p>
+                    {% endif %}
+
+                    <p><strong>Monto Total:</strong> ${{ "{:,.2f}".format(solicitud.monto) }}</p>
+
+                    {% if solicitud.anticipo and solicitud.anticipo|lower == "si" %}
+                      {% set porc_tmp2 =
+                          (solicitud.porcentaje_anticipo if solicitud.porcentaje_anticipo is not none and solicitud.porcentaje_anticipo|float > 0
+                          else ((solicitud.monto_anticipo|float / solicitud.monto|float) * 100 if solicitud.monto and solicitud.monto|float > 0 and solicitud.monto_anticipo is not none else 0)) %}
+                      {% set porc2 = porc_tmp2|round(2) %}
+                      <p>
+                        <strong>Anticipo:</strong>
+                        ${{ "{:,.2f}".format(solicitud.monto_anticipo|float) }}
+                        ({{ porc2 }}%)<br>
+                        <strong>Monto restante:</strong>
+                        ${{ "{:,.2f}".format(solicitud.monto_restante|float) }}
+                      </p>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="details-full-width">
+                  {% if solicitud.tipo_solicitud == "Viáticos" and "Detalle de Viáticos:" in solicitud.descripcion %}
+                    {% set parts = solicitud.descripcion.split("Detalle de Viáticos:") %}
+                    {% set descripcion_principal = parts[0]|trim %}
+                    <p><strong>Descripción:</strong> {{ descripcion_principal }}</p>
+                    <p><strong>Detalle de Viáticos:</strong></p>
+                    {% set detalle_json = parts[1]|trim %}
+                    {% set detalle_data = detalle_json|fromjson %}
+                    <table class="detalle-viaticos">
+                      <thead>
+                        <tr>
+                          <th>Nombre</th>
+                          <th>Monto</th>
+                          <th>CLABE</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for persona in detalle_data %}
+                          <tr>
+                            <td>{{ persona.nombre }}</td>
+                            <td>${{ "{:,.2f}".format(persona.monto|float) }}</td>
+                            <td>{{ persona.clabe }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  {% else %}
+                    <p><strong>Descripción:</strong> {{ solicitud.descripcion }}</p>
+                  {% endif %}
+
+                  <p><strong>Datos de Depósito:</strong> {{ solicitud.datos_deposito }}</p>
+
+                  <!-- SECCIÓN DE ARCHIVOS ADJUNTOS ACTUALIZADA -->
+                  <div style="margin-top: 1.5rem;">
+                    <strong style="font-size: 1rem; display: block; margin-bottom: 0.75rem;">📎 Archivos Adjuntos:</strong>
+
+                    {% set tiene_archivos = false %}
+                    {% if solicitud.archivo_factura or solicitud.archivo_recibo or solicitud.archivo_orden_compra or solicitud.archivo_adjunto %}
+                      {% set tiene_archivos = true %}
+                    {% endif %}
+
+                    {% if tiene_archivos %}
+                      <div class="archivos-adjuntos-grid">
+                        {% if solicitud.archivo_factura %}
+                          <div class="archivo-adjunto-card">
+                            <div class="archivo-adjunto-header">
+                              <span>🧾</span>
+                              <span>Factura</span>
+                            </div>
+                            <a href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_factura) }}"
+                               target="_blank"
+                               class="archivo-adjunto-link">
+                              📥 Descargar
+                            </a>
+                          </div>
+                        {% endif %}
+
+                        {% if solicitud.archivo_recibo %}
+                          <div class="archivo-adjunto-card">
+                            <div class="archivo-adjunto-header">
+                              <span>🧾</span>
+                              <span>Recibo</span>
+                            </div>
+                            <a href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_recibo) }}"
+                               target="_blank"
+                               class="archivo-adjunto-link">
+                              📥 Descargar
+                            </a>
+                          </div>
+                        {% endif %}
+
+                        {% if solicitud.archivo_orden_compra %}
+                          <div class="archivo-adjunto-card">
+                            <div class="archivo-adjunto-header">
+                              <span>📋</span>
+                              <span>Orden de Compra</span>
+                            </div>
+                            <a href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_orden_compra) }}"
+                               target="_blank"
+                               class="archivo-adjunto-link">
+                              📥 Descargar
+                            </a>
+                          </div>
+                        {% endif %}
+
+                        {% if solicitud.archivo_adjunto %}
+                          <div class="archivo-adjunto-card">
+                            <div class="archivo-adjunto-header">
+                              <span>📎</span>
+                              <span>Otro Adjunto</span>
+                            </div>
+                            <a href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_adjunto) }}"
+                               target="_blank"
+                               class="archivo-adjunto-link">
+                              📥 Descargar
+                            </a>
+                          </div>
+                        {% endif %}
+                      </div>
+                    {% else %}
+                      <div class="sin-archivos">
+                        No hay archivos adjuntos
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- Paginación -->
+  <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.75rem 1rem;">
+    <div>
+      Mostrando {{ solicitudes|length }} de {{ total_count }} registro(s)
+      {% if estado_filtro %} en <strong>{{ estado_filtro }}</strong>{% endif %}.
+    </div>
+    <div class="pagination" style="display:flex; gap:.5rem; align-items:center;">
+      <a class="btn btn-light {% if page<=1 %}disabled{% endif %}"
+         href="{{ url_for('admin_dashboard', estado=estado_filtro, busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=1, page_size=page_size) }}">« Primera</a>
+      <a class="btn btn-light {% if page<=1 %}disabled{% endif %}"
+         href="{{ url_for('admin_dashboard', estado=estado_filtro, busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=(page-1 if page>1 else 1), page_size=page_size) }}">‹ Anterior</a>
+      <span>Página <strong>{{ page }}</strong> de <strong>{{ total_pages }}</strong></span>
+      <a class="btn btn-light {% if page>=total_pages %}disabled{% endif %}"
+         href="{{ url_for('admin_dashboard', estado=estado_filtro, busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=(page+1 if page<total_pages else total_pages), page_size=page_size) }}">Siguiente ›</a>
+      <a class="btn btn-light {% if page>=total_pages %}disabled{% endif %}"
+         href="{{ url_for('admin_dashboard', estado=estado_filtro, busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=total_pages, page_size=page_size) }}">Última »</a>
+    </div>
+  </div>
+
+  <!-- Volver -->
+  <div class="card" style="text-align:center;">
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">Volver al Panel</a>
+  </div>
+</div>
+
+<!-- Modal Reporte Consolidado -->
+<div id="modalReporteConsolidado" class="modal" style="display: none;">
+  <div class="modal-content" style="max-width: 400px;">
+    <div class="modal-header">
+      <h3>Generar Reporte Consolidado</h3>
+      <span class="close" onclick="cerrarModalReporteConsolidado()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <form id="formReporteConsolidado" method="GET" action="{{ url_for('exportar_reporte_consolidado') }}">
+        <div class="form-group">
+          <label for="fecha_inicio_consolidado">Seleccione la semana (cualquier día de la semana):</label>
+          <input type="date" id="fecha_inicio_consolidado" name="fecha_inicio" class="form-control" value="">
+        </div>
+        <div class="form-actions" style="margin-top: 1rem;">
+          <button type="submit" class="btn btn-success">📥 Descargar Reporte</button>
+          <button type="button" class="btn btn-secondary" onclick="cerrarModalReporteConsolidado()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Reporte Anual -->
+<div id="modalReporteAnual" class="modal" style="display: none;">
+  <div class="modal-content" style="max-width: 420px;">
+    <div class="modal-header">
+      <h3>Generar Reporte Anual</h3>
+      <span class="close" onclick="cerrarModalReporteAnual()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <form id="formReporteAnual" method="GET" action="{{ url_for('exportar_reporte_anual') }}">
+        <div class="form-group">
+          <label for="anio_reporte_anual">Seleccione el año:</label>
+          <input type="number"
+                 id="anio_reporte_anual"
+                 name="anio"
+                 min="2019"
+                 max="2100"
+                 class="form-control"
+                 placeholder="YYYY">
+        </div>
+        <div class="form-actions" style="margin-top: 1rem;">
+          <button type="submit" class="btn btn-success">📥 Descargar Reporte</button>
+          <button type="button" class="btn btn-secondary" onclick="cerrarModalReporteAnual()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Actualización Masiva -->
+<div id="modalActualizacionMasiva" class="modal" style="display: none;">
+  <div class="modal-content" style="max-width: 800px;">
+    <div class="modal-header">
+      <h3>Actualización Masiva de Estados</h3>
+      <span class="close" onclick="cerrarModalActualizacionMasiva()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <div class="info-section">
+        <p><strong>Solicitudes seleccionadas:</strong> <span id="cantidadSeleccionadas">0</span></p>
+        <div id="listaSeleccionadas" class="selected-list"></div>
+      </div>
+      <form id="formActualizacionMasiva" enctype="multipart/form-data">
+        <div class="form-group">
+          <label for="nuevo_estado_masivo">Nuevo Estado <span class="required">*</span></label>
+          <select id="nuevo_estado_masivo" name="nuevo_estado_masivo" class="form-control" required onchange="toggleArchivosMasivos()">
+            <option value="">--Seleccione un estado--</option>
+            <option value="Aprobado">Aprobado</option>
+            <option value="Aprobado con anticipo">Aprobado con Anticipo</option>
+            <option value="Liquidado">Liquidado</option>
+            <option value="Liquidado con anticipo">Liquidado con Anticipo</option>
+            <option value="Liquidacion total">Liquidación Total</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="Programado">Programado</option>
+            <option value="Declinada">Declinada</option>
+          </select>
+        </div>
+        <div id="archivos-masivos-container" style="display: none;">
+          <div class="alert alert-info">
+            <strong>📎 Archivos de comprobante:</strong>
+            <p>Puede subir un archivo por cada solicitud que lo requiera (opcional).</p>
+          </div>
+          <div id="archivos-list"></div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-success">✅ Actualizar Estados</button>
+          <button type="button" class="btn btn-secondary" onclick="cerrarModalActualizacionMasiva()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ========= CLAVE ÚNICA DE STORAGE (sin filtros, global para toda la sesión) ========= */
+const SEL_KEY = 'adminSelGlobal';
+
+/* ========= Gestión de localStorage ========= */
+function getStoredSelection(){
+  try { return new Set(JSON.parse(localStorage.getItem(SEL_KEY) || '[]')); }
+  catch { return new Set(); }
+}
+function saveStoredSelection(set){
+  localStorage.setItem(SEL_KEY, JSON.stringify(Array.from(set)));
+}
+function clearStoredSelection(){
+  localStorage.removeItem(SEL_KEY);
+}
+
+let solicitudesSeleccionadas = getStoredSelection();
+let solicitudesInfo = {};
+
+/* ========= Sincronizar checkboxes al cargar página ========= */
+function syncCheckboxesFromStorage(){
+  document.querySelectorAll('.select-solicitud').forEach(cb => {
+    const id = cb.value;
+    const checked = solicitudesSeleccionadas.has(id);
+    cb.checked = checked;
+    cb.closest('tr').classList.toggle('selected', checked);
+  });
+  const visibles = Array.from(document.querySelectorAll('.select-solicitud'));
+  const todosVisiblesSeleccionados = visibles.length > 0 && visibles.every(cb => cb.checked);
+  const selectAll = document.getElementById('selectAll');
+  if (selectAll) selectAll.checked = todosVisiblesSeleccionados;
+  updateSelectedCount();
+}
+
+/* ========= Actualizar contador de seleccionados ========= */
+window.updateSelectedCount = function () {
+  const count = solicitudesSeleccionadas.size;
+  const btnMasivo = document.getElementById('btnActualizacionMasiva');
+  const btnLimpiar = document.getElementById('btnLimpiarSeleccion');
+  const el1 = document.getElementById('contadorSeleccionados');
+  const el2 = document.getElementById('cantidadSeleccionadas');
+
+  if (el1) el1.textContent = count;
+  if (el2) el2.textContent = count;
+  if (btnMasivo) btnMasivo.style.display = count > 0 ? 'inline-flex' : 'none';
+  if (btnLimpiar) btnLimpiar.style.display = count > 0 ? 'inline-flex' : 'none';
+};
+
+/* ========= Función para limpiar selección ========= */
+window.limpiarSeleccion = function() {
+  if (!confirm('¿Desea limpiar toda la selección actual?')) return;
+
+  clearStoredSelection();
+  solicitudesSeleccionadas = new Set();
+
+  // Desmarcar todos los checkboxes visibles
+  document.querySelectorAll('.select-solicitud').forEach(cb => {
+    cb.checked = false;
+    cb.closest('tr').classList.remove('selected');
+  });
+
+  const selectAll = document.getElementById('selectAll');
+  if (selectAll) selectAll.checked = false;
+
+  updateSelectedCount();
+};
+
+/* ========= Toggle select all ========= */
+window.toggleSelectAll = function () {
+  const selectAll = document.getElementById('selectAll');
+  const checkboxes = document.querySelectorAll('.select-solicitud');
+
+  checkboxes.forEach(cb => {
+    cb.checked = selectAll.checked;
+    const id = cb.value;
+    if (selectAll.checked) {
+      solicitudesSeleccionadas.add(id);
+      cb.closest('tr').classList.add('selected');
+    } else {
+      solicitudesSeleccionadas.delete(id);
+      cb.closest('tr').classList.remove('selected');
+    }
+  });
+
+  saveStoredSelection(solicitudesSeleccionadas);
+  updateSelectedCount();
+};
+
+/* ========= Modales de Reporte ========= */
+window.mostrarModalReporteConsolidado = function () {
+  const modal = document.getElementById('modalReporteConsolidado');
+  if (!modal) return;
+  modal.style.display = 'block';
+  const content = modal.querySelector('.modal-content');
+  if (content) content.style.animation = 'slideDown 0.4s ease-out';
+};
+
+window.cerrarModalReporteConsolidado = function () {
+  const modal = document.getElementById('modalReporteConsolidado');
+  if (!modal) return;
+  const content = modal.querySelector('.modal-content');
+  if (content) {
+    content.style.animation = 'slideDown 0.3s ease-out reverse';
+    setTimeout(() => modal.style.display = 'none', 300);
+  } else {
+    modal.style.display = 'none';
+  }
+};
+
+window.mostrarModalReporteAnual = function () {
+  const modal = document.getElementById('modalReporteAnual');
+  if (!modal) return;
+  modal.style.display = 'block';
+  const content = modal.querySelector('.modal-content');
+  if (content) content.style.animation = 'slideDown 0.4s ease-out';
+};
+
+window.cerrarModalReporteAnual = function () {
+  const modal = document.getElementById('modalReporteAnual');
+  if (!modal) return;
+  const content = modal.querySelector('.modal-content');
+  if (content) {
+    content.style.animation = 'slideDown 0.3s ease-out reverse';
+    setTimeout(() => modal.style.display = 'none', 300);
+  } else {
+    modal.style.display = 'none';
+  }
+};
+
+/* ========= Toggle archivo liquidado ========= */
+window.toggleLiquidadoFile = function (selectElem, id) {
+  const container = document.getElementById('file-container-' + id);
+  if (!container) return;
+  const val = (selectElem.value || '').toLowerCase();
+  const show = val.includes('liquidado') || val === 'liquidacion total';
+  container.style.display = show ? 'block' : 'none';
+  if (show) container.style.animation = 'fadeIn .25s ease-out';
+};
+
+/* ========= Modal Actualización Masiva ========= */
+function mostrarListaSeleccionadas(solicitudes) {
+  const lista = document.getElementById('listaSeleccionadas');
+  if (!lista) return;
+  lista.innerHTML = '';
+  solicitudes.forEach(sol => {
+    const item = document.createElement('div');
+    item.className = 'selected-item';
+    item.innerHTML = `
+      <span><strong>FP ${sol.fp}</strong> - ${sol.nombre} ${sol.anticipo === 'Si' ? '<span class="badge-anticipo">Con anticipo</span>' : ''}</span>
+      <span class="monto">${parseFloat(sol.monto).toLocaleString('es-MX',{minimumFractionDigits:2})}</span>`;
+    lista.appendChild(item);
+  });
+}
+
+window.mostrarModalActualizacionMasiva = function () {
+  solicitudesSeleccionadas = getStoredSelection();
+  if (solicitudesSeleccionadas.size === 0) {
+    alert('Por favor seleccione al menos una solicitud.');
+    return;
+  }
+
+  fetch('/obtener_solicitudes_seleccionadas', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ solicitudes_ids: Array.from(solicitudesSeleccionadas) })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (!data.success) throw new Error('Error al obtener información');
+    solicitudesInfo = {};
+    data.solicitudes.forEach(sol => solicitudesInfo[sol.id] = sol);
+    mostrarListaSeleccionadas(data.solicitudes);
+    document.getElementById('modalActualizacionMasiva').style.display = 'block';
+  })
+  .catch(err => {
+    console.error(err);
+    alert('Error al procesar la solicitud.');
+  });
+};
+
+window.toggleArchivosMasivos = function () {
+  const estado = (document.getElementById('nuevo_estado_masivo').value || '').toLowerCase();
+  const container = document.getElementById('archivos-masivos-container');
+  const archivosList = document.getElementById('archivos-list');
+  if (!container || !archivosList) return;
+
+  if (estado.includes('liquidado') || estado === 'liquidacion total') {
+    container.style.display = 'block';
+    container.style.animation = 'fadeIn .25s ease-out';
+    archivosList.innerHTML = '';
+
+    Array.from(solicitudesSeleccionadas).forEach(id => {
+      const sol = solicitudesInfo[id];
+      if (!sol) return;
+      const montoFmt = parseFloat(sol.monto).toLocaleString('es-MX',{style:'currency',currency:'MXN',minimumFractionDigits:2});
+      const div = document.createElement('div');
+      div.className = 'archivo-item';
+      div.innerHTML = `
+        <label for="liquidado_file_${sol.id}">
+          <div><strong>FP ${sol.fp}</strong> - ${sol.destinatario} ${sol.anticipo === 'Si' ? '<span class="badge-anticipo">Anticipo</span>' : ''}</div>
+          <div class="solicitud-monto">💰 ${montoFmt}</div>
+        </label>
+        <input type="file" id="liquidado_file_${sol.id}" name="liquidado_file_${sol.id}" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar" class="form-control">`;
+      archivosList.appendChild(div);
+    });
+  } else {
+    container.style.display = 'none';
+  }
+};
+
+window.cerrarModalActualizacionMasiva = function () {
+  document.getElementById('modalActualizacionMasiva').style.display = 'none';
+  const form = document.getElementById('formActualizacionMasiva');
+  if (form) form.reset();
+  const cont = document.getElementById('archivos-masivos-container');
+  if (cont) cont.style.display = 'none';
+};
+
+/* ========= DOMContentLoaded ========= */
+document.addEventListener('DOMContentLoaded', function () {
+  // Configurar fechas por defecto
+  const inputFecha = document.getElementById('fecha_inicio_consolidado');
+  if (inputFecha) {
+    const d = new Date(), mm = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
+    inputFecha.value = `${d.getFullYear()}-${mm}-${dd}`;
+  }
+  const inputAnio = document.getElementById('anio_reporte_anual');
+  if (inputAnio && !inputAnio.value) inputAnio.value = new Date().getFullYear();
+
+  // Hooks para cerrar modales
+  const hookModal = (idModal, closeFn) => {
+    const modal = document.getElementById(idModal);
+    if (!modal) return;
+    modal.addEventListener('click', e => { if (e.target === modal) closeFn(); });
+    const mc = modal.querySelector('.modal-content');
+    if (mc) mc.addEventListener('click', e => e.stopPropagation());
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFn(); });
+  };
+  hookModal('modalReporteConsolidado', cerrarModalReporteConsolidado);
+  hookModal('modalReporteAnual', cerrarModalReporteAnual);
+  hookModal('modalActualizacionMasiva', cerrarModalActualizacionMasiva);
+
+  // Event listeners para checkboxes
+  document.querySelectorAll('.select-solicitud').forEach(cb => {
+    cb.addEventListener('click', e => e.stopPropagation());
+    cb.addEventListener('change', () => {
+      const id = cb.value;
+      if (cb.checked) {
+        solicitudesSeleccionadas.add(id);
+        cb.closest('tr').classList.add('selected');
+      } else {
+        solicitudesSeleccionadas.delete(id);
+        cb.closest('tr').classList.remove('selected');
+      }
+      saveStoredSelection(solicitudesSeleccionadas);
+      updateSelectedCount();
+    });
+  });
+
+  // Sincronizar selección desde storage
+  syncCheckboxesFromStorage();
+
+  // Click en filas para expandir detalles
+  const tbody = document.querySelector('.tabla-solicitudes tbody');
+  if (tbody) {
+    function closeAll() {
+      document.querySelectorAll('tr.details-row').forEach(r => r.style.display = 'none');
+      document.querySelectorAll('tr.summary-row[aria-expanded="true"]').forEach(r => r.setAttribute('aria-expanded','false'));
+    }
+
+    tbody.addEventListener('click', function (e) {
+      if (e.target.closest('.cell-check, a, button, select, input, textarea, label, form, .action-buttons')) return;
+      const summary = e.target.closest('tr.summary-row');
+      if (!summary) return;
+      const detailsId = summary.getAttribute('data-details-id');
+      const details = document.getElementById(detailsId) || summary.nextElementSibling;
+      if (!details || !details.classList.contains('details-row')) return;
+      const isOpen = details.style.display === 'table-row';
+      closeAll();
+      if (!isOpen) {
+        summary.setAttribute('aria-expanded','true');
+        details.style.display = 'table-row';
+        details.style.animation = 'fadeIn .25s ease-out';
+      }
+    }, false);
+  }
+
+  // Form de actualización masiva
+  const formMasivo = document.getElementById('formActualizacionMasiva');
+  if (formMasivo) {
+    formMasivo.addEventListener('submit', function (e) {
+      e.preventDefault();
+      solicitudesSeleccionadas = getStoredSelection();
+      const formData = new FormData(this);
+      Array.from(solicitudesSeleccionadas).forEach(id => formData.append('solicitudes_ids[]', id));
+
+      const btn = this.querySelector('button[type="submit"]');
+      const original = btn.innerHTML;
+      btn.innerHTML = '⏳ Procesando...';
+      btn.disabled = true;
+
+      fetch('/actualizar_estado_masivo', { method:'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+          if (!data.success) throw new Error(data.message || 'Error al actualizar');
+          alert(data.message || 'Actualización completada.');
+
+          // Limpiar selección después de actualización exitosa
+          clearStoredSelection();
+          solicitudesSeleccionadas = new Set();
+          document.querySelectorAll('.select-solicitud').forEach(cb => cb.checked = false);
+          const selAll = document.getElementById('selectAll');
+          if (selAll) selAll.checked = false;
+          updateSelectedCount();
+
+          window.location.reload();
+        })
+        .catch(err => {
+          console.error(err);
+          alert('Error: ' + err.message);
+        })
+        .finally(() => {
+          btn.innerHTML = original;
+          btn.disabled = false;
+        });
+    });
+  }
+});
+</script>
+{% endblock %}

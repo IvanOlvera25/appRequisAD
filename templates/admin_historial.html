@@ -1,0 +1,131 @@
+{% extends "layout.html" %}
+{% block title %}Historial de Pagos{% endblock %}
+{% block content %}
+<div class="dashboard-container">
+  <header class="dashboard-header">
+    <h1>Historial de Pagos</h1>
+  </header>
+
+  <!-- Sección de búsqueda -->
+  <div class="card filter-card">
+    <form method="GET" action="{{ url_for('ver_historial') }}" class="filter-form">
+      <div class="form-group">
+        <input type="text" name="busqueda" placeholder="Buscar por FP, Monto o Nombre" value="{{ request.args.get('busqueda', '') }}">
+      </div>
+      <div class="form-group">
+        <label for="criterio" class="visually-hidden">Buscar por:</label>
+        <select name="criterio" id="criterio">
+          <option value="fp" {% if request.args.get('criterio') == 'fp' %}selected{% endif %}>FP</option>
+          <option value="monto" {% if request.args.get('criterio') == 'monto' %}selected{% endif %}>Monto</option>
+          <option value="nombre" {% if request.args.get('criterio') == 'nombre' %}selected{% endif %}>Nombre</option>
+          <option value="todos" {% if request.args.get('criterio', 'todos') == 'todos' %}selected{% endif %}>Todos</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <button type="submit" class="btn btn-secondary">Buscar</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Tabla con filas colapsables -->
+  <div class="card table-card">
+    <table class="tabla-solicitudes">
+      <thead>
+        <tr>
+          <th>FP</th>
+          <th>Fecha</th>
+          <th>Nombre</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for solicitud in solicitudes %}
+        <!-- Fila de resumen -->
+        <tr class="summary-row" onclick="toggleDetails('details-{{ solicitud.id }}')">
+          <td>{{ solicitud.fp }}</td>
+          <td>{{ solicitud.fecha }}</td>
+          <td>{{ solicitud.nombre }}</td>
+          <td>{{ solicitud.estado }}</td>
+          <td>
+            <a href="{{ url_for('editar_solicitud', solicitud_id=solicitud.id) }}" class="btn btn-info">Editar</a>
+            <form action="{{ url_for('eliminar_solicitud', solicitud_id=solicitud.id) }}" method="post" style="display:inline-block;">
+              <button type="submit" class="btn btn-danger" onclick="return confirm('¿Estás seguro de eliminar esta solicitud?');">Eliminar</button>
+            </form>
+          </td>
+        </tr>
+        <!-- Fila de detalles colapsable -->
+        <tr id="details-{{ solicitud.id }}" class="details-row" style="display:none;">
+          <td colspan="5">
+            <div class="details-content">
+              <p><strong>Correo:</strong> {{ solicitud.correo }}</p>
+              <p><strong>Departamento:</strong> {{ solicitud.departamento }}</p>
+              <p><strong>Tipo Solicitud:</strong> {{ solicitud.tipo_solicitud }}</p>
+              <p><strong>Tipo Pago:</strong> {{ solicitud.tipo_pago }}</p>
+              {% if solicitud.tipo_solicitud == "Viáticos" and "Detalle de Viáticos:" in solicitud.descripcion %}
+                {% set parts = solicitud.descripcion.split("Detalle de Viáticos:") %}
+                {% set descripcion_principal = parts[0]|trim %}
+                <p><strong>Descripción:</strong> {{ descripcion_principal }}</p>
+                <p><strong>Detalle de Viáticos:</strong></p>
+                {% set detalle_json = parts[1]|trim %}
+                {% set detalle_data = detalle_json|fromjson %}
+                <table class="detalle-viaticos">
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Monto</th>
+                      <th>CLABE</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for persona in detalle_data %}
+                    <tr>
+                      <td>{{ persona.nombre }}</td>
+                      <td>${{ "{:,.2f}".format(persona.monto|float) }}</td>
+                      <td>{{ persona.clabe }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              {% else %}
+                <p><strong>Descripción:</strong> {{ solicitud.descripcion }}</p>
+              {% endif %}
+              <p><strong>Datos de Depósito:</strong> {{ solicitud.datos_deposito }}</p>
+              <p><strong>Banco:</strong> {{ solicitud.banco }}</p>
+              <p><strong>CLABE:</strong> {{ solicitud.clabe }}</p>
+              <p><strong>Monto:</strong> ${{ "{:,.2f}".format(solicitud.monto) }}</p>
+              {% if solicitud.anticipo == "Si" %}
+                <p>
+                  <strong>Anticipo:</strong> Sí - {{ solicitud.porcentaje_anticipo }}%<br>
+                  <strong>Monto Restante:</strong> ${{ "{:,.2f}".format(solicitud.monto_restante) }}
+                </p>
+              {% endif %}
+              <p>
+                <strong>Archivo Adjunto:</strong>
+                {% if solicitud.archivo_adjunto %}
+                  <a href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_adjunto) }}" target="_blank">Descargar Archivo</a>
+                {% else %}
+                  No adjunto
+                {% endif %}
+              </p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Botón para volver al Panel -->
+  <div class="card" style="text-align:center;">
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">Volver al Panel</a>
+  </div>
+</div>
+
+<script>
+function toggleDetails(detailsId) {
+    var details = document.getElementById(detailsId);
+    details.style.display = (details.style.display === "none" || details.style.display === "") ? "table-row" : "none";
+}
+</script>
+{% endblock %}

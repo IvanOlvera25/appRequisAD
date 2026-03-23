@@ -1,0 +1,345 @@
+{% extends "layout.html" %}
+{% block title %}Detalle de Proveedor{% endblock %}
+{% block content %}
+<style>
+    .detalle-container {
+        background-color: #000;
+        color: #fff;
+        padding: 20px;
+        min-height: 100vh;
+    }
+    
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+    
+    .btn-group {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .btn {
+        background-color: #ff9800;
+        border: none;
+        color: #fff;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-size: 0.95rem;
+        text-decoration: none;
+        display: inline-block;
+        border-radius: 4px;
+    }
+    
+    .btn:hover {
+        background-color: #e68900;
+    }
+    
+    .btn-edit {
+        background-color: #2196F3;
+    }
+    
+    .btn-edit:hover {
+        background-color: #1976D2;
+    }
+    
+    .btn-delete {
+        background-color: #f44336;
+    }
+    
+    .btn-delete:hover {
+        background-color: #d32f2f;
+    }
+    
+    .info-section {
+        background-color: #111;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+    
+    .info-item {
+        margin-bottom: 15px;
+    }
+    
+    .info-label {
+        color: #ff9800;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .info-value {
+        color: #fff;
+        font-size: 1.1rem;
+    }
+    
+    .metodos-section {
+        margin-top: 30px;
+    }
+    
+    .metodos-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .metodos-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .metodos-table th,
+    .metodos-table td {
+        border: 1px solid #444;
+        padding: 12px;
+        text-align: left;
+    }
+    
+    .metodos-table th {
+        background-color: #333;
+    }
+    
+    .metodos-table tr:nth-child(even) {
+        background-color: #111;
+    }
+    
+    .btn-small {
+        padding: 4px 8px;
+        font-size: 0.85rem;
+        margin: 0 2px;
+    }
+    
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.8);
+    }
+    
+    .modal-content {
+        background-color: #222;
+        margin: 10% auto;
+        padding: 20px;
+        border: 1px solid #444;
+        width: 80%;
+        max-width: 600px;
+        border-radius: 8px;
+    }
+    
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    
+    .close:hover {
+        color: #fff;
+    }
+    
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        color: #ff9800;
+    }
+    
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 8px;
+        background-color: #333;
+        color: #fff;
+        border: 1px solid #444;
+        border-radius: 4px;
+    }
+</style>
+
+<div class="detalle-container">
+    <div class="header-section">
+        <h2>Detalle del Proveedor</h2>
+        <div class="btn-group">
+            <a href="{{ url_for('proveedores_dashboard') }}" class="btn">← Regresar</a>
+            <a href="{{ url_for('editar_proveedor', proveedor_id=proveedor.id) }}" class="btn btn-edit">Editar</a>
+            <form method="POST" action="{{ url_for('eliminar_proveedor', proveedor_id=proveedor.id) }}" 
+                  style="display: inline;" 
+                  onsubmit="return confirm('¿Está seguro de eliminar este proveedor?');">
+                <button type="submit" class="btn btn-delete">Eliminar</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="info-section">
+        <h3>Información General</h3>
+        <div class="info-grid">
+            <div>
+                <div class="info-item">
+                    <div class="info-label">ID:</div>
+                    <div class="info-value">{{ proveedor.id }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Nombre:</div>
+                    <div class="info-value">{{ proveedor.nombre or 'No especificado' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">RFC:</div>
+                    <div class="info-value">{{ proveedor.rfc or 'No especificado' }}</div>
+                </div>
+            </div>
+            <div>
+                <div class="info-item">
+                    <div class="info-label">Contacto:</div>
+                    <div class="info-value">{{ proveedor.contacto or 'No especificado' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Teléfono:</div>
+                    <div class="info-value">{{ proveedor.telefono or 'No especificado' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Email:</div>
+                    <div class="info-value">{{ proveedor.email or 'No especificado' }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="info-item" style="margin-top: 20px;">
+            <div class="info-label">Dirección:</div>
+            <div class="info-value">{{ proveedor.direccion or 'No especificada' }}</div>
+        </div>
+    </div>
+    
+    <div class="metodos-section">
+        <div class="metodos-header">
+            <h3>Métodos de Pago</h3>
+            <button onclick="openModal()" class="btn">+ Agregar Método de Pago</button>
+        </div>
+        
+        {% if metodos_pago %}
+            <table class="metodos-table">
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Banco</th>
+                        <th>Beneficiario</th>
+                        <th>CLABE</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for metodo in metodos_pago %}
+                    <tr>
+                        <td>{{ metodo.metodo_nombre or 'No especificado' }}</td>
+                        <td>{{ metodo.banco or '-' }}</td>
+                        <td>{{ metodo.beneficiario or '-' }}</td>
+                        <td>{{ metodo.clabe or '-' }}</td>
+                        <td>
+                            <button onclick="editMetodo({{ metodo.metodo_regID }}, '{{ metodo.metodo_id }}', '{{ metodo.banco }}', '{{ metodo.beneficiario }}', '{{ metodo.clabe }}')" 
+                                    class="btn btn-edit btn-small">Editar</button>
+                            <form method="POST" 
+                                  action="{{ url_for('eliminar_metodo_pago', metodo_regID=metodo.metodo_regID) }}" 
+                                  style="display: inline;">
+                                <input type="hidden" name="proveedor_id" value="{{ proveedor.id }}">
+                                <button type="submit" 
+                                        class="btn btn-delete btn-small"
+                                        onclick="return confirm('¿Eliminar este método de pago?');">Eliminar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p style="color: #999;">No hay métodos de pago registrados.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal para agregar método de pago -->
+<div id="metodoModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h3 id="modalTitle">Agregar Método de Pago</h3>
+        
+        <form method="POST" id="metodoForm" action="{{ url_for('agregar_metodo_pago', proveedor_id=proveedor.id) }}">
+            <input type="hidden" name="proveedor_id" value="{{ proveedor.id }}">
+            
+            <div class="form-group">
+                <label for="metodo_id">Tipo de Método:</label>
+                <select name="metodo_id" id="metodo_id" required>
+                    <option value="">Seleccione...</option>
+                    {% for tipo in tipos_metodos %}
+                        <option value="{{ tipo.regID }}">{{ tipo.forma }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="banco">Banco:</label>
+                <input type="text" name="banco" id="banco" maxlength="255">
+            </div>
+            
+            <div class="form-group">
+                <label for="beneficiario">Beneficiario:</label>
+                <input type="text" name="beneficiario" id="beneficiario" maxlength="255">
+            </div>
+            
+            <div class="form-group">
+                <label for="clabe">CLABE:</label>
+                <input type="text" name="clabe" id="clabe" maxlength="20">
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn">Guardar</button>
+                <button type="button" class="btn btn-delete" onclick="closeModal()">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openModal() {
+    document.getElementById('metodoModal').style.display = 'block';
+    document.getElementById('modalTitle').textContent = 'Agregar Método de Pago';
+    document.getElementById('metodoForm').action = "{{ url_for('agregar_metodo_pago', proveedor_id=proveedor.id) }}";
+    document.getElementById('metodoForm').reset();
+}
+
+function closeModal() {
+    document.getElementById('metodoModal').style.display = 'none';
+}
+
+function editMetodo(regID, metodoId, banco, beneficiario, clabe) {
+    document.getElementById('metodoModal').style.display = 'block';
+    document.getElementById('modalTitle').textContent = 'Editar Método de Pago';
+    document.getElementById('metodoForm').action = "{{ url_for('editar_metodo_pago', metodo_regID=0) }}".replace('0', regID);
+    
+    document.getElementById('metodo_id').value = metodoId;
+    document.getElementById('banco').value = banco;
+    document.getElementById('beneficiario').value = beneficiario;
+    document.getElementById('clabe').value = clabe;
+}
+
+window.onclick = function(event) {
+    if (event.target == document.getElementById('metodoModal')) {
+        closeModal();
+    }
+}
+</script>
+{% endblock %}

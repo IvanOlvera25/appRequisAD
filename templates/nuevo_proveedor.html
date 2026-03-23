@@ -1,0 +1,248 @@
+{% extends "layout.html" %}
+{% block title %}Nuevo Proveedor{% endblock %}
+{% block content %}
+<style>
+    .form-container {
+        background-color: #000;
+        color: #fff;
+        padding: 20px;
+        min-height: 100vh;
+    }
+
+    .form-card {
+        background-color: #111;
+        padding: 30px;
+        border-radius: 8px;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .form-header {
+        margin-bottom: 30px;
+        text-align: center;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #ff9800;
+        font-weight: bold;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        padding: 10px;
+        background-color: #333;
+        color: #fff;
+        border: 1px solid #444;
+        border-radius: 4px;
+        font-size: 1rem;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #ff9800;
+    }
+
+    .form-section {
+        margin-bottom: 30px;
+    }
+
+    .form-section h3 {
+        color: #ff9800;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #444;
+        padding-bottom: 10px;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 30px;
+    }
+
+    .btn {
+        background-color: #ff9800;
+        border: none;
+        color: #fff;
+        padding: 10px 20px;
+        cursor: pointer;
+        font-size: 1rem;
+        border-radius: 4px;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn:hover {
+        background-color: #e68900;
+    }
+
+    .btn-cancel {
+        background-color: #666;
+    }
+
+    .btn-cancel:hover {
+        background-color: #555;
+    }
+
+    .required {
+        color: #ff5252;
+    }
+
+    .info-note {
+        background-color: #1a1a1a;
+        padding: 15px;
+        border-left: 4px solid #ff9800;
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+        color: #ccc;
+    }
+
+    .optional-badge {
+        font-size: 0.8rem;
+        color: #999;
+        font-weight: normal;
+        margin-left: 5px;
+    }
+</style>
+
+<div class="form-container">
+    <div class="form-card">
+        <div class="form-header">
+            <h2>Nuevo Proveedor</h2>
+        </div>
+
+        <div class="info-note">
+            <strong>Nota:</strong> Los campos marcados con <span class="required">*</span> son obligatorios.
+            Los datos bancarios son opcionales y se pueden agregar o modificar después.
+        </div>
+
+        <form method="POST" action="{{ url_for('nuevo_proveedor') }}">
+            <div class="form-section">
+                <h3>Información General</h3>
+
+                <div class="form-group">
+                    <label for="nombre">Nombre del Proveedor <span class="required">*</span></label>
+                    <input type="text"
+                           id="nombre"
+                           name="nombre"
+                           required
+                           maxlength="255"
+                           placeholder="Razón social o nombre comercial">
+                </div>
+
+                <div class="form-group">
+                    <label for="rfc">RFC <span class="optional-badge">(opcional)</span></label>
+                    <input type="text"
+                           id="rfc"
+                           name="rfc"
+                           maxlength="13"
+                           placeholder="RFC del proveedor">
+                </div>
+
+                <div class="form-group">
+                    <label for="direccion">Dirección <span class="optional-badge">(opcional)</span></label>
+                    <textarea id="direccion"
+                              name="direccion"
+                              rows="3"
+                              placeholder="Dirección completa del proveedor"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="referencia">Referencia <span class="optional-badge">(opcional)</span></label>
+                    <textarea id="referencia"
+                              name="referencia"
+                              rows="2"
+                              placeholder="Información adicional, referencias o notas del proveedor"></textarea>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Información de Contacto</h3>
+
+                <div class="form-group">
+                    <label for="contacto">Nombre de Contacto <span class="optional-badge">(opcional)</span></label>
+                    <input type="text"
+                           id="contacto"
+                           name="contacto"
+                           maxlength="255"
+                           placeholder="Persona de contacto">
+                </div>
+
+                <div class="form-group">
+                    <label for="telefono">Teléfono <span class="optional-badge">(opcional)</span></label>
+                    <input type="tel"
+                           id="telefono"
+                           name="telefono"
+                           maxlength="20"
+                           placeholder="Número telefónico">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email <span class="optional-badge">(opcional)</span></label>
+                    <input type="email"
+                           id="email"
+                           name="email"
+                           maxlength="255"
+                           placeholder="Correo electrónico">
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Información Bancaria (Método de Pago Inicial)</h3>
+
+                <div class="info-note" style="margin-bottom: 20px;">
+                    <strong>Información bancaria:</strong> Puedes agregar la información bancaria ahora o después.
+                    Si agregas estos datos, se creará automáticamente un método de pago por transferencia.
+                </div>
+
+                <div class="form-group">
+                    <label for="banco">Banco <span class="optional-badge">(opcional)</span></label>
+                    <input type="text"
+                           id="banco"
+                           name="banco"
+                           maxlength="255"
+                           placeholder="Nombre del banco">
+                </div>
+
+                <div class="form-group">
+                    <label for="clabe">CLABE <span class="optional-badge">(opcional)</span></label>
+                    <input type="text"
+                           id="clabe"
+                           name="clabe"
+                           maxlength="20"
+                           pattern="[0-9]*"
+                           placeholder="CLABE interbancaria (18 dígitos)"
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                    <small style="color: #999; font-size: 0.85rem;">Solo números, 18 dígitos</small>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn">Crear Proveedor</button>
+                <a href="{{ url_for('proveedores_dashboard') }}" class="btn btn-cancel">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Validación de CLABE (opcional pero útil)
+    document.getElementById('clabe').addEventListener('input', function(e) {
+        // Eliminar cualquier caracter que no sea número
+        this.value = this.value.replace(/[^0-9]/g, '');
+
+        // Limitar a 18 caracteres
+        if (this.value.length > 18) {
+            this.value = this.value.slice(0, 18);
+        }
+    });
+</script>
+{% endblock %}

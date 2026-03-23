@@ -1,0 +1,433 @@
+{% extends "layout.html" %}
+
+{% block title %}Nuevo Crédito | AD17 Solutions{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h1>Registrar Nuevo Crédito</h1>
+        <a href="{{ url_for('creditos_dashboard') }}" class="btn btn-secondary">Volver al Listado</a>
+    </div>
+
+    <form method="POST" action="{{ url_for('nuevo_credito') }}" class="form-credito" onsubmit="return prepareProveedor();">
+        <div class="form-section">
+            <h2>Información General</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="nombre">Nombre del Crédito *</label>
+                    <input type="text" id="nombre" name="nombre" required placeholder="Ej: Hipoteca Casa Principal">
+                </div>
+                <div class="form-group">
+                    <label for="entidad">Entidad Financiera *</label>
+                    <input type="text" id="entidad" name="entidad" required placeholder="Ej: Banco Santander">
+                </div>
+            </div>
+
+            <!-- Nuevo campo: Nombre de proveedor -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="nombre_proveedor_select">Nombre de Proveedor</label>
+                    <select name="nombre_proveedor_select"
+                            id="nombre_proveedor_select"
+                            onchange="onChangeProveedorCredito()">
+                        <option value="">--Seleccione un proveedor (opcional)--</option>
+                        {% for prov in proveedores %}
+                        <option value="{{ prov.nombre }}"
+                                data-banco="{{ prov.banco }}"
+                                data-clabe="{{ prov.clabe }}">
+                            {{ prov.nombre }}
+                        </option>
+                        {% endfor %}
+                        <option value="otro">Otro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <div id="proveedor-otro-container" style="display: none;">
+                        <label for="nombre_proveedor_otro">Escriba el proveedor:</label>
+                        <input type="text"
+                               name="nombre_proveedor_otro"
+                               id="nombre_proveedor_otro"
+                               placeholder="Ingrese el nombre del proveedor">
+                    </div>
+                    <!-- Hidden field para el valor real -->
+                    <input type="hidden" name="nombre_proveedor" id="nombre_proveedor_hidden" value="">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="tipo_credito">Tipo de Crédito *</label>
+                    <select id="tipo_credito" name="tipo_credito" required>
+                        <option value="">Seleccionar...</option>
+                        <option value="Compras">Compras</option>
+                        <option value="Hipotecario">Hipotecario</option>
+                        <option value="Automotriz">Automotriz</option>
+                        <option value="Personal">Personal</option>
+                        <option value="Empresarial">Empresarial</option>
+                        <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
+                        <option value="Educativo">Educativo</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="estado">Estado *</label>
+                    <select id="estado" name="estado" required>
+                        <option value="Activo">Activo</option>
+                        <option value="Liquidado">Liquidado</option>
+                        <option value="Suspendido">Suspendido</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="descripcion">Descripción</label>
+                <textarea id="descripcion" name="descripcion" rows="3" placeholder="Detalles adicionales sobre el crédito"></textarea>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>Información Financiera</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="monto_total">Monto Total (MXN) *</label>
+                    <input type="number" step="0.01" min="0" id="monto_total" name="monto_total" required placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label for="tasa_interes">Tasa de Interés Anual (%) *</label>
+                    <input type="number" step="0.01" min="0" id="tasa_interes" name="tasa_interes" required placeholder="0.00">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="plazo_meses">Plazo (meses) *</label>
+                    <input type="number" min="1" id="plazo_meses" name="plazo_meses" required placeholder="12">
+                </div>
+                <div class="form-group">
+                    <label for="pago_mensual">Pago Mensual (MXN) *</label>
+                    <input type="number" step="0.01" min="0" id="pago_mensual" name="pago_mensual" required placeholder="0.00">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="fecha_inicio">Fecha de Inicio *</label>
+                    <input type="date" id="fecha_inicio" name="fecha_inicio" required>
+                </div>
+                <div class="form-group">
+                    <label for="fecha_final">Fecha de Finalización *</label>
+                    <input type="date" id="fecha_final" name="fecha_final" required>
+                </div>
+            </div>
+
+            <div class="calculadora-info">
+                <div class="info-card">
+                    <h3>📊 Calculadora Automática</h3>
+                    <p>El pago mensual se calcula automáticamente basado en el monto, tasa de interés y plazo.</p>
+                    <p>La fecha final se ajusta automáticamente según el plazo seleccionado.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>Información Adicional</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="numero_cuenta">Número de Cuenta/Contrato</label>
+                    <input type="text" id="numero_cuenta" name="numero_cuenta" placeholder="Ej: 123456789">
+                </div>
+                <div class="form-group">
+                    <label for="contacto">Contacto</label>
+                    <input type="text" id="contacto" name="contacto" placeholder="Ej: Juan Pérez - 555-123-4567">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="notas">Notas Adicionales</label>
+                <textarea id="notas" name="notas" rows="3" placeholder="Cualquier información adicional relevante"></textarea>
+            </div>
+        </div>
+
+        <div class="form-buttons">
+            <button type="submit" class="btn btn-primary">Guardar Crédito</button>
+            <a href="{{ url_for('creditos_dashboard') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    .form-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .form-header h1 {
+        margin: 0;
+        color: var(--primary-color);
+        font-size: 1.8rem;
+    }
+
+    .form-credito {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .form-section {
+        background-color: var(--input-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1.5rem;
+        animation: fadeIn 0.5s ease-out;
+    }
+
+    .form-section h2 {
+        margin-top: 0;
+        margin-bottom: 1.5rem;
+        font-size: 1.3rem;
+        color: var(--primary-color);
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0.5rem;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-group {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 1rem;
+    }
+
+    .form-group label {
+        margin-bottom: 0.5rem;
+        font-weight: bold;
+        color: var(--text-color);
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        background-color: var(--input-bg);
+        color: var(--text-color);
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+    }
+
+    .form-group input::placeholder,
+    .form-group textarea::placeholder {
+        color: #bbb;
+    }
+
+    .form-group textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    .calculadora-info {
+        margin-top: 1rem;
+    }
+
+    .info-card {
+        background-color: var(--header-bg);
+        border: 1px solid var(--primary-color);
+        border-radius: 8px;
+        padding: 1rem;
+        border-left: 4px solid var(--primary-color);
+    }
+
+    .info-card h3 {
+        margin-top: 0;
+        margin-bottom: 0.5rem;
+        color: var(--primary-color);
+        font-size: 1.1rem;
+    }
+
+    .info-card p {
+        margin: 0.25rem 0;
+        color: var(--text-color);
+        font-size: 0.9rem;
+    }
+
+    .form-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Validación visual */
+    .form-group input:invalid,
+    .form-group select:invalid,
+    .form-group textarea:invalid {
+        border-color: var(--error-color);
+    }
+
+    .form-group input:valid,
+    .form-group select:valid,
+    .form-group textarea:valid {
+        border-color: var(--success-color);
+    }
+
+    /* Indicador de campo requerido */
+    .form-group label[for]:after {
+        content: " *";
+        color: var(--error-color);
+    }
+
+    /* Solo mostrar asterisco en campos requeridos */
+    .form-group label[for="descripcion"]:after,
+    .form-group label[for="numero_cuenta"]:after,
+    .form-group label[for="contacto"]:after,
+    .form-group label[for="notas"]:after,
+    .form-group label[for="nombre_proveedor_select"]:after,
+    .form-group label[for="nombre_proveedor_otro"]:after {
+        content: "";
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .form-header {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+
+        .form-row {
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .form-buttons {
+            flex-direction: column;
+        }
+
+        .form-buttons .btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<script>
+    // Función para manejar la selección de proveedor
+    function onChangeProveedorCredito() {
+        const sel = document.getElementById('nombre_proveedor_select');
+        const val = sel.value;
+        const oc = document.getElementById('proveedor-otro-container');
+        const hid = document.getElementById('nombre_proveedor_hidden');
+
+        // si selecciona "Otro"
+        if (val === 'otro') {
+            oc.style.display = 'block';
+            hid.value = '';
+
+            // al escribir, actualizamos el hidden
+            document.getElementById('nombre_proveedor_otro')
+                    .addEventListener('input', function() {
+                        hid.value = this.value.trim();
+                    });
+        } else {
+            oc.style.display = 'none';
+            hid.value = val;
+        }
+    }
+
+    // Antes de enviar, validar y asegurar el hidden
+    function prepareProveedor() {
+        const sel = document.getElementById('nombre_proveedor_select');
+        const hid = document.getElementById('nombre_proveedor_hidden');
+
+        if (sel.value === 'otro') {
+            const txt = document.getElementById('nombre_proveedor_otro').value.trim();
+            // Es opcional, así que no validamos que sea requerido
+            hid.value = txt;
+        }
+        return true;
+    }
+
+    // Calcular fecha final basada en plazo y fecha inicio
+    document.addEventListener('DOMContentLoaded', function() {
+        const fechaInicio = document.getElementById('fecha_inicio');
+        const plazoMeses = document.getElementById('plazo_meses');
+        const fechaFinal = document.getElementById('fecha_final');
+
+        // Actualizar fecha final al cambiar fecha inicio o plazo
+        function actualizarFechaFinal() {
+            if (fechaInicio.value && plazoMeses.value) {
+                const fecha = new Date(fechaInicio.value);
+                fecha.setMonth(fecha.getMonth() + parseInt(plazoMeses.value));
+
+                // Formatear la fecha como YYYY-MM-DD para el input date
+                const year = fecha.getFullYear();
+                const month = String(fecha.getMonth() + 1).padStart(2, '0');
+                const day = String(fecha.getDate()).padStart(2, '0');
+                fechaFinal.value = `${year}-${month}-${day}`;
+            }
+        }
+
+        fechaInicio.addEventListener('change', actualizarFechaFinal);
+        plazoMeses.addEventListener('change', actualizarFechaFinal);
+
+        // Calcular pago mensual
+        const montoTotal = document.getElementById('monto_total');
+        const tasaInteres = document.getElementById('tasa_interes');
+        const pagoMensual = document.getElementById('pago_mensual');
+
+        function calcularPagoMensual() {
+            if (montoTotal.value && tasaInteres.value && plazoMeses.value) {
+                const monto = parseFloat(montoTotal.value);
+                const tasa = parseFloat(tasaInteres.value) / 100 / 12; // Tasa mensual
+                const plazo = parseInt(plazoMeses.value);
+
+                if (tasa > 0) {
+                    // Fórmula de amortización: PMT = [P × r × (1 + r)^n] / [(1 + r)^n - 1]
+                    const pmt = (monto * tasa * Math.pow(1 + tasa, plazo)) / (Math.pow(1 + tasa, plazo) - 1);
+                    pagoMensual.value = pmt.toFixed(2);
+                } else {
+                    // Si no hay interés, dividir el monto entre el plazo
+                    pagoMensual.value = (monto / plazo).toFixed(2);
+                }
+            }
+        }
+
+        montoTotal.addEventListener('input', calcularPagoMensual);
+        tasaInteres.addEventListener('input', calcularPagoMensual);
+        plazoMeses.addEventListener('input', calcularPagoMensual);
+
+        // Establecer fecha de hoy como predeterminada
+        const today = new Date();
+        const formattedDate = today.toISOString().substr(0, 10);
+        if (!fechaInicio.value) {
+            fechaInicio.value = formattedDate;
+        }
+
+        // Inicializar estados
+        onChangeProveedorCredito();
+
+        // Actualizar fecha final si ya hay valores
+        if (fechaInicio.value && plazoMeses.value) {
+            actualizarFechaFinal();
+        }
+    });
+</script>
+{% endblock %}

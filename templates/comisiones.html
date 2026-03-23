@@ -1,0 +1,464 @@
+{% extends "layout.html" %}
+{% block title %}Comisiones{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root{
+    --bg:#0e0f12; --panel:#171a1f; --panel-2:#1d2128; --text:#e7eaf0; --muted:#9aa3b2;
+    --accent:#3b82f6; --accent-2:#f59e0b; --success:#10b981; --danger:#ef4444; --border:#2a2f38; --chip:#222734;
+  }
+  body{background:var(--bg); color:var(--text);}
+  .wrap{max-width:1200px; margin:28px auto; padding:0 20px;}
+
+  .page-head h1{font-size:28px; margin:0 0 6px;}
+  .page-head p{margin:0 0 14px; color:var(--muted);}
+
+  .toolbar{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;}
+  .btn{
+    display:inline-flex; align-items:center; gap:8px; border:1px solid var(--border);
+    background:var(--panel); color:var(--text); padding:10px 14px; border-radius:12px; cursor:pointer; text-decoration:none;
+  }
+  .btn:hover{background:var(--panel-2);}
+  .btn-primary{background:var(--accent); border-color:transparent;}
+  .btn-danger{background:var(--danger); border-color:transparent;}
+  .btn-warn{background:var(--accent-2); border-color:transparent; color:#0d0f14;}
+  .btn-sm{padding:6px 10px; border-radius:10px; font-size:13px;}
+  .btn-ghost{background:transparent;}
+
+  .cards{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:18px;}
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:18px;}
+  .card h4{margin:0 0 6px; color:var(--muted); font-weight:500; font-size:14px;}
+  .card .kpi{font-size:28px; font-weight:700;}
+
+  .filter{background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:14px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:14px;}
+  .input, select, textarea{
+    background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    padding:10px 12px; border-radius:10px; outline:none; width:100%;
+  }
+  .input:focus, select:focus, textarea:focus{border-color:var(--accent);}
+
+  .table-card{background:var(--panel); border:1px solid var(--border); border-radius:16px; overflow:hidden;}
+  table{width:100%; border-collapse:separate; border-spacing:0;}
+  thead th{background:#0f141b; color:#c6d0e0; font-weight:600; text-align:left; padding:12px; border-bottom:1px solid var(--border); white-space:nowrap;}
+  tbody td{padding:12px; border-bottom:1px solid var(--border); vertical-align:middle;}
+  .chip{background:var(--chip); color:#cbd5e1; padding:4px 8px; border-radius:999px; font-size:12px; white-space:nowrap;}
+  .chip.ok{background:#052d22; color:#9ae6b4;}
+  .chip.bad{background:#2a1111; color:#fecaca;}
+  .row-actions{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+
+  /* Modal */
+  .modal{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:50;}
+  .modal.show{display:flex;}
+  .modal-card{width:100%; max-width:760px; background:var(--panel); border:1px solid var(--border); border-radius:16px; overflow:hidden;}
+  .modal-head{display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:#12161d; border-bottom:1px solid var(--border);}
+  .modal-head h3{margin:0; font-size:18px;}
+  .modal-body{padding:16px;}
+  .grid{display:grid; gap:12px;}
+  .g-2{grid-template-columns:1fr 1fr;}
+  .g-3{grid-template-columns:repeat(3,1fr);}
+  .modal-foot{display:flex; justify-content:flex-end; gap:8px; padding:14px 16px; border-top:1px solid var(--border); background:#12161d;}
+  .help{font-size:12px; color:var(--muted);}
+  @media (max-width:900px){.cards{grid-template-columns:1fr}.g-2,.g-3{grid-template-columns:1fr}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap">
+  <div class="page-head">
+    <h1>Comisiones</h1>
+    <p>Gestión de comisiones por trabajador, comprobantes y cambios de estado con notificación.</p>
+  </div>
+
+  <div class="toolbar">
+    <a class="btn btn-ghost" href="{{ url_for('admin_dashboard') }}"><i class="fa fa-gauge"></i> Dashboard</a>
+    <button id="btn-add" class="btn btn-primary"><i class="fa fa-plus"></i> Nueva comisión</button>
+  </div>
+
+  <!-- KPIs simples -->
+  <div class="cards">
+    <div class="card"><h4>Registros</h4><div class="kpi">{{ comisiones|length }}</div></div>
+    <div class="card"><h4>Trabajadores</h4><div class="kpi">{{ stats|length }}</div></div>
+    <div class="card"><h4>Total comisiones</h4>
+      <div class="kpi">
+        ${{ '%.2f'|format((comisiones|sum(attribute='comision_monto') if comisiones else 0) or 0) }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de historial (sin columna de correo) -->
+  <div class="table-card" style="margin-bottom:16px;">
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Trabajador</th>
+          <th>Proyecto</th>
+          <th>Fecha</th>
+          <th>Monto Proyecto</th>
+          <th>Cálculo</th>
+          <th>Comisión</th>
+          <th>Estado</th>
+          <th>Comprobante</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% if comisiones %}
+        {% for c in comisiones %}
+          {% set _comi = (c.comision_monto if c.comision_monto is not none else (c.monto_calculado if c.monto_calculado is defined else 0))|float %}
+          <tr data-id="{{ c.id }}">
+            <td>#{{ c.id }}</td>
+            <td>{{ c.trabajador }}</td>
+            <td>{{ c.proyecto }}</td>
+            <td>{{ c.fecha }}</td>
+            <td>${{ '%.2f'|format((c.monto_proyecto or 0.0)|float) }}</td>
+            <td>
+              {% if c.comision_tipo %}
+                {% if c.comision_tipo == 'porcentaje' %}
+                  <span class="chip">{{ (c.comision_valor or 0)|float }}%</span>
+                {% else %}
+                  <span class="chip">$ {{ '%.2f'|format((c.comision_valor or 0)|float) }}</span>
+                {% endif %}
+              {% elif c.tipo_calculo %}
+                {% if c.tipo_calculo == 'porcentaje' %}
+                  <span class="chip">{{ (c.porcentaje or 0)|float }}%</span>
+                {% else %}
+                  <span class="chip">$ {{ '%.2f'|format((c.monto_comision or 0)|float) }}</span>
+                {% endif %}
+              {% else %}
+                <span class="chip">-</span>
+              {% endif %}
+            </td>
+            <td><strong>${{ '%.2f'|format(_comi) }}</strong></td>
+            <td>
+              {% set s = (c.estado or 'Pendiente') %}
+              <span class="chip {{ 'ok' if s in ['Aprobada','Pagada'] else ('bad' if s=='Declinada' else '') }}">{{ s }}</span>
+            </td>
+            <td>
+              {% if c.comprobante_archivo %}
+                <a class="btn btn-sm" href="{{ url_for('comisiones.comision_ver_comprobante', cid=c.id) }}" target="_blank">Ver</a>
+              {% else %}
+                <span class="help">Sin comprobante</span>
+              {% endif %}
+            </td>
+            <td class="row-actions">
+              <!-- Cambiar estado + comprobante -->
+              <form method="post"
+                    action="{{ url_for('comisiones.comision_cambiar_estado', cid=c.id) }}"
+                    enctype="multipart/form-data"
+                    class="form-estado"
+                    data-row-id="{{ c.id }}"
+                    style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <select name="estado" class="input sel-estado" data-row-id="{{ c.id }}" required style="width:auto;">
+                  <option value="">--Selecciona--</option>
+                  <option value="Pendiente" {{ 'selected' if c.estado=='Pendiente' }}>Pendiente</option>
+                  <option value="Aprobada"  {{ 'selected' if c.estado=='Aprobada'  }}>Aprobada</option>
+                  <option value="Pagada"    {{ 'selected' if c.estado=='Pagada'    }}>Pagada</option>
+                  <option value="Declinada" {{ 'selected' if c.estado=='Declinada' }}>Declinada</option>
+                </select>
+                <input type="file"
+                       name="comprobante"
+                       class="input file-comprobante"
+                       data-row-id="{{ c.id }}"
+                       accept=".pdf,.png,.jpg,.jpeg"
+                       style="display:{% if c.estado=='Pagada' %}block{% else %}none{% endif %}; width:auto;">
+                <button class="btn btn-sm btn-warn" type="submit">Actualizar</button>
+              </form>
+
+              <!-- Editar -->
+              <button class="btn btn-sm" data-edit="{{ c.id }}">Editar</button>
+
+              <!-- Eliminar -->
+              <form method="post"
+                    action="{{ url_for('comisiones.comision_eliminar', cid=c.id) }}"
+                    onsubmit="return confirm('¿Eliminar esta comisión?')"
+                    style="display:inline">
+                <button class="btn btn-sm btn-danger" type="submit">Eliminar</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      {% else %}
+        <tr><td colspan="10" style="text-align:center; padding:24px; color:var(--muted)">No hay comisiones registradas.</td></tr>
+      {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Estadísticas por trabajador -->
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Trabajador</th>
+          <th># Comisiones</th>
+          <th>Total Comisión</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if stats %}
+          {% for s in stats %}
+            {% set total = (s.total if s.total is not none else 0)|float %}
+            <tr>
+              <td>{{ s.trabajador }}</td>
+              <td>{{ s.cantidad }}</td>
+              <td>$ {{ '%.2f'|format(total) }}</td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="3" style="text-align:center; padding:16px; color:var(--muted);">Sin datos</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal NUEVA comisión -->
+<div class="modal" id="modal-new">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>Nueva comisión</h3>
+      <button class="btn btn-sm" id="btn-close-new">Cerrar</button>
+    </div>
+    <form id="frm-new" method="post" action="{{ url_for('comisiones.comision_nueva') }}">
+      <div class="modal-body">
+        <div class="grid g-2">
+          <label>Trabajador
+            <select class="input" name="selected_nombre" id="sel-trab" required>
+              <option value="" disabled selected>Seleccione…</option>
+              {% for e in employees %}
+                {% if e is mapping %}
+                  <option value="{{ e.nombre }}">{{ e.nombre }}</option>
+                {% else %}
+                  <option value="{{ e }}">{{ e }}</option>
+                {% endif %}
+              {% endfor %}
+              <option value="otro">Otro…</option>
+            </select>
+          </label>
+          <label id="lbl-otro" style="display:none;">Nombre (otro)
+            <input class="input" name="nombre_otro" placeholder="Nombre del trabajador" />
+          </label>
+        </div>
+
+        <div class="grid g-3">
+          <label>Fecha
+            <input class="input" type="date" name="fecha" id="fecha_new" required />
+          </label>
+          <label>Proyecto
+            <input class="input" name="proyecto" required />
+          </label>
+          <label>Monto del proyecto
+            <input class="input" type="number" step="0.01" min="0" name="monto_proyecto" required />
+          </label>
+        </div>
+
+        <div class="grid g-3">
+          <label>Tipo de comisión
+            <select class="input" name="comision_tipo" id="tipo_new">
+              <option value="porcentaje" selected>Porcentaje</option>
+              <option value="monto">Monto fijo</option>
+            </select>
+          </label>
+          <label id="lbl-valor-porc">Valor (%)
+            <input class="input" type="number" step="0.01" min="0" name="comision_valor" placeholder="%" />
+          </label>
+          <label id="lbl-valor-monto" style="display:none;">Valor ($)
+            <input class="input" type="number" step="0.01" min="0" name="comision_valor" placeholder="$" />
+          </label>
+        </div>
+
+        <div class="grid g-2">
+          <label>Correo (opcional, notificaciones)
+            <input class="input" type="email" name="correo" placeholder="persona@dominio.com" />
+          </label>
+          <label>Estado
+            <select class="input" name="estado">
+              <option value="Pendiente" selected>Pendiente</option>
+              <option value="Aprobada">Aprobada</option>
+              <option value="Pagada">Pagada</option>
+              <option value="Declinada">Declinada</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn" id="btn-cancel-new">Cancelar</button>
+        <button class="btn btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal EDITAR comisión -->
+<div class="modal" id="modal-edit">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>Editar comisión</h3>
+      <button class="btn btn-sm" id="btn-close-edit">Cerrar</button>
+    </div>
+    <form id="frm-edit" method="post" action="#">
+      <div class="modal-body">
+        <div class="grid g-2">
+          <label>Trabajador
+            <select class="input" name="selected_trabajador" id="sel-trab-edit" required>
+              <option value="" disabled selected>Seleccione…</option>
+              {% for e in employees %}
+                {% if e is mapping %}
+                  <option value="{{ e.nombre }}">{{ e.nombre }}</option>
+                {% else %}
+                  <option value="{{ e }}">{{ e }}</option>
+                {% endif %}
+              {% endfor %}
+              <option value="otro">Otro…</option>
+            </select>
+          </label>
+          <label id="lbl-otro-edit" style="display:none;">Nombre (otro)
+            <input class="input" name="trabajador_otro" placeholder="Nombre del trabajador" />
+          </label>
+        </div>
+
+        <div class="grid g-3">
+          <label>Fecha
+            <input class="input" type="date" name="fecha" id="fecha_edit" required />
+          </label>
+          <label>Proyecto
+            <input class="input" name="proyecto" required />
+          </label>
+          <label>Monto del proyecto
+            <input class="input" type="number" step="0.01" min="0" name="monto_proyecto" required />
+          </label>
+        </div>
+
+        <div class="grid g-3">
+          <label>Tipo de cálculo
+            <select class="input" name="tipo_calculo" id="tipo_edit">
+              <option value="porcentaje">Porcentaje</option>
+              <option value="monto">Monto fijo</option>
+            </select>
+          </label>
+          <label id="lbl-porc-edit">Porcentaje (%)
+            <input class="input" type="number" step="0.01" min="0" name="porcentaje" />
+          </label>
+          <label id="lbl-monto-edit" style="display:none;">Monto ($)
+            <input class="input" type="number" step="0.01" min="0" name="monto_comision" />
+          </label>
+        </div>
+
+        <label>Notas
+          <textarea class="input" name="notas" rows="3"></textarea>
+        </label>
+
+        <label>Correo (opcional)
+          <input class="input" type="email" name="correos" placeholder="persona@dominio.com" />
+        </label>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn" id="btn-cancel-edit">Cancelar</button>
+        <button class="btn btn-primary">Guardar cambios</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+
+  // --- Modal NUEVO ---
+  const mNew = $("#modal-new");
+  $("#btn-add").addEventListener("click", ()=> {
+    // set default fecha hoy
+    const d = new Date();
+    const f = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    $("#fecha_new").value = f;
+    mNew.classList.add("show");
+  });
+  $("#btn-close-new").addEventListener("click", ()=> mNew.classList.remove("show"));
+  $("#btn-cancel-new").addEventListener("click", ()=> mNew.classList.remove("show"));
+  mNew.addEventListener("click", e=>{ if(e.target===mNew) mNew.classList.remove("show"); });
+
+  // Mostrar campo "otro" en NUEVO
+  $("#sel-trab").addEventListener("change", (e)=>{
+    $("#lbl-otro").style.display = (e.target.value === "otro") ? "block" : "none";
+  });
+
+  // Cambia etiqueta del valor según tipo en NUEVO
+  $("#tipo_new").addEventListener("change", (e)=>{
+    const isMonto = e.target.value === "monto";
+    $("#lbl-valor-porc").style.display = isMonto ? "none" : "block";
+    $("#lbl-valor-monto").style.display = isMonto ? "block" : "none";
+  });
+
+  // --- Modal EDITAR ---
+  const mEdit = $("#modal-edit");
+  const frmEdit = $("#frm-edit");
+  $("#btn-close-edit").addEventListener("click", ()=> mEdit.classList.remove("show"));
+  $("#btn-cancel-edit").addEventListener("click", ()=> mEdit.classList.remove("show"));
+  mEdit.addEventListener("click", e=>{ if(e.target===mEdit) mEdit.classList.remove("show"); });
+
+  // Mostrar campo "otro" en EDITAR
+  $("#sel-trab-edit").addEventListener("change", (e)=>{
+    $("#lbl-otro-edit").style.display = (e.target.value === "otro") ? "block" : "none";
+  });
+
+  // Cambia etiquetas según tipo en EDITAR
+  $("#tipo_edit").addEventListener("change", (e)=>{
+    const isMonto = e.target.value === "monto";
+    $("#lbl-porc-edit").style.display = isMonto ? "none" : "block";
+    $("#lbl-monto-edit").style.display = isMonto ? "block" : "none";
+  });
+
+  // Cargar datos a modal EDITAR
+  $$("button[data-edit]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const id = btn.getAttribute("data-edit");
+      fetch(`/comisiones/${id}.json`).then(r=>r.json()).then(c=>{
+        // Set action
+        frmEdit.action = `{{ url_for('comisiones.comision_editar', cid=0) }}`.replace('/0/', `/${id}/`);
+        // Trabajador
+        const sel = $("#sel-trab-edit");
+        sel.value = (c.trabajador && Array.from(sel.options).some(o=>o.value===c.trabajador)) ? c.trabajador : "otro";
+        $("#lbl-otro-edit").style.display = (sel.value === "otro") ? "block" : "none";
+        if(sel.value === "otro") frmEdit.elements["trabajador_otro"].value = c.trabajador || "";
+
+        // Proyecto/fecha/montos
+        frmEdit.elements["proyecto"].value = c.proyecto || "";
+        frmEdit.elements["fecha"].value = (c.fecha || "").slice(0,10);
+        frmEdit.elements["monto_proyecto"].value = c.monto_proyecto || 0;
+
+        // Tipo cálculo + valores
+        const tipo = c.comision_tipo || c.tipo_calculo || "porcentaje";
+        $("#tipo_edit").value = tipo;
+        const isMonto = (tipo === "monto");
+        $("#lbl-porc-edit").style.display = isMonto ? "none" : "block";
+        $("#lbl-monto-edit").style.display = isMonto ? "block" : "none";
+        frmEdit.elements["porcentaje"].value = c.comision_valor || c.porcentaje || 0;
+        frmEdit.elements["monto_comision"].value = c.comision_monto || c.monto_comision || 0;
+
+        // Notas / correo
+        frmEdit.elements["notas"].value = c.notas || "";
+        frmEdit.elements["correos"].value = c.correo || c.correos || "";
+
+        mEdit.classList.add("show");
+      });
+    });
+  });
+
+  // Mostrar/ocultar input de comprobante según estado seleccionado en cada fila
+  function toggleComprobanteForRow(rowId){
+    const sel = document.querySelector(`select.sel-estado[data-row-id="${rowId}"]`);
+    const file = document.querySelector(`input.file-comprobante[data-row-id="${rowId}"]`);
+    if(!sel || !file) return;
+    file.style.display = (sel.value === "Pagada") ? "block" : "none";
+  }
+
+  $$(".sel-estado").forEach(sel=>{
+    sel.addEventListener("change", ()=> toggleComprobanteForRow(sel.getAttribute("data-row-id")));
+    // Inicial
+    toggleComprobanteForRow(sel.getAttribute("data-row-id"));
+  });
+</script>
+{% endblock %}

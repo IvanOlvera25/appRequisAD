@@ -1,0 +1,1199 @@
+/* ====== admin_styles.css (actualizado) ====== */
+
+/* ===================== */
+/* Animaciones globales  */
+/* ===================== */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ===================== */
+/* Utilidades y resets   */
+/* ===================== */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.inline-form {
+  display: inline-block;
+}
+
+/* ===================== */
+/* Modales               */
+/* ===================== */
+.modal {
+  position: fixed;
+  z-index: 9999;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content {
+  background-color: var(--header-bg, #1f2937);
+  margin: 5% auto;
+  padding: 0;
+  border: 1px solid var(--border-color, #374151);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  animation: slideDown 0.4s ease-out;
+  transform-origin: top center;
+  color: var(--text-color, #e5e7eb);
+}
+
+.modal-header {
+  background: linear-gradient(135deg, var(--primary-color, #f37c22) 0%, #e06d17 100%);
+  color: white;
+  padding: 1.25rem;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.modal-header::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transform: rotate(45deg);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+
+  100% {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  position: relative;
+  z-index: 1;
+}
+
+.modal-body {
+  padding: 2rem;
+}
+
+.close {
+  color: white;
+  font-size: 32px;
+  font-weight: bold;
+  cursor: pointer;
+  line-height: 1;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.close:hover {
+  transform: rotate(90deg);
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ===================== */
+/* Formularios           */
+/* ===================== */
+.form-group label {
+  display: block;
+  margin-bottom: .5rem;
+  font-weight: 600;
+  color: var(--text-color, #e5e7eb);
+  font-size: .95rem;
+}
+
+.form-control {
+  width: 100%;
+  padding: .75rem 1rem;
+  border: 2px solid var(--border-color, #374151);
+  border-radius: 8px;
+  background-color: var(--input-bg, #111827);
+  color: var(--text-color, #e5e7eb);
+  font-size: 1rem;
+  transition: all .3s ease;
+  cursor: pointer;
+}
+
+.form-control:hover {
+  border-color: var(--primary-color, #f37c22);
+  box-shadow: 0 0 0 3px rgba(243, 124, 34, .1);
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary-color, #f37c22);
+  box-shadow: 0 0 0 3px rgba(243, 124, 34, .2);
+  transform: translateY(-1px);
+}
+
+/* Input date */
+input[type="date"] {
+  cursor: pointer;
+  position: relative;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 4px;
+  transition: all .3s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  background-color: rgba(243, 124, 34, .1);
+}
+
+/* ===================== */
+/* Botones               */
+/* ===================== */
+.btn {
+  padding: .75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .2);
+  transform: translate(-50%, -50%);
+  transition: width .6s, height .6s;
+}
+
+.btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, .3);
+}
+
+.btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .3);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+
+.btn-info {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.btn-warning {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.btn-success:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.btn-secondary:hover {
+  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+}
+
+.btn-info:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+.btn-danger:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+}
+
+.btn-warning:hover {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+}
+
+/* Acciones formulario */
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+/* ===================== */
+/* Estado programado     */
+/* ===================== */
+.estado-programado {
+  background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
+  color: #fff;
+  padding: .25rem .75rem;
+  border-radius: 9999px;
+  font-size: .875rem;
+  font-weight: 500;
+  display: inline-block;
+  animation: pulse 2s infinite;
+  box-shadow: 0 2px 8px rgba(147, 51, 234, .3);
+}
+
+/* ===================== */
+/* Tabla de solicitudes  */
+/* ===================== */
+.tabla-solicitudes {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--header-bg, #111827);
+  color: var(--text-color, #e5e7eb);
+}
+
+.tabla-solicitudes thead th {
+  text-align: left;
+  padding: .75rem 1rem;
+  border-bottom: 1px solid var(--border-color, #374151);
+  background: rgba(243, 124, 34, .08);
+  font-weight: 600;
+}
+
+.tabla-solicitudes tbody td {
+  padding: .75rem 1rem;
+  border-top: 1px solid var(--border-color, #374151);
+}
+
+.summary-row {
+  cursor: pointer;
+  transition: all .2s ease;
+}
+
+.summary-row:hover {
+  background-color: rgba(243, 124, 34, .05);
+  transform: translateX(5px);
+}
+
+/* ► Estado "abierto" visual en la fila resumen */
+.summary-row[aria-expanded="true"] {
+  background-color: rgba(243, 124, 34, .08);
+}
+
+/* Detalles: por defecto oculto */
+tr.details-row {
+  display: none;
+}
+
+/* CLAVE: cuando está abierto, fuerzo a que se muestre como fila de tabla */
+tr.details-row.is-open {
+  display: table-row !important;
+}
+
+/* Más especificidad por si hay estilos agresivos anteriores */
+.tabla-solicitudes>tbody>tr.details-row.is-open {
+  display: table-row !important;
+}
+
+.details-row td {
+  animation: fadeIn .3s ease-out;
+}
+
+/* ===================== */
+/* Interactivos / Focus  */
+/* ===================== */
+select,
+input,
+button,
+.close,
+.summary-row {
+  cursor: pointer;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--primary-color, #f37c22);
+  outline-offset: 2px;
+}
+
+/* Botones acción en la tabla */
+.action-buttons {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+.action-buttons .btn {
+  padding: .5rem 1rem;
+  font-size: .875rem;
+}
+
+/* Select de estado */
+.status-select {
+  padding: .5rem;
+  border: 2px solid var(--border-color, #374151);
+  border-radius: 6px;
+  background-color: var(--input-bg, #111827);
+  color: var(--text-color, #e5e7eb);
+  transition: all .3s ease;
+  cursor: pointer;
+}
+
+.status-select:hover {
+  border-color: var(--primary-color, #f37c22);
+}
+
+.status-select:focus {
+  outline: none;
+  border-color: var(--primary-color, #f37c22);
+  box-shadow: 0 0 0 3px rgba(243, 124, 34, .1);
+}
+
+/* ===================== */
+/* Bloques de detalles   */
+/* ===================== */
+.details-content {
+  padding: 1.5rem;
+  background: var(--input-bg, #0b1220);
+  border-radius: 8px;
+  margin: .5rem;
+  border: 1px solid var(--border-color, #374151);
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.details-section {
+  background: var(--header-bg, #111827);
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #374151);
+}
+
+.details-section h4 {
+  margin: 0 0 1rem 0;
+  color: var(--primary-color, #f37c22);
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding-bottom: .5rem;
+  border-bottom: 2px solid var(--border-color, #374151);
+}
+
+.details-section p {
+  margin: .5rem 0;
+  line-height: 1.6;
+}
+
+.details-full-width {
+  grid-column: 1 / -1;
+  background: var(--header-bg, #111827);
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #374151);
+}
+
+/* Tabla de viáticos dentro del detalle */
+.detalle-viaticos {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: .5rem;
+  background: var(--input-bg, #0b1220);
+  color: var(--text-color, #e5e7eb);
+}
+
+.detalle-viaticos th,
+.detalle-viaticos td {
+  padding: .5rem .75rem;
+  border: 1px solid var(--border-color, #374151);
+  text-align: left;
+}
+
+.detalle-viaticos thead th {
+  background: rgba(37, 99, 235, .15);
+}
+
+/* ===================== */
+/* Historial mini        */
+/* ===================== */
+.historial-mini {
+  margin-top: 1rem;
+  padding: .75rem;
+  background: var(--input-bg, #0b1220);
+  border-radius: 6px;
+  font-size: .875rem;
+  border: 1px solid var(--border-color, #374151);
+}
+
+.historial-item {
+  padding: .25rem 0;
+  color: var(--text-color, #e5e7eb);
+  opacity: .9;
+}
+
+.historial-fecha {
+  font-size: .75rem;
+  color: #6b7280;
+  margin-left: .5rem;
+}
+
+/* ===================== */
+/* Selección múltiple    */
+/* ===================== */
+.select-solicitud,
+#selectAll {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--primary-color, #f37c22);
+}
+
+.selected-list {
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color, #374151);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  background: var(--input-bg, #0b1220);
+}
+
+.selected-item {
+  padding: .5rem;
+  margin: .25rem 0;
+  background: var(--header-bg, #111827);
+  border-radius: 6px;
+  font-size: .875rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--border-color, #374151);
+}
+
+.selected-item .monto {
+  color: var(--primary-color, #f37c22);
+  font-weight: 600;
+}
+
+.summary-row.selected {
+  background-color: rgba(243, 124, 34, .1) !important;
+}
+
+/* ===================== */
+/* Info section / alertas*/
+/* ===================== */
+.info-section {
+  background: var(--input-bg, #0b1220);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border-color, #374151);
+}
+
+.alert {
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.alert-info {
+  background-color: rgba(59, 130, 246, .1);
+  border: 1px solid rgba(59, 130, 246, .3);
+  color: var(--text-color, #e5e7eb);
+}
+
+/* ===================== */
+/* Archivos masivos      */
+/* ===================== */
+.archivo-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--header-bg, #111827);
+  border-radius: 8px;
+  margin: .5rem 0;
+  border: 1px solid var(--border-color, #374151);
+}
+
+.archivo-item label {
+  flex: 1;
+  margin: 0;
+  font-weight: normal;
+}
+
+.archivo-item input[type="file"] {
+  flex: 2;
+}
+
+/* Custom file input */
+.custom-file-input {
+  position: absolute;
+  opacity: 0;
+  width: 0.1px;
+  height: 0.1px;
+  overflow: hidden;
+}
+
+.custom-file-label {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .5rem .75rem;
+  border-radius: 6px;
+  background: var(--input-bg, #0b1220);
+  border: 1px solid var(--border-color, #374151);
+  color: var(--text-color, #e5e7eb);
+}
+
+/* ===================== */
+/* Badges y extras       */
+/* ===================== */
+.badge-comision {
+  display: inline-block;
+  padding: .25rem .5rem;
+  font-size: .75rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #fff;
+  border-radius: 9999px;
+  margin-left: .25rem;
+  white-space: nowrap;
+}
+
+.badge-anticipo {
+  display: inline-block;
+  padding: .25rem .5rem;
+  font-size: .75rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #fff;
+  border-radius: 9999px;
+  margin-left: .25rem;
+  white-space: nowrap;
+}
+
+.text-muted {
+  color: #9ca3af;
+  font-size: .75rem;
+}
+
+td small {
+  display: block;
+  margin-top: .125rem;
+}
+
+/* Tooltip por atributo title */
+[title] {
+  position: relative;
+  cursor: help;
+}
+
+[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--header-bg, #111827);
+  color: var(--text-color, #e5e7eb);
+  padding: .5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #374151);
+  font-size: .75rem;
+  white-space: nowrap;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .3);
+}
+
+/* ===================== */
+/* Responsive            */
+/* ===================== */
+@media (max-width: 768px) {
+  .modal-content {
+    margin: 2% auto;
+    width: 95%;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .details-content {
+    padding: 1rem;
+  }
+
+  .details-section {
+    padding: 1rem;
+  }
+
+  #modalActualizacionMasiva .modal-content {
+    width: 95%;
+    margin: 2% auto;
+  }
+}
+
+/* ===== MODO OSCURO para Tabs arriba de la tabla ===== */
+/* ===== Tabs arriba de la tabla — Oscuro acorde a tu UI ===== */
+:root {
+  /* Superficies */
+  --tabs-bg: #15181d;
+  /* barra/contorno oscuro (match del fondo) */
+  --tabs-surface: #1a1f26;
+  /* card/nav oscuro */
+  --tabs-pill: #232a33;
+  /* píldora reposo */
+  --tabs-border: #2b333d;
+  /* borde oscuro sutil */
+
+  /* Tipografía */
+  --tabs-text: #e6e9ee;
+  /* texto principal claro */
+  --tabs-text-dim: #c4ccd6;
+  /* texto secundario */
+  --tabs-text-hover: #ffffff;
+  /* hover */
+
+  /* Acentos “brand” según tus botones */
+  --brand-blue: #2f6df6;
+  /* como “Ver Historial / Reporte Anual” */
+  --brand-green: #10b981;
+  /* como “Reporte Consolidado” */
+  --state-orange: #ff8a00;
+  /* como “Pendiente” en tabla */
+
+  --tabs-accent: var(--brand-blue);
+  --tabs-accent-weak: rgba(47, 109, 246, .28);
+  --tabs-shadow: 0 10px 26px rgba(0, 0, 0, .45);
+}
+
+nav.card {
+  background: linear-gradient(180deg, var(--tabs-bg) 0%, var(--tabs-surface) 100%);
+  border: 1px solid var(--tabs-border);
+  border-radius: 14px;
+  box-shadow: var(--tabs-shadow);
+  padding: .25rem .5rem;
+}
+
+/* Lista de tabs */
+.tabs-estados {
+  display: flex;
+  gap: .5rem;
+  list-style: none;
+  padding: .5rem;
+  margin: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.tabs-estados::-webkit-scrollbar {
+  height: 8px;
+}
+
+.tabs-estados::-webkit-scrollbar-thumb {
+  background: #3a4552;
+  border-radius: 8px;
+}
+
+/* Botón “pill” */
+.tab-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .55rem .9rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  user-select: none;
+  font-size: .95rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--tabs-text);
+  background: var(--tabs-pill);
+  border: 1px solid var(--tabs-border);
+  transition: background .2s ease, color .2s ease, border-color .2s ease, box-shadow .2s ease, transform .08s ease;
+}
+
+.tab-pill:hover {
+  background: #202730;
+  color: var(--tabs-text-hover);
+  border-color: #34404c;
+}
+
+.tab-pill:active {
+  transform: translateY(1px);
+}
+
+/* Activa */
+.tab-pill.active {
+  color: var(--tabs-accent);
+  background: #18202a;
+  border-color: var(--tabs-accent);
+  box-shadow: 0 6px 18px rgba(47, 109, 246, .22);
+}
+
+.tab-pill.active::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: -8px;
+  height: 3px;
+  background: var(--tabs-accent);
+  border-radius: 3px;
+  opacity: .95;
+}
+
+/* Badge conteo */
+.tab-pill .badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 .45rem;
+  font-size: .78rem;
+  font-weight: 700;
+  border-radius: 999px;
+  background: #2a313a;
+  color: #e8ecf2;
+  border: 1px solid #36404c;
+  transition: background .2s ease, color .2s ease, border-color .2s ease;
+}
+
+.tab-pill:hover .badge {
+  background: #303946;
+  border-color: #3a4552;
+}
+
+.tab-pill.active .badge {
+  background: var(--tabs-accent);
+  color: #0b1220;
+  border-color: var(--tabs-accent);
+}
+
+/* Estados utilitarios */
+.tab-pill.disabled,
+.tab-pill[aria-disabled="true"] {
+  opacity: .55;
+  pointer-events: none;
+}
+
+/* Responsive compacto */
+@media (max-width: 768px) {
+  .tab-pill {
+    padding: .5rem .75rem;
+    font-size: .9rem;
+  }
+
+  .tab-pill .badge {
+    min-width: 22px;
+    height: 20px;
+    font-size: .74rem;
+  }
+}
+
+/* ===================== */
+/* MOBILE OPTIMIZATIONS  */
+/* ===================== */
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .tabla-solicitudes {
+    font-size: 0.875rem;
+  }
+
+  .tabla-solicitudes thead th,
+  .tabla-solicitudes tbody td {
+    padding: 0.5rem 0.5rem;
+  }
+
+  .action-buttons {
+    gap: 0.25rem;
+  }
+
+  .action-buttons .btn {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+
+  /* Dashboard header */
+  .dashboard-header h1 {
+    font-size: 1.5rem;
+    text-align: center;
+  }
+
+  /* Barra de acciones - apilar verticalmente */
+  .dashboard-container>div[style*="display:flex"][style*="gap:1rem"] {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .dashboard-container .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Filtros - apilar en móvil */
+  .filter-form {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+
+  .filter-form .form-group {
+    width: 100%;
+  }
+
+  .filter-form input,
+  .filter-form select,
+  .filter-form button {
+    width: 100%;
+  }
+
+  /* Tabla con scroll horizontal */
+  .table-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tabla-solicitudes {
+    min-width: 900px;
+    font-size: 0.8rem;
+  }
+
+  .tabla-solicitudes thead th {
+    position: sticky;
+    top: 0;
+    background: var(--header-bg, #111827);
+    z-index: 10;
+    white-space: nowrap;
+  }
+
+  .tabla-solicitudes tbody td {
+    padding: 0.5rem 0.4rem;
+    white-space: nowrap;
+  }
+
+  /* Mejorar touch targets para checkboxes */
+  .select-solicitud,
+  #selectAll {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Acciones más compactas */
+  .action-buttons {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .action-buttons .btn {
+    width: 100%;
+    padding: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .action-buttons .inline-form {
+    width: 100%;
+  }
+
+  .status-select {
+    width: 100%;
+    font-size: 0.75rem;
+    padding: 0.4rem;
+  }
+
+  /* Detalles expandidos */
+  .details-content {
+    padding: 0.75rem;
+  }
+
+  .details-grid {
+    gap: 0.75rem;
+  }
+
+  .details-section {
+    padding: 0.75rem;
+  }
+
+  .details-section h4 {
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .details-section p {
+    font-size: 0.85rem;
+    margin: 0.25rem 0;
+  }
+
+  /* Paginación */
+  .pagination {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 0.25rem !important;
+  }
+
+  .pagination .btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  /* Modales */
+  .modal-content {
+    margin: 1rem !important;
+    width: calc(100% - 2rem) !important;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+
+  .modal-header h3 {
+    font-size: 1rem;
+  }
+
+  /* Info text en paginación */
+  .card[style*="display:flex"][style*="justify-content:space-between"] {
+    flex-direction: column !important;
+    text-align: center;
+    gap: 0.75rem !important;
+  }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+
+  /* Tabs scroll horizontal mejorado */
+  .tabs-estados {
+    padding: 0.25rem;
+    gap: 0.35rem;
+  }
+
+  .tab-pill {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  .tab-pill .badge {
+    min-width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+    padding: 0 0.3rem;
+  }
+
+  /* Dashboard header */
+  .dashboard-header h1 {
+    font-size: 1.25rem;
+  }
+
+  /* Tabla aún más compacta */
+  .tabla-solicitudes {
+    min-width: 750px;
+    font-size: 0.75rem;
+  }
+
+  .tabla-solicitudes thead th,
+  .tabla-solicitudes tbody td {
+    padding: 0.4rem 0.3rem;
+  }
+
+  /* Botones más pequeños */
+  .action-buttons .btn {
+    padding: 0.4rem;
+    font-size: 0.7rem;
+  }
+
+  /* Secciones de detalles */
+  .archivos-adjuntos-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .archivo-adjunto-card {
+    padding: 0.5rem;
+  }
+
+  /* Badge anticipo más compacto */
+  .badge-anticipo,
+  .badge-comision {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.35rem;
+  }
+}
+
+/* — Opcional: acentos por estado (activos) para matchear la tabla — */
+/* usar data-estado="Pendiente|Aprobado|..." en <a> si quieres cambiar el color activo */
+.tab-pill[data-estado="Pendiente"].active {
+  --tabs-accent: var(--state-orange);
+  --tabs-accent-weak: rgba(255, 138, 0, .28);
+}
+
+.tab-pill[data-estado="Aprobado"].active {
+  --tabs-accent: var(--brand-green);
+  --tabs-accent-weak: rgba(16, 185, 129, .28);
+}
+
+.tab-pill[data-estado="Liquidado"].active {
+  --tabs-accent: #38bdf8;
+  --tabs-accent-weak: rgba(56, 189, 248, .28);
+}
+
+.tab-pill[data-estado="Declinada"].active {
+  --tabs-accent: #ef4444;
+  --tabs-accent-weak: rgba(239, 68, 68, .28);
+}
+
+.tab-pill[data-estado="Programado"].active {
+  --tabs-accent: #a78bfa;
+  --tabs-accent-weak: rgba(167, 139, 250, .28);
+}
+
+.tab-pill[data-estado="Liquidacion total"].active {
+  --tabs-accent: #e5e7eb;
+  --tabs-accent-weak: rgba(229, 231, 235, .28);
+}
+
+
+/* --- Quitar la línea azul en la TABLA --- */
+.tabla-solicitudes tr:focus,
+.tabla-solicitudes tr:focus-within,
+.tabla-solicitudes td:focus,
+.tabla-solicitudes th:focus,
+.tabla-solicitudes tr:focus-visible,
+.tabla-solicitudes td:focus-visible,
+.tabla-solicitudes th:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Evita highlight azul en móviles/Safari */
+.tabla-solicitudes tr,
+.tabla-solicitudes td,
+.tabla-solicitudes th {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Opcional: si no puedes editar la regla global, neutralízala y
+   vuelve a declarar el foco SOLO para controles interactivos */
+*:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.btn:focus-visible,
+.form-control:focus-visible,
+.status-select:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+a.tab-pill:focus-visible {
+  outline: 2px solid var(--primary-color, #f37c22);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+/* Si aún ves una “línea de estado” en pestañas, asegúrate de no dibujarla */
+.tab-pill.active::after {
+  content: none !important;
+}

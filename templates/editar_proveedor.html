@@ -1,0 +1,202 @@
+{% extends "layout.html" %}
+{% block title %}Editar Proveedor{% endblock %}
+{% block content %}
+<style>
+    .form-container {
+        background-color: #000;
+        color: #fff;
+        padding: 20px;
+        min-height: 100vh;
+    }
+
+    .form-card {
+        background-color: #111;
+        padding: 30px;
+        border-radius: 8px;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .form-header {
+        margin-bottom: 30px;
+        text-align: center;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #ff9800;
+        font-weight: bold;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        padding: 10px;
+        background-color: #333;
+        color: #fff;
+        border: 1px solid #444;
+        border-radius: 4px;
+        font-size: 1rem;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #ff9800;
+    }
+
+    .form-section {
+        margin-bottom: 30px;
+    }
+
+    .form-section h3 {
+        color: #ff9800;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #444;
+        padding-bottom: 10px;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 30px;
+    }
+
+    .btn {
+        background-color: #ff9800;
+        border: none;
+        color: #fff;
+        padding: 10px 20px;
+        cursor: pointer;
+        font-size: 1rem;
+        border-radius: 4px;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn:hover {
+        background-color: #e68900;
+    }
+
+    .btn-cancel {
+        background-color: #666;
+    }
+
+    .btn-cancel:hover {
+        background-color: #555;
+    }
+
+    .required {
+        color: #ff5252;
+    }
+
+    .info-note {
+        background-color: #1a1a1a;
+        padding: 15px;
+        border-left: 4px solid #ff9800;
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+        color: #ccc;
+    }
+</style>
+
+<div class="form-container">
+    <div class="form-card">
+        <div class="form-header">
+            <h2>Editar Proveedor</h2>
+        </div>
+
+        <div class="info-note">
+            <strong>Nota:</strong> Al editar un proveedor se creará un nuevo registro manteniendo el historial de cambios.
+        </div>
+
+        <form method="POST" action="{{ url_for('editar_proveedor', proveedor_id=proveedor.id) }}">
+            <div class="form-section">
+                <h3>Información General</h3>
+
+                <div class="form-group">
+                    <label for="nombre">Nombre del Proveedor <span class="required">*</span></label>
+                    <input type="text"
+                           id="nombre"
+                           name="nombre"
+                           value="{{ proveedor.nombre or '' }}"
+                           required
+                           maxlength="255"
+                           placeholder="Razón social o nombre comercial">
+                </div>
+
+                <div class="form-group">
+                    <label for="rfc">RFC</label>
+                    <input type="text"
+                           id="rfc"
+                           name="rfc"
+                           value="{{ proveedor.rfc or '' }}"
+                           maxlength="13"
+                           placeholder="RFC del proveedor">
+                </div>
+
+                <div class="form-group">
+                    <label for="direccion">Dirección</label>
+                    <textarea id="direccion"
+                              name="direccion"
+                              rows="3"
+                              placeholder="Dirección completa del proveedor">{{ proveedor.direccion or '' }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="referencia">Referencia</label>
+                    <textarea id="referencia"
+                              name="referencia"
+                              rows="2"
+                              placeholder="Información adicional, referencias o notas del proveedor">{{ proveedor.referencia or '' }}</textarea>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Información de Contacto</h3>
+
+                <div class="form-group">
+                    <label for="contacto">Nombre de Contacto</label>
+                    <input type="text"
+                           id="contacto"
+                           name="contacto"
+                           value="{{ proveedor.contacto or '' }}"
+                           maxlength="255"
+                           placeholder="Persona de contacto">
+                </div>
+
+                <div class="form-group">
+                    <label for="telefono">Teléfono</label>
+                    <input type="tel"
+                           id="telefono"
+                           name="telefono"
+                           value="{{ proveedor.telefono or '' }}"
+                           maxlength="20"
+                           placeholder="Número telefónico">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email"
+                           id="email"
+                           name="email"
+                           value="{{ proveedor.email or '' }}"
+                           maxlength="255"
+                           placeholder="Correo electrónico">
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn">Actualizar Proveedor</button>
+                <a href="{{ url_for('detalle_proveedor', proveedor_id=proveedor.id) }}" class="btn btn-cancel">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

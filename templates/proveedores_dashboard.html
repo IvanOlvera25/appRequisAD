@@ -1,0 +1,188 @@
+{% extends "layout.html" %}
+{% block title %}Gestión de Proveedores{% endblock %}
+{% block content %}
+<style>
+    .proveedores-container {
+        background-color: #000;
+        color: #fff;
+        padding: 20px;
+        min-height: 100vh;
+    }
+
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .btn-nuevo {
+        background-color: #ff9800;
+        border: none;
+        color: #fff;
+        padding: 10px 20px;
+        cursor: pointer;
+        font-size: 1rem;
+        text-decoration: none;
+        display: inline-block;
+        border-radius: 4px;
+    }
+
+    .btn-nuevo:hover {
+        background-color: #e68900;
+    }
+
+    .search-section {
+        margin-bottom: 20px;
+    }
+
+    .search-form {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .search-input {
+        background-color: #333;
+        color: #fff;
+        border: 1px solid #444;
+        padding: 8px 12px;
+        font-size: 1rem;
+        width: 300px;
+    }
+
+    .btn-search {
+        background-color: #ff9800;
+        border: none;
+        color: #fff;
+        padding: 8px 20px;
+        cursor: pointer;
+        font-size: 1rem;
+    }
+
+    .btn-search:hover {
+        background-color: #e68900;
+    }
+
+    .proveedores-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    .proveedores-table th,
+    .proveedores-table td {
+        border: 1px solid #444;
+        padding: 12px;
+        text-align: left;
+    }
+
+    .proveedores-table th {
+        background-color: #333;
+        font-weight: bold;
+    }
+
+    .proveedores-table tbody tr:nth-child(odd) {
+        background-color: #111;
+    }
+
+    .proveedores-table tbody tr:hover {
+        background-color: #222;
+    }
+
+    .btn-ver {
+        background-color: #2196F3;
+        border: none;
+        color: #fff;
+        padding: 6px 12px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        text-decoration: none;
+        display: inline-block;
+        border-radius: 4px;
+    }
+
+    .btn-ver:hover {
+        background-color: #1976D2;
+    }
+
+    .no-data {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+    }
+
+    .metodos-badge {
+        background-color: #4CAF50;
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+    }
+</style>
+
+<div class="proveedores-container">
+    <div class="header-section">
+        <h2>Gestión de Proveedores</h2>
+        <a href="{{ url_for('nuevo_proveedor') }}" class="btn-nuevo">+ Nuevo Proveedor</a>
+    </div>
+
+    <div class="search-section">
+        <form method="GET" action="{{ url_for('proveedores_dashboard') }}" class="search-form">
+            <input type="text"
+                   name="busqueda"
+                   placeholder="Buscar por nombre, RFC, email o teléfono..."
+                   value="{{ busqueda }}"
+                   class="search-input">
+            <button type="submit" class="btn-search">Buscar</button>
+            {% if busqueda %}
+                <a href="{{ url_for('proveedores_dashboard') }}" style="color: #ff9800;">Limpiar</a>
+            {% endif %}
+        </form>
+    </div>
+
+    {% if proveedores %}
+        <table class="proveedores-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>RFC</th>
+                    <th>Contacto</th>
+                    <th>Teléfono</th>
+                    <th>Email</th>
+                    <th>Referencia</th>
+
+                    <th>Métodos de Pago</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for proveedor in proveedores %}
+                <tr>
+                    <td>{{ proveedor.id }}</td>
+                    <td>{{ proveedor.nombre or '-' }}</td>
+                    <td>{{ proveedor.rfc or '-' }}</td>
+                    <td>{{ proveedor.contacto or '-' }}</td>
+                    <td>{{ proveedor.telefono or '-' }}</td>
+                    <td>{{ proveedor.email or '-' }}</td>
+                    <td>{{ proveedor.referencia or '-' }}</td>
+
+                    <td>
+                        <span class="metodos-badge">{{ proveedor.num_metodos_pago }}</span>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('detalle_proveedor', proveedor_id=proveedor.id) }}"
+                           class="btn-ver">Ver Detalle</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="no-data">
+            <p>No se encontraron proveedores.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

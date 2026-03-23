@@ -1,0 +1,1266 @@
+{% extends "layout.html" %}
+
+{% block title %}Editar Crédito - {{ credito.nombre }} | AD17 Solutions{% endblock %}
+
+{% block content %}
+<div class="editar-credito-container">
+    <div class="form-header">
+        <div class="header-info">
+            <h1>Editar Crédito</h1>
+            <p class="subtitle">Modificar información del crédito: {{ credito.nombre }}</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('detalle_credito', credito_id=credito.id) }}" class="btn btn-secondary">
+                <span class="btn-icon">⬅️</span>
+                Volver al Detalle
+            </a>
+        </div>
+    </div>
+
+    <!-- Información actual del crédito -->
+    <div class="info-actual">
+        <h3>Información Actual</h3>
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Estado Actual:</label>
+                <span class="etiqueta-estado estado-{{ credito.estado|lower }}">{{ credito.estado }}</span>
+            </div>
+            <div class="info-item">
+                <label>Monto Total Actual:</label>
+                <span class="monto" id="monto-actual-display">${{ "{:,.2f}".format(credito.monto_total) }}</span>
+            </div>
+            <div class="info-item">
+                <label>Fecha de Registro:</label>
+                <span>{{ credito.fecha_registro[:10] if credito.fecha_registro else 'N/A' }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario de edición -->
+    <form method="POST" class="credito-form">
+        <div class="form-sections">
+            <!-- Información básica -->
+            <div class="form-section">
+                <h3>Información Básica</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="nombre" class="required">Nombre del Crédito</label>
+                        <input type="text"
+                               id="nombre"
+                               name="nombre"
+                               value="{{ credito.nombre }}"
+                               required
+                               placeholder="Ej: Crédito para equipamiento">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="entidad" class="required">Entidad Financiera</label>
+                        <input type="text"
+                               id="entidad"
+                               name="entidad"
+                               value="{{ credito.entidad }}"
+                               required
+                               placeholder="Ej: Banco Santander">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tipo_credito" class="required">Tipo de Crédito</label>
+                        <select id="tipo_credito" name="tipo_credito" required>
+                            <option value="">Seleccionar tipo</option>
+                            <option value="Personal" {% if credito.tipo_credito == 'Personal' %}selected{% endif %}>Personal</option>
+                            <option value="Empresarial" {% if credito.tipo_credito == 'Empresarial' %}selected{% endif %}>Empresarial</option>
+                            <option value="Hipotecario" {% if credito.tipo_credito == 'Hipotecario' %}selected{% endif %}>Hipotecario</option>
+                            <option value="Automotriz" {% if credito.tipo_credito == 'Automotriz' %}selected{% endif %}>Automotriz</option>
+                            <option value="Línea de Crédito" {% if credito.tipo_credito == 'Línea de Crédito' %}selected{% endif %}>Línea de Crédito</option>
+                            <option value="Refaccionario" {% if credito.tipo_credito == 'Refaccionario' %}selected{% endif %}>Refaccionario</option>
+                            <option value="Capital de Trabajo" {% if credito.tipo_credito == 'Capital de Trabajo' %}selected{% endif %}>Capital de Trabajo</option>
+                            <option value="Otro" {% if credito.tipo_credito == 'Otro' %}selected{% endif %}>Otro</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="numero_cuenta">Número de Cuenta</label>
+                        <input type="text"
+                               id="numero_cuenta"
+                               name="numero_cuenta"
+                               value="{{ credito.numero_cuenta or '' }}"
+                               placeholder="Número de cuenta del crédito">
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="descripcion">Descripción</label>
+                        <textarea id="descripcion"
+                                  name="descripcion"
+                                  rows="3"
+                                  placeholder="Descripción detallada del crédito...">{{ credito.descripcion or '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información financiera -->
+            <div class="form-section">
+                <h3>Información Financiera</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="monto_total" class="required">Monto Total</label>
+                        <div class="input-with-icon">
+                            <span class="input-icon">$</span>
+                            <input type="number"
+                                   id="monto_total"
+                                   name="monto_total"
+                                   value="{{ credito.monto_total }}"
+                                   step="0.01"
+                                   min="0.01"
+                                   required
+                                   data-monto-original="{{ credito.monto_total }}">
+                        </div>
+                        <small class="help-text monto-cambio-info" style="display: none; color: var(--warning-color);"></small>
+                    </div>
+
+                    <div class="form-group" id="motivo-cambio-group" style="display: none;">
+                        <label for="motivo_cambio" class="required">Motivo del Cambio de Monto</label>
+                        <input type="text"
+                               id="motivo_cambio"
+                               name="motivo_cambio"
+                               placeholder="Ej: Expansión por necesidades adicionales, Refinanciamiento, etc.">
+                        <small class="help-text">Este campo es obligatorio cuando cambias el monto del crédito</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tasa_interes" class="required">Tasa de Interés (%)</label>
+                        <div class="input-with-icon">
+                            <input type="number"
+                                   id="tasa_interes"
+                                   name="tasa_interes"
+                                   value="{{ credito.tasa_interes }}"
+                                   step="0.01"
+                                   min="0"
+                                   max="100"
+                                   required>
+                            <span class="input-icon-right">%</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="plazo_meses" class="required">Plazo (meses)</label>
+                        <input type="number"
+                               id="plazo_meses"
+                               name="plazo_meses"
+                               value="{{ credito.plazo_meses }}"
+                               min="1"
+                               max="600"
+                               required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pago_mensual" class="required">Pago Mensual</label>
+                        <div class="input-with-icon">
+                            <span class="input-icon">$</span>
+                            <input type="number"
+                                   id="pago_mensual"
+                                   name="pago_mensual"
+                                   value="{{ credito.pago_mensual }}"
+                                   step="0.01"
+                                   min="0.01"
+                                   required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calculadora de pago mensual -->
+                <div class="calculadora-pago">
+                    <button type="button" id="calcular-pago" class="btn btn-info">
+                        <span class="btn-icon">🧮</span>
+                        Calcular Pago Mensual
+                    </button>
+                    <small class="help-text">Calcula automáticamente basado en monto, tasa y plazo</small>
+                </div>
+            </div>
+
+            <!-- Fechas -->
+            <div class="form-section">
+                <h3>Fechas del Crédito</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="fecha_inicio" class="required">Fecha de Inicio</label>
+                        <input type="date"
+                               id="fecha_inicio"
+                               name="fecha_inicio"
+                               value="{{ credito.fecha_inicio }}"
+                               required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fecha_final" class="required">Fecha Final</label>
+                        <input type="date"
+                               id="fecha_final"
+                               name="fecha_final"
+                               value="{{ credito.fecha_final }}"
+                               required>
+                    </div>
+                </div>
+
+                <!-- Calculadora de fecha final -->
+                <div class="calculadora-fecha">
+                    <button type="button" id="calcular-fecha" class="btn btn-info">
+                        <span class="btn-icon">📅</span>
+                        Calcular Fecha Final
+                    </button>
+                    <small class="help-text">Calcula fecha final basada en fecha inicio y plazo</small>
+                </div>
+            </div>
+
+            <!-- Estado y configuración -->
+            <div class="form-section">
+                <h3>Estado y Configuración</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="estado" class="required">Estado del Crédito</label>
+                        <select id="estado" name="estado" required>
+                            <option value="Activo" {% if credito.estado == 'Activo' %}selected{% endif %}>Activo</option>
+                            <option value="Liquidado" {% if credito.estado == 'Liquidado' %}selected{% endif %}>Liquidado</option>
+                            <option value="Suspendido" {% if credito.estado == 'Suspendido' %}selected{% endif %}>Suspendido</option>
+                            <option value="En Proceso" {% if credito.estado == 'En Proceso' %}selected{% endif %}>En Proceso</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contacto">Contacto</label>
+                        <input type="text"
+                               id="contacto"
+                               name="contacto"
+                               value="{{ credito.contacto or '' }}"
+                               placeholder="Persona de contacto en la entidad">
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="notas">Notas Adicionales</label>
+                        <textarea id="notas"
+                                  name="notas"
+                                  rows="4"
+                                  placeholder="Notas, observaciones o información adicional...">{{ credito.notas or '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="form-actions">
+            <div class="actions-left">
+                <a href="{{ url_for('detalle_credito', credito_id=credito.id) }}" class="btn btn-secondary">
+                    <span class="btn-icon">❌</span>
+                    Cancelar
+                </a>
+            </div>
+            <div class="actions-right">
+                <button type="button" id="preview-btn" class="btn btn-info">
+                    <span class="btn-icon">👁️</span>
+                    Vista Previa
+                </button>
+                <button type="submit" class="btn btn-primary" id="submit-btn">
+                    <span class="btn-icon">💾</span>
+                    Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Modal de vista previa -->
+<div id="preview-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Vista Previa de Cambios</h3>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="preview-content"></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary close-modal">Cerrar</button>
+            <button type="button" id="confirm-save" class="btn btn-primary">Confirmar y Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación de cambio de monto -->
+<div id="monto-change-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--warning-color), #e0a800);">
+            <h3>⚠️ Cambio de Monto Detectado</h3>
+            <span class="close close-monto">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="warning-message">
+                <p><strong>Has modificado el monto del crédito.</strong></p>
+                <p>Este cambio será registrado en el historial del crédito.</p>
+
+                <div class="monto-comparison">
+                    <div class="monto-item">
+                        <label>Monto Anterior:</label>
+                        <span id="monto-anterior-modal"></span>
+                    </div>
+                    <div class="monto-item">
+                        <label>Monto Nuevo:</label>
+                        <span id="monto-nuevo-modal"></span>
+                    </div>
+                    <div class="monto-item diferencia-item">
+                        <label>Diferencia:</label>
+                        <span id="monto-diferencia-modal"></span>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label for="motivo-modal" class="required">Por favor indica el motivo del cambio:</label>
+                    <input type="text"
+                           id="motivo-modal"
+                           placeholder="Ej: Expansión por necesidades adicionales, Refinanciamiento, Ajuste por tipo de cambio, etc."
+                           style="width: 100%; background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.75rem;">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary close-monto-cancel">Cancelar Cambio</button>
+            <button type="button" id="confirm-monto-change" class="btn btn-primary">Confirmar Cambio</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    :root {
+        --primary-color: #f37c22;
+        --secondary-color: #333;
+        --background: #000;
+        --header-bg: #1a1a1a;
+        --input-bg: #2a2a2a;
+        --text-color: #fff;
+        --border-color: #444;
+        --success-color: #28a745;
+        --error-color: #dc3545;
+        --warning-color: #ffc107;
+        --info-color: #17a2b8;
+    }
+
+    .editar-credito-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 1.5rem;
+    }
+
+    /* Header */
+    .form-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, var(--header-bg), #333);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+    }
+
+    .header-info h1 {
+        margin: 0 0 0.5rem;
+        color: var(--primary-color);
+        font-size: 1.8rem;
+    }
+
+    .subtitle {
+        color: #bbb;
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    /* Información actual */
+    .info-actual {
+        background-color: var(--input-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .info-actual h3 {
+        margin: 0 0 1rem;
+        color: var(--primary-color);
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .info-item label {
+        font-size: 0.9rem;
+        color: #bbb;
+    }
+
+    .info-item span {
+        font-weight: 500;
+        color: var(--text-color);
+    }
+
+    .monto {
+        color: var(--success-color);
+        font-family: 'Courier New', monospace;
+        font-size: 1.1rem;
+    }
+
+    /* Estados */
+    .etiqueta-estado {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-block;
+    }
+
+    .estado-activo {
+        background: linear-gradient(45deg, rgba(40, 167, 69, 0.2), rgba(40, 167, 69, 0.3));
+        color: var(--success-color);
+        border: 1px solid var(--success-color);
+    }
+
+    .estado-liquidado {
+        background: linear-gradient(45deg, rgba(23, 162, 184, 0.2), rgba(23, 162, 184, 0.3));
+        color: var(--info-color);
+        border: 1px solid var(--info-color);
+    }
+
+    .estado-suspendido {
+        background: linear-gradient(45deg, rgba(220, 53, 69, 0.2), rgba(220, 53, 69, 0.3));
+        color: var(--error-color);
+        border: 1px solid var(--error-color);
+    }
+
+    /* Formulario */
+    .credito-form {
+        background-color: var(--header-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 2rem;
+    }
+
+    .form-sections {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .form-section {
+        background-color: var(--input-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1.5rem;
+    }
+
+    .form-section h3 {
+        margin: 0 0 1.5rem;
+        color: var(--primary-color);
+        font-size: 1.2rem;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0.5rem;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .form-group.full-width {
+        grid-column: 1 / -1;
+    }
+
+    .form-group label {
+        font-weight: 600;
+        color: var(--text-color);
+        font-size: 0.9rem;
+    }
+
+    .form-group label.required::after {
+        content: ' *';
+        color: var(--error-color);
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        background-color: var(--header-bg);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 0.75rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(243, 124, 34, 0.2);
+    }
+
+    .form-group input::placeholder,
+    .form-group textarea::placeholder {
+        color: #888;
+    }
+
+    /* Inputs con iconos */
+    .input-with-icon {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .input-icon {
+        position: absolute;
+        left: 0.75rem;
+        color: var(--primary-color);
+        font-weight: bold;
+        z-index: 1;
+    }
+
+    .input-icon-right {
+        position: absolute;
+        right: 0.75rem;
+        color: var(--primary-color);
+        font-weight: bold;
+    }
+
+    .input-with-icon input {
+        padding-left: 2.5rem;
+    }
+
+    .input-with-icon input:has(~ .input-icon-right) {
+        padding-right: 2.5rem;
+        padding-left: 0.75rem;
+    }
+
+    /* Calculadoras */
+    .calculadora-pago,
+    .calculadora-fecha {
+        margin-top: 1rem;
+        padding: 1rem;
+        background-color: rgba(243, 124, 34, 0.1);
+        border: 1px solid rgba(243, 124, 34, 0.3);
+        border-radius: 8px;
+        text-align: center;
+    }
+
+    .help-text {
+        display: block;
+        margin-top: 0.5rem;
+        color: #bbb;
+        font-size: 0.8rem;
+    }
+
+    .monto-cambio-info {
+        font-weight: bold;
+        margin-top: 0.25rem;
+    }
+
+    /* Botones */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        white-space: nowrap;
+    }
+
+    .btn-primary {
+        background: linear-gradient(45deg, var(--primary-color), #e66a0a);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(45deg, #e66a0a, var(--primary-color));
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(243, 124, 34, 0.4);
+    }
+
+    .btn-secondary {
+        background: linear-gradient(45deg, var(--border-color), #555);
+        color: var(--text-color);
+    }
+
+    .btn-secondary:hover {
+        background: linear-gradient(45deg, #555, var(--border-color));
+    }
+
+    .btn-info {
+        background: linear-gradient(45deg, var(--info-color), #138496);
+        color: white;
+    }
+
+    .btn-info:hover {
+        background: linear-gradient(45deg, #138496, var(--info-color));
+    }
+
+    .btn-icon {
+        font-size: 1rem;
+    }
+
+    /* Acciones del formulario */
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .actions-left,
+    .actions-right {
+        display: flex;
+        gap: 1rem;
+    }
+
+    /* Modal */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+    }
+
+    .modal-content {
+        background-color: var(--header-bg);
+        margin: 5% auto;
+        padding: 0;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        width: 80%;
+        max-width: 600px;
+        max-height: 80vh;
+        overflow: hidden;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: linear-gradient(135deg, var(--primary-color), #e66a0a);
+        color: white;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        font-size: 1.2rem;
+    }
+
+    .close {
+        color: white;
+        font-size: 2rem;
+        font-weight: bold;
+        cursor: pointer;
+        line-height: 1;
+    }
+
+    .close:hover {
+        opacity: 0.7;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+        max-height: 50vh;
+        overflow-y: auto;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        padding: 1.5rem;
+        border-top: 1px solid var(--border-color);
+        background-color: var(--input-bg);
+    }
+
+    /* Preview content */
+    .preview-section {
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background-color: var(--input-bg);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+
+    .preview-section h4 {
+        margin: 0 0 1rem;
+        color: var(--primary-color);
+        font-size: 1rem;
+    }
+
+    .preview-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .preview-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .preview-label {
+        color: #bbb;
+        font-size: 0.9rem;
+    }
+
+    .preview-value {
+        color: var(--text-color);
+        font-weight: 500;
+        text-align: right;
+    }
+
+    /* Modal de cambio de monto */
+    .warning-message {
+        text-align: center;
+    }
+
+    .warning-message p {
+        margin: 0.5rem 0;
+        color: var(--text-color);
+    }
+
+    .monto-comparison {
+        margin: 1.5rem 0;
+        padding: 1rem;
+        background-color: var(--header-bg);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+
+    .monto-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .monto-item label {
+        color: #bbb;
+        font-weight: 600;
+    }
+
+    .monto-item span {
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        color: var(--text-color);
+    }
+
+    .diferencia-item {
+        border-top: 2px solid var(--border-color);
+        padding-top: 0.75rem;
+        margin-top: 0.5rem;
+    }
+
+    .diferencia-item span {
+        font-size: 1.1rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .editar-credito-container {
+            padding: 1rem;
+        }
+
+        .form-header {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .form-actions {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .actions-left,
+        .actions-right {
+            justify-content: center;
+            width: 100%;
+        }
+
+        .modal-content {
+            width: 95%;
+            margin: 10% auto;
+        }
+    }
+
+    /* Animaciones */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .form-section {
+        animation: fadeIn 0.5s ease-out;
+    }
+
+    /* Validación de formulario */
+    .form-group input:invalid,
+    .form-group select:invalid {
+        border-color: var(--error-color);
+    }
+
+    .form-group input:valid,
+    .form-group select:valid {
+        border-color: var(--success-color);
+    }
+
+    /* Campo resaltado cuando cambia */
+    .campo-modificado {
+        animation: pulseGlow 0.5s ease-in-out;
+    }
+
+    @keyframes pulseGlow {
+        0%, 100% {
+            box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+        }
+        50% {
+            box-shadow: 0 0 0 10px rgba(255, 193, 7, 0.3);
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Referencias a elementos
+        const montoInput = document.getElementById('monto_total');
+        const tasaInput = document.getElementById('tasa_interes');
+        const plazoInput = document.getElementById('plazo_meses');
+        const pagoInput = document.getElementById('pago_mensual');
+        const fechaInicioInput = document.getElementById('fecha_inicio');
+        const fechaFinalInput = document.getElementById('fecha_final');
+        const calcularPagoBtn = document.getElementById('calcular-pago');
+        const calcularFechaBtn = document.getElementById('calcular-fecha');
+        const previewBtn = document.getElementById('preview-btn');
+        const modal = document.getElementById('preview-modal');
+        const closeModal = document.getElementsByClassName('close')[0];
+        const closeModalBtn = document.querySelector('.close-modal');
+        const confirmSaveBtn = document.getElementById('confirm-save');
+        const form = document.querySelector('.credito-form');
+        const submitBtn = document.getElementById('submit-btn');
+
+        // Modal de cambio de monto
+        const montoChangeModal = document.getElementById('monto-change-modal');
+        const closeMontoModal = document.querySelector('.close-monto');
+        const closeMontoCancel = document.querySelector('.close-monto-cancel');
+        const confirmMontoChange = document.getElementById('confirm-monto-change');
+        const motivoInput = document.getElementById('motivo_cambio');
+        const motivoGroup = document.getElementById('motivo-cambio-group');
+        const montoOriginal = parseFloat(montoInput.dataset.montoOriginal);
+        const montoCambioInfo = document.querySelector('.monto-cambio-info');
+
+        let montoHaCambiado = false;
+        let motivoConfirmado = false;
+
+        // Detectar cambio en el monto
+        montoInput.addEventListener('input', function() {
+            const montoNuevo = parseFloat(this.value) || 0;
+
+            if (montoNuevo !== montoOriginal && montoNuevo > 0) {
+                montoHaCambiado = true;
+                motivoGroup.style.display = 'block';
+                motivoInput.required = true;
+
+                const diferencia = montoNuevo - montoOriginal;
+                const signo = diferencia > 0 ? '+' : '';
+                montoCambioInfo.style.display = 'block';
+                montoCambioInfo.textContent = `⚠️ Cambio detectado: ${signo}$${Math.abs(diferencia).toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
+
+                this.classList.add('campo-modificado');
+                setTimeout(() => this.classList.remove('campo-modificado'), 500);
+            } else {
+                montoHaCambiado = false;
+                motivoGroup.style.display = 'none';
+                motivoInput.required = false;
+                montoCambioInfo.style.display = 'none';
+            }
+        });
+
+        // Interceptar submit del formulario
+        form.addEventListener('submit', function(e) {
+            if (montoHaCambiado && !motivoConfirmado) {
+                e.preventDefault();
+
+                const montoNuevo = parseFloat(montoInput.value) || 0;
+                const diferencia = montoNuevo - montoOriginal;
+
+                // Mostrar modal de confirmación
+                document.getElementById('monto-anterior-modal').textContent =
+                    '$' + montoOriginal.toLocaleString('es-MX', {minimumFractionDigits: 2});
+                document.getElementById('monto-nuevo-modal').textContent =
+                    '$' + montoNuevo.toLocaleString('es-MX', {minimumFractionDigits: 2});
+
+                const diferenciaSpan = document.getElementById('monto-diferencia-modal');
+                const signo = diferencia > 0 ? '+' : '';
+                diferenciaSpan.textContent = signo + '$' + Math.abs(diferencia).toLocaleString('es-MX', {minimumFractionDigits: 2});
+                diferenciaSpan.style.color = diferencia > 0 ? 'var(--success-color)' : 'var(--error-color)';
+
+                // Si ya hay un motivo escrito, ponerlo en el modal
+                if (motivoInput.value) {
+                    document.getElementById('motivo-modal').value = motivoInput.value;
+                }
+
+                montoChangeModal.style.display = 'block';
+            }
+        });
+
+        // Confirmar cambio de monto
+        confirmMontoChange.addEventListener('click', function() {
+            const motivoModal = document.getElementById('motivo-modal').value.trim();
+
+            if (!motivoModal) {
+                alert('Por favor, indica el motivo del cambio de monto.');
+                return;
+            }
+
+            motivoInput.value = motivoModal;
+            motivoConfirmado = true;
+            montoChangeModal.style.display = 'none';
+
+            // Ahora sí enviar el formulario
+            form.submit();
+        });
+
+        // Cerrar modal de monto y cancelar cambio
+        closeMontoModal.addEventListener('click', function() {
+            montoChangeModal.style.display = 'none';
+        });
+
+        closeMontoCancel.addEventListener('click', function() {
+            montoInput.value = montoOriginal;
+            montoHaCambiado = false;
+            motivoGroup.style.display = 'none';
+            motivoInput.required = false;
+            montoCambioInfo.style.display = 'none';
+            montoChangeModal.style.display = 'none';
+        });
+
+        // Calcular pago mensual
+        calcularPagoBtn.addEventListener('click', function() {
+            const monto = parseFloat(montoInput.value) || 0;
+            const tasa = parseFloat(tasaInput.value) || 0;
+            const plazo = parseInt(plazoInput.value) || 0;
+
+            if (monto > 0 && tasa > 0 && plazo > 0) {
+                const tasaMensual = (tasa / 100) / 12;
+                const factor = Math.pow(1 + tasaMensual, plazo);
+                const pagoMensual = monto * (tasaMensual * factor) / (factor - 1);
+
+                pagoInput.value = pagoMensual.toFixed(2);
+
+                pagoInput.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
+                setTimeout(() => {
+                    pagoInput.style.backgroundColor = '';
+                }, 2000);
+            } else {
+                alert('Por favor, ingresa valores válidos para monto, tasa y plazo.');
+            }
+        });
+
+        // Calcular fecha final
+        calcularFechaBtn.addEventListener('click', function() {
+            const fechaInicio = fechaInicioInput.value;
+            const plazo = parseInt(plazoInput.value) || 0;
+
+            if (fechaInicio && plazo > 0) {
+                const inicio = new Date(fechaInicio);
+                const final = new Date(inicio);
+                final.setMonth(final.getMonth() + plazo);
+
+                fechaFinalInput.value = final.toISOString().split('T')[0];
+
+                fechaFinalInput.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
+                setTimeout(() => {
+                    fechaFinalInput.style.backgroundColor = '';
+                }, 2000);
+            } else {
+                alert('Por favor, ingresa una fecha de inicio válida y el plazo.');
+            }
+        });
+
+        // Vista previa
+        previewBtn.addEventListener('click', function() {
+            const formData = new FormData(form);
+            let previewHtml = '';
+
+            // Información básica
+            previewHtml += `
+                <div class="preview-section">
+                    <h4>Información Básica</h4>
+                    <div class="preview-item">
+                        <span class="preview-label">Nombre:</span>
+                        <span class="preview-value">${formData.get('nombre') || 'No especificado'}</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Entidad:</span>
+                        <span class="preview-value">${formData.get('entidad') || 'No especificado'}</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Tipo:</span>
+                        <span class="preview-value">${formData.get('tipo_credito') || 'No especificado'}</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Estado:</span>
+                        <span class="preview-value">${formData.get('estado') || 'No especificado'}</span>
+                    </div>
+                </div>
+            `;
+
+            // Información financiera
+            const monto = parseFloat(formData.get('monto_total')) || 0;
+            const tasa = parseFloat(formData.get('tasa_interes')) || 0;
+            const plazo = parseInt(formData.get('plazo_meses')) || 0;
+            const pagoMensual = parseFloat(formData.get('pago_mensual')) || 0;
+
+            previewHtml += `
+                <div class="preview-section">
+                    <h4>Información Financiera</h4>
+                    <div class="preview-item">
+                        <span class="preview-label">Monto Total:</span>
+                        <span class="preview-value">$${monto.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+                    </div>
+            `;
+
+            if (montoHaCambiado) {
+                const motivo = formData.get('motivo_cambio');
+                previewHtml += `
+                    <div class="preview-item" style="background-color: rgba(255, 193, 7, 0.1); padding: 0.5rem; border-radius: 4px;">
+                        <span class="preview-label">⚠️ Cambio de Monto:</span>
+                        <span class="preview-value">De $${montoOriginal.toLocaleString('es-MX', {minimumFractionDigits: 2})} a $${monto.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Motivo:</span>
+                        <span class="preview-value">${motivo || 'No especificado'}</span>
+                    </div>
+                `;
+            }
+
+            previewHtml += `
+                    <div class="preview-item">
+                        <span class="preview-label">Tasa de Interés:</span>
+                        <span class="preview-value">${tasa}% anual</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Plazo:</span>
+                        <span class="preview-value">${plazo} meses</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Pago Mensual:</span>
+                        <span class="preview-value">$${pagoMensual.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Total a Pagar:</span>
+                        <span class="preview-value">$${(pagoMensual * plazo).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+                    </div>
+                </div>
+            `;
+
+            // Fechas
+            previewHtml += `
+                <div class="preview-section">
+                    <h4>Fechas</h4>
+                    <div class="preview-item">
+                        <span class="preview-label">Fecha de Inicio:</span>
+                        <span class="preview-value">${formData.get('fecha_inicio') || 'No especificado'}</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Fecha Final:</span>
+                        <span class="preview-value">${formData.get('fecha_final') || 'No especificado'}</span>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('preview-content').innerHTML = previewHtml;
+            modal.style.display = 'block';
+        });
+
+        // Cerrar modal de preview
+        closeModal.addEventListener('click', function() {
+            modal.style.display = 'none';
+        });
+
+        closeModalBtn.addEventListener('click', function() {
+            modal.style.display = 'none';
+        });
+
+        // Confirmar y guardar desde preview
+        confirmSaveBtn.addEventListener('click', function() {
+            modal.style.display = 'none';
+
+            if (montoHaCambiado && !motivoConfirmado) {
+                submitBtn.click(); // Esto abrirá el modal de confirmación de monto
+            } else {
+                form.submit();
+            }
+        });
+
+        // Cerrar modales al hacer clic fuera
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+            if (event.target === montoChangeModal) {
+                montoChangeModal.style.display = 'none';
+            }
+        });
+
+        // Validaciones
+        function validateField(field, validator, errorMessage) {
+            field.addEventListener('blur', function() {
+                if (!validator(this.value)) {
+                    this.setCustomValidity(errorMessage);
+                    this.reportValidity();
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+
+            field.addEventListener('input', function() {
+                this.setCustomValidity('');
+            });
+        }
+
+        validateField(montoInput, (value) => parseFloat(value) > 0, 'El monto debe ser mayor a 0');
+        validateField(tasaInput, (value) => parseFloat(value) >= 0 && parseFloat(value) <= 100, 'La tasa debe estar entre 0 y 100');
+        validateField(plazoInput, (value) => parseInt(value) > 0 && parseInt(value) <= 600, 'El plazo debe estar entre 1 y 600 meses');
+        validateField(pagoInput, (value) => parseFloat(value) > 0, 'El pago mensual debe ser mayor a 0');
+
+        // Validación de fechas
+        fechaInicioInput.addEventListener('change', function() {
+            const fechaInicio = new Date(this.value);
+            const fechaFinal = new Date(fechaFinalInput.value);
+
+            if (fechaFinalInput.value && fechaFinal <= fechaInicio) {
+                fechaFinalInput.setCustomValidity('La fecha final debe ser posterior a la fecha de inicio');
+                fechaFinalInput.reportValidity();
+            } else {
+                fechaFinalInput.setCustomValidity('');
+            }
+        });
+
+        fechaFinalInput.addEventListener('change', function() {
+            const fechaInicio = new Date(fechaInicioInput.value);
+            const fechaFinal = new Date(this.value);
+
+            if (fechaInicioInput.value && fechaFinal <= fechaInicio) {
+                this.setCustomValidity('La fecha final debe ser posterior a la fecha de inicio');
+                this.reportValidity();
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+
+        // Prevenir pérdida de datos
+        let formChanged = false;
+        const inputs = form.querySelectorAll('input, select, textarea');
+
+        inputs.forEach(input => {
+            input.addEventListener('input', function() {
+                formChanged = true;
+            });
+        });
+
+        window.addEventListener('beforeunload', function(e) {
+            if (formChanged && !motivoConfirmado) {
+                e.preventDefault();
+                e.returnValue = '¿Estás seguro de que quieres salir? Los cambios no guardados se perderán.';
+            }
+        });
+
+        form.addEventListener('submit', function() {
+            formChanged = false;
+        });
+
+        // Formateo de números
+        montoInput.addEventListener('blur', function() {
+            if (this.value) {
+                const valor = parseFloat(this.value);
+                if (!isNaN(valor)) {
+                    this.value = valor.toFixed(2);
+                }
+            }
+        });
+
+        pagoInput.addEventListener('blur', function() {
+            if (this.value) {
+                const valor = parseFloat(this.value);
+                if (!isNaN(valor)) {
+                    this.value = valor.toFixed(2);
+                }
+            }
+        });
+
+        tasaInput.addEventListener('blur', function() {
+            if (this.value) {
+                const valor = parseFloat(this.value);
+                if (!isNaN(valor)) {
+                    this.value = valor.toFixed(2);
+                }
+            }
+        });
+
+        // Efectos visuales
+        inputs.forEach(input => {
+            input.addEventListener('focus', function() {
+                this.style.transform = 'scale(1.02)';
+                this.style.transition = 'transform 0.2s ease';
+            });
+
+            input.addEventListener('blur', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+
+        console.log('Formulario de edición de crédito inicializado correctamente');
+    });
+</script>
+{% endblock %}

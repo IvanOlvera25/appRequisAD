@@ -1,0 +1,1629 @@
+{% extends "layout.html" %}
+{% block title %}Solicitar Pago{% endblock %}
+{% block content %}
+
+<style>
+  .form-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+
+  .form-header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #e06d17 100%);
+    color: var(--text-color);
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  #categoria-administrativos-container {
+    transition: all 0.3s ease;
+  }
+
+  #categoria-administrativos-container.active {
+    background: var(--header-bg);
+    border: 2px solid var(--primary-color);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+
+  .form-header h2 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 300;
+  }
+
+  .form-header p {
+    margin: 0.5rem 0 0 0;
+    opacity: 0.9;
+    font-size: 1.1rem;
+  }
+
+  .progress-steps {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+    background: var(--header-bg);
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  .step {
+    display: flex;
+    align-items: center;
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .step.active {
+    color: var(--primary-color);
+  }
+
+  .step-number {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--border-color);
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+
+  .step.active .step-number {
+    background: var(--primary-color);
+    color: var(--text-color);
+  }
+
+  .step-divider {
+    width: 50px;
+    height: 2px;
+    background: var(--border-color);
+    margin: 0 1rem;
+  }
+
+  .step.active+.step-divider {
+    background: var(--primary-color);
+  }
+
+  .form-section {
+    background: var(--header-bg);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  .section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--border-color);
+  }
+
+  .form-grid {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 768px) {
+    .form-grid-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .required {
+    color: var(--error-color);
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    padding: 0.75rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(243, 124, 34, 0.1);
+  }
+
+  .form-group input:invalid,
+  .form-group select:invalid {
+    border-color: var(--error-color);
+  }
+
+  .form-group input:valid,
+  .form-group select:valid {
+    border-color: var(--success-color);
+  }
+
+  .btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+
+  .btn-primary {
+    background: var(--primary-color);
+    color: var(--text-color);
+  }
+
+  .btn-primary:hover {
+    background: #e06d17;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(243, 124, 34, 0.4);
+  }
+
+  .btn-secondary {
+    background: #6b7280;
+    color: var(--text-color);
+  }
+
+  .btn-secondary:hover {
+    background: #4b5563;
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+  }
+
+  .btn-outline:hover {
+    background: var(--primary-color);
+    color: var(--text-color);
+  }
+
+  .dynamic-section {
+    background: var(--input-bg);
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+  }
+
+  .dynamic-section.active {
+    background: var(--header-bg);
+    border-color: var(--primary-color);
+  }
+
+  .persona-row {
+    background: var(--header-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+    position: relative;
+  }
+
+  .persona-row::before {
+    content: "👤";
+    position: absolute;
+    top: -10px;
+    left: 15px;
+    background: var(--header-bg);
+    padding: 0 0.5rem;
+    font-size: 1.2rem;
+  }
+
+  .correo-row {
+    background: var(--header-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 0.5rem 0;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .correo-row input,
+  .correo-row select {
+    margin: 0;
+  }
+
+  .remove-btn {
+    background: var(--error-color);
+    color: var(--text-color);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+
+  .remove-btn:hover {
+    background: #c82333;
+    transform: scale(1.1);
+  }
+
+  .file-upload-area {
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    background: var(--input-bg);
+    color: var(--text-color);
+  }
+
+  .file-upload-area:hover {
+    border-color: var(--primary-color);
+    background: var(--header-bg);
+  }
+
+  .file-upload-area.dragover {
+    border-color: var(--primary-color);
+    background: var(--header-bg);
+    transform: scale(1.02);
+  }
+
+  .checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--input-bg);
+    border-radius: 8px;
+    border: 2px solid var(--border-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .checkbox-group:hover {
+    background: var(--header-bg);
+    border-color: var(--primary-color);
+  }
+
+  .checkbox-group input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--primary-color);
+  }
+
+  .submit-section {
+    background: linear-gradient(135deg, var(--input-bg) 0%, var(--header-bg) 100%);
+    padding: 2rem;
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+  }
+
+  .submit-btn {
+    font-size: 1rem;
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, var(--primary-color) 0%, #e06d17 100%);
+    box-shadow: 0 4px 20px rgba(243, 124, 34, 0.3);
+  }
+
+  .submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(243, 124, 34, 0.4);
+  }
+
+  .info-tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+  }
+
+  .info-tooltip .tooltip-text {
+    visibility: hidden;
+    width: 200px;
+    background-color: var(--header-bg);
+    color: var(--text-color);
+    text-align: center;
+    border-radius: 6px;
+    padding: 0.5rem;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.75rem;
+    border: 1px solid var(--border-color);
+  }
+
+  .info-tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  .monto-display {
+    background: var(--header-bg);
+    border: 2px solid var(--primary-color);
+    color: var(--primary-color);
+    font-weight: bold;
+    font-size: 1.1rem;
+    text-align: center;
+  }
+
+  .field-error {
+    border-color: var(--error-color) !important;
+    background-color: var(--input-bg);
+  }
+
+  .error-message {
+    color: var(--error-color);
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .success-message {
+    color: var(--success-color);
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  /* NUEVOS ESTILOS PARA 3 ARCHIVOS */
+  .archivos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .archivo-item {
+    background: var(--input-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    transition: all 0.2s ease;
+  }
+
+  .archivo-item:hover {
+    border-color: var(--primary-color);
+    background: var(--header-bg);
+  }
+
+  .archivo-item-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    color: var(--text-color);
+  }
+
+  .archivo-item-header .emoji {
+    font-size: 1.25rem;
+  }
+
+  .file-input-wrapper {
+    position: relative;
+  }
+
+  .file-input-wrapper input[type="file"] {
+    display: none;
+  }
+
+  .file-input-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: var(--header-bg);
+    border: 2px dashed var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+    color: var(--text-color);
+  }
+
+  .file-input-label:hover {
+    border-color: var(--primary-color);
+    background: var(--input-bg);
+  }
+
+  .file-display {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--success-color);
+    display: none;
+  }
+
+  .file-display.active {
+    display: block;
+  }
+
+  /* ===================== */
+  /* MOBILE OPTIMIZATIONS  */
+  /* ===================== */
+
+  /* Tablet */
+  @media (max-width: 1024px) {
+    .form-container {
+      padding: 0.75rem;
+    }
+
+    .form-section {
+      padding: 1.25rem;
+    }
+
+    .form-grid-2 {
+      gap: 1rem;
+    }
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    .form-container {
+      padding: 0.5rem;
+      max-width: 100%;
+    }
+
+    .form-header {
+      padding: 1.25rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+
+    .form-header h2 {
+      font-size: 1.5rem;
+    }
+
+    .form-header p {
+      font-size: 0.95rem;
+    }
+
+    .progress-steps {
+      display: none;
+    }
+
+    .form-section {
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+    }
+
+    .section-title {
+      font-size: 1rem;
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .form-grid-2 {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+
+    .archivos-grid {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+
+    /* Inputs más grandes para touch */
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="date"],
+    input[type="file"],
+    select,
+    textarea {
+      font-size: 16px !important;
+      /* Prevenir zoom en iOS */
+      padding: 0.875rem;
+      min-height: 48px;
+    }
+
+    .form-group label {
+      font-size: 0.9rem;
+      margin-bottom: 0.35rem;
+    }
+
+    /* Botón submit más grande */
+    .submit-section {
+      padding: 1.5rem 1rem;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 1rem 1.5rem;
+      font-size: 1.1rem;
+      min-height: 56px;
+    }
+
+    /* Correos dinámicos */
+    .correo-row {
+      flex-direction: column;
+      gap: 0.5rem !important;
+    }
+
+    .correo-row select,
+    .correo-row input {
+      width: 100% !important;
+    }
+
+    .correo-row button {
+      width: 48px;
+      height: 48px;
+      min-width: 48px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Sección de viáticos */
+    #viaticos-personas .form-grid-2 {
+      gap: 0.5rem;
+    }
+
+    /* Checkbox anticipo */
+    input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* File inputs mejorados */
+    .file-input-wrapper {
+      margin-bottom: 0.75rem;
+    }
+
+    .file-input-label {
+      padding: 1rem;
+      font-size: 0.8rem;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Tooltips y ayudas */
+    .nota-monto,
+    .file-display {
+      font-size: 0.75rem;
+    }
+  }
+
+  /* Small mobile */
+  @media (max-width: 480px) {
+    .form-container {
+      padding: 0.25rem;
+    }
+
+    .form-header {
+      padding: 1rem;
+    }
+
+    .form-header h2 {
+      font-size: 1.25rem;
+    }
+
+    .form-section {
+      padding: 0.75rem;
+    }
+
+    .section-title {
+      font-size: 0.9rem;
+      padding: 0.4rem 0.6rem;
+    }
+
+    .form-group label {
+      font-size: 0.85rem;
+    }
+
+    .submit-btn {
+      font-size: 1rem;
+      padding: 0.875rem 1rem;
+    }
+
+    /* Persona viáticos más compacta */
+    .persona-viaticos {
+      padding: 0.75rem !important;
+    }
+
+    .persona-viaticos .form-grid-2 {
+      gap: 0.4rem;
+    }
+  }
+
+  /* ========== LOADING OVERLAY ========== */
+  .loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(17, 24, 39, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .loading-overlay.active {
+    display: flex;
+    opacity: 1;
+  }
+
+  .loading-content {
+    text-align: center;
+    padding: 3rem;
+    background: linear-gradient(135deg, var(--header-bg) 0%, #1e293b 100%);
+    border-radius: 20px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
+      0 0 0 1px rgba(243, 124, 34, 0.2);
+    animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-width: 400px;
+    width: 90%;
+  }
+
+  @keyframes scaleIn {
+    from {
+      transform: scale(0.8);
+      opacity: 0;
+    }
+
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .loading-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+  }
+
+  .loading-message {
+    font-size: 1rem;
+    color: #9ca3af;
+    margin-bottom: 1.5rem;
+  }
+
+  .loading-progress {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+
+  .loading-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    animation: bounce 1.4s ease-in-out infinite;
+  }
+
+  .loading-dot:nth-child(1) {
+    animation-delay: 0s;
+  }
+
+  .loading-dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .loading-dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  @keyframes bounce {
+
+    0%,
+    80%,
+    100% {
+      transform: scale(0.6);
+      opacity: 0.5;
+    }
+
+    40% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+</style>
+
+<div class="form-container">
+  <div class="form-header">
+    <h2>💰 Nueva Solicitud de Pago</h2>
+    <p>Complete el formulario para solicitar un pago</p>
+  </div>
+
+  <div class="progress-steps">
+    <div class="step active">
+      <div class="step-number">1</div>
+      <span>Información Básica</span>
+    </div>
+    <div class="step-divider"></div>
+    <div class="step">
+      <div class="step-number">2</div>
+      <span>Detalles del Pago</span>
+    </div>
+    <div class="step-divider"></div>
+    <div class="step">
+      <div class="step-number">3</div>
+      <span>Revisión y Envío</span>
+    </div>
+  </div>
+
+  <form id="solicitar_pago_form" method="POST" action="{{ url_for('solicitar_pago') }}" enctype="multipart/form-data"
+    onsubmit="return prepareDestinatario();">
+
+    <!-- Sección 1: Información del Solicitante -->
+    <div class="form-section">
+      <div class="section-title">
+        👤 Información del Solicitante
+      </div>
+
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label for="selected_nombre">
+            Nombre del Solicitante <span class="required">*</span>
+          </label>
+          <select name="selected_nombre" id="selected_nombre" required onchange="onChangeNombre()">
+            <option value="">--Seleccione su nombre--</option>
+            {% for emp in employees %}
+            <option value="{{ emp.nombre }}" data-depto="{{ emp.departamento }}">
+              {{ emp.nombre }}
+            </option>
+            {% endfor %}
+            <option value="otro">🆕 Otro (no está en la lista)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="fp">
+            Folio de Proyecto (FP) <span class="required">*</span>
+            <div class="info-tooltip">ℹ️
+              <span class="tooltip-text">Código único del proyecto al que pertenece este pago</span>
+            </div>
+          </label>
+          <input type="text" name="fp" id="fp" required placeholder="Ej: FP-2024-001">
+        </div>
+      </div>
+
+      <div id="otro-container" style="display: none;" class="dynamic-section">
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label for="nombre_otro">Nombre Completo <span class="required">*</span></label>
+            <input type="text" name="nombre_otro" id="nombre_otro" placeholder="Ingrese su nombre completo">
+          </div>
+          <div class="form-group">
+            <label for="departamento_otro">Departamento <span class="required">*</span></label>
+            <input type="text" name="departamento_otro" id="departamento_otro" placeholder="Ingrese su departamento">
+          </div>
+        </div>
+      </div>
+
+      <input type="hidden" id="departamento_hidden" name="departamento_hidden" value="">
+    </div>
+
+    <!-- Sección 2: Destinatario y Tipo de Pago -->
+    <div class="form-section">
+      <div class="section-title">
+        🏢 Información del Destinatario
+      </div>
+
+      <div class="form-group">
+        <label for="destinatario">
+          Destinatario (A quién se le pagará) <span class="required">*</span>
+        </label>
+        <select name="destinatario_select" id="destinatario" required onchange="onChangeProveedor()">
+          <option value="">--Seleccione un proveedor--</option>
+          {% for prov in proveedores %}
+          <option value="{{ prov.nombre }}" data-banco="{{ prov.banco }}" data-clabe="{{ prov.clabe }}"
+            data-referencia="{{ prov.referencia }}">
+            {{ prov.nombre }}
+          </option>
+          {% endfor %}
+          <option value="otro">🆕 Otro proveedor</option>
+        </select>
+      </div>
+
+      <div id="destinatario-otro-container" style="display: none;" class="dynamic-section">
+        <div class="form-group">
+          <label for="destinatario_otro">Nombre del Destinatario <span class="required">*</span></label>
+          <input type="text" name="destinatario_otro" id="destinatario_otro"
+            placeholder="Ingrese el nombre del destinatario">
+        </div>
+      </div>
+
+      <input type="hidden" name="destinatario" id="destinatario_hidden" value="">
+
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label for="banco">Banco (Cuenta destino) <span class="required">*</span></label>
+          <input type="text" name="banco" id="banco" required placeholder="Ej: BBVA México">
+        </div>
+        <div class="form-group">
+          <label for="clabe">CLABE (Cuenta destino) <span class="required">*</span></label>
+          <input type="text" name="clabe" id="clabe" required placeholder="18 dígitos" maxlength="18">
+        </div>
+        <div class="form-group">
+          <label for="referencia">Referencia del Proveedor</label>
+          <input type="text" name="referencia" id="referencia" readonly placeholder="Se completará automáticamente">
+        </div>
+      </div>
+    </div>
+
+    <!-- Sección 3: Tipo de Solicitud -->
+    <div class="form-section">
+      <div class="section-title">
+        📋 Detalles de la Solicitud
+      </div>
+
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label for="tipo_solicitud">
+            Tipo de Solicitud <span class="required">*</span>
+          </label>
+          <select name="tipo_solicitud" id="tipo_solicitud" required onchange="toggleViaticosFields()">
+            <option value="">--Seleccione el tipo--</option>
+            <option value="Viáticos">💼 Viáticos</option>
+            <option value="Compras">🛒 Compras</option>
+            <option value="Administrativos">📄 Administrativos</option>
+            <option value="Otro">📂 Otro</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="categoria-administrativos-container" style="display: none;">
+          <label for="categoria_administrativos">
+            Categoría Administrativa <span class="required">*</span>
+          </label>
+          <select name="categoria_administrativos" id="categoria_administrativos">
+            <option value="">--Seleccione una categoría--</option>
+            {% for concepto in conceptos_indirectos %}
+            <option value="{{ concepto.concepto }}">{{ concepto.concepto }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="tipo_pago">
+            Tipo de Pago <span class="required">*</span>
+          </label>
+          <select name="tipo_pago" id="tipo_pago" required>
+            <option value="">--Seleccione método de pago--</option>
+            <option value="BBVA Sin factura">🏦 BBVA Sin factura</option>
+            <option value="BBVA Con factura">🏦 BBVA Con factura</option>
+            <option value="Santander">🏦 Santander</option>
+            <option value="HSBC">🏦 HSBC</option>
+            <option value="TDC Corp">💳 TDC Corp</option>
+            <option value="TDC personal">💳 TDC personal</option>
+            <option value="Efectivo">💵 Efectivo</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="fecha_limite">
+          Fecha Límite de Pago <span class="required">*</span>
+        </label>
+        <input type="date" name="fecha_limite" id="fecha_limite" required>
+      </div>
+
+      <!-- Viáticos Section -->
+      <div id="viaticos-container" style="display:none;" class="dynamic-section active">
+        <div class="section-title" style="margin-bottom: 1rem; font-size: 1rem;">
+          👥 Configuración de Viáticos
+        </div>
+
+        <div class="form-group">
+          <label for="cantidad_personas">Cantidad de Personas</label>
+          <input type="number" name="cantidad_personas" id="cantidad_personas" min="1" value="1"
+            onchange="generarCamposPersonas()" style="max-width: 200px;">
+        </div>
+
+        <div id="personas-container"></div>
+      </div>
+    </div>
+
+    <!-- Sección 4: Monto y Contacto -->
+    <div class="form-section">
+      <div class="section-title">
+        💰 Información Financiera y Contacto
+      </div>
+
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label for="monto">
+            Monto <span class="required">*</span>
+            <span id="label-monto-tipo">(sin comisión)</span>
+          </label>
+          <input type="text" name="monto" id="monto" placeholder="Ej: 1,000.50"
+            oninput="formatMonto(this); calcularComision();" required>
+          <div id="info-comision"
+            style="display: none; margin-top: 0.5rem; padding: 0.75rem; background: var(--input-bg); border-radius: 6px; border: 1px solid var(--border-color);">
+            <div style="font-size: 0.875rem; color: var(--text-color);">
+              <div>💡 Comisión BBVA (6%): <span id="monto-comision"
+                  style="font-weight: 600; color: var(--primary-color);">$0.00</span></div>
+              <div style="margin-top: 0.25rem;">💰 Total con comisión: <span id="monto-total"
+                  style="font-weight: 600; color: var(--success-color);">$0.00</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="checkbox-group" onclick="toggleCheckbox('anticipo')">
+            <input type="checkbox" name="anticipo" id="anticipo" onchange="toggleAnticipoField(this)">
+            <label for="anticipo" style="cursor: pointer; font-weight: 500;">
+              💳 Se dará anticipo para este pago
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div id="anticipo-container" style="display:none;" class="dynamic-section active">
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label for="tipo_anticipo">
+              Tipo de Anticipo <span class="required">*</span>
+            </label>
+            <select name="tipo_anticipo" id="tipo_anticipo" onchange="toggleTipoAnticipo()">
+              <option value="porcentaje">Por Porcentaje (%)</option>
+              <option value="cantidad">Por Cantidad ($)</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="anticipo-porcentaje-group">
+            <label for="porcentaje_anticipo">
+              Porcentaje de Anticipo (%) <span class="required">*</span>
+            </label>
+            <input type="number" name="porcentaje_anticipo" id="porcentaje_anticipo" min="0" max="100" step="0.01"
+              placeholder="Ej: 50" oninput="calcularAnticipoPorcentaje()">
+          </div>
+
+          <div class="form-group" id="anticipo-cantidad-group" style="display: none;">
+            <label for="monto_anticipo">
+              Monto de Anticipo ($) <span class="required">*</span>
+            </label>
+            <input type="text" name="monto_anticipo" id="monto_anticipo" placeholder="Ej: 500.00"
+              oninput="formatMonto(this); calcularAnticipoCantidad()">
+          </div>
+        </div>
+
+        <div
+          style="margin-top: 1rem; padding: 1rem; background: var(--input-bg); border-radius: 6px; border: 1px solid var(--border-color);">
+          <div style="font-size: 0.875rem; color: var(--text-color);">
+            <div>💵 Anticipo: <span id="display-anticipo"
+                style="font-weight: 600; color: var(--primary-color);">$0.00</span> <span
+                id="display-anticipo-porcentaje" style="color: #6b7280;">(0%)</span></div>
+            <div style="margin-top: 0.25rem;">💰 Monto restante: <span id="display-restante"
+                style="font-weight: 600; color: var(--success-color);">$0.00</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Correos como dropdown con "Otro…" -->
+      <div class="form-group">
+        <label for="correo-dropdown">
+          Correos Electrónicos de Notificación <span class="required">*</span>
+        </label>
+        <div id="correos-container">
+          <div class="correo-row">
+            <select class="correo-select" required>
+              <option value="">--Seleccione un correo--</option>
+              <option value="dagarcia@ad17solutions.com">dagarcia@ad17solutions.com</option>
+              <option value="marivero@ad17solutions.com">marivero@ad17solutions.com</option>
+              <option value="vmejia@ad17solutions.com">vmejia@ad17solutions.com</option>
+              <option value="gadelarosa@ad17solutions.com">gadelarosa@ad17solutions.com</option>
+              <option value="datoledano@ad17solutions.com">datoledano@ad17solutions.com</option>
+              <option value="otro">Otro…</option>
+            </select>
+            <input type="email" class="correo-otro" placeholder="correo@empresa.com" style="display:none;">
+            <input type="hidden" name="correo" class="correo-hidden">
+            <button type="button" onclick="agregarCorreo()" class="btn btn-outline">➕ Agregar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sección 5: Descripción y Archivos -->
+    <div class="form-section">
+      <div class="section-title">
+        📝 Información Adicional
+      </div>
+
+      <div class="form-group">
+        <label for="descripcion">
+          Descripción del Pago
+          <div class="info-tooltip">ℹ️
+            <span class="tooltip-text">Describa brevemente el concepto del pago</span>
+          </div>
+        </label>
+        <textarea name="descripcion" id="descripcion" rows="4"
+          placeholder="Describa el concepto del pago, materiales, servicios, etc. (máx. 500 caracteres)"
+          maxlength="500"></textarea>
+      </div>
+
+      <!-- NUEVOS: 3 ARCHIVOS ADJUNTOS -->
+      <div class="form-group">
+        <label>Archivos Adjuntos <span style="color: #6b7280; font-weight: 400;">(Opcionales - PDF, PNG, JPG, ZIP,
+            RAR)</span></label>
+
+        <div class="archivos-grid">
+
+
+
+          <!-- Orden de Compra -->
+          <div class="archivo-item">
+            <div class="archivo-item-header">
+              <span class="emoji">📋</span>
+              <span>Orden de Compra</span>
+            </div>
+            <div class="file-input-wrapper">
+              <input type="file" name="orden_compra_file" id="orden_compra_file" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar"
+                onchange="updateFileDisplay('orden_compra_file', 'file-display-orden')">
+              <label for="orden_compra_file" class="file-input-label">
+                📎 Seleccionar Orden
+              </label>
+              <div id="file-display-orden" class="file-display"></div>
+            </div>
+          </div>
+
+          <!-- Factura -->
+          <div class="archivo-item">
+            <div class="archivo-item-header">
+              <span class="emoji">🧾</span>
+              <span>Factura</span>
+            </div>
+            <div class="file-input-wrapper">
+              <input type="file" name="factura_file" id="factura_file" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar"
+                onchange="updateFileDisplay('factura_file', 'file-display-factura')">
+              <label for="factura_file" class="file-input-label">
+                📎 Seleccionar Factura
+              </label>
+              <div id="file-display-factura" class="file-display"></div>
+            </div>
+          </div>
+
+          <!-- Recibo -->
+          <div class="archivo-item">
+            <div class="archivo-item-header">
+              <span class="emoji">🧾</span>
+              <span>Recibo</span>
+            </div>
+            <div class="file-input-wrapper">
+              <input type="file" name="recibo_file" id="recibo_file" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar"
+                onchange="updateFileDisplay('recibo_file', 'file-display-recibo')">
+              <label for="recibo_file" class="file-input-label">
+                📎 Seleccionar Recibo
+              </label>
+              <div id="file-display-recibo" class="file-display"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Sección de Envío -->
+    <div class="submit-section">
+      <button type="submit" class="btn submit-btn">
+        🚀 Enviar Solicitud de Pago
+      </button>
+      <div style="margin-top: 1rem; font-size: 0.875rem; color: #6b7280;">
+        Se enviará una notificación por correo electrónico una vez procesada la solicitud
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-content">
+    <h3 class="loading-title">💰 Procesando Solicitud</h3>
+    <p class="loading-message">Por favor espera mientras enviamos tu solicitud de pago...</p>
+    <div class="loading-progress">
+      <div class="loading-dot"></div>
+      <div class="loading-dot"></div>
+      <div class="loading-dot"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Nombre / departamento
+  function onChangeNombre() {
+    const sel = document.getElementById('selected_nombre');
+    const oc = document.getElementById('otro-container');
+    const hid = document.getElementById('departamento_hidden');
+
+    if (sel.value === "otro") {
+      oc.style.display = 'block';
+      oc.classList.add('active');
+      hid.value = '';
+    } else {
+      oc.style.display = 'none';
+      oc.classList.remove('active');
+      hid.value = sel.selectedOptions[0].dataset.depto || '';
+    }
+  }
+
+  // Proveedor / destinatario
+  function onChangeProveedor() {
+    const sel = document.getElementById('destinatario');
+    const val = sel.value;
+    const oc = document.getElementById('destinatario-otro-container');
+    const hid = document.getElementById('destinatario_hidden');
+    const bancoIn = document.getElementById('banco');
+    const clabeIn = document.getElementById('clabe');
+    const referenciaIn = document.getElementById('referencia');
+
+    if (val === 'otro') {
+      oc.style.display = 'block';
+      oc.classList.add('active');
+      hid.value = '';
+      bancoIn.value = '';
+      clabeIn.value = '';
+      referenciaIn.value = '';
+
+      document.getElementById('destinatario_otro')
+        .addEventListener('input', function () {
+          hid.value = this.value.trim();
+        });
+    } else {
+      oc.style.display = 'none';
+      oc.classList.remove('active');
+      hid.value = val;
+      const opt = sel.selectedOptions[0];
+      bancoIn.value = opt.dataset.banco || '';
+      clabeIn.value = opt.dataset.clabe || '';
+      referenciaIn.value = opt.dataset.referencia || '';
+    }
+  }
+
+  // Viáticos
+  function toggleViaticosFields() {
+    const tipo = document.getElementById('tipo_solicitud').value;
+    const viaticosContainer = document.getElementById('viaticos-container');
+    const categoriaAdminContainer = document.getElementById('categoria-administrativos-container');
+    const categoriaSelect = document.getElementById('categoria_administrativos');
+    const monto = document.getElementById('monto');
+
+    viaticosContainer.style.display = 'none';
+    categoriaAdminContainer.style.display = 'none';
+
+    if (tipo === 'Viáticos') {
+      viaticosContainer.style.display = 'block';
+      monto.setAttribute('readonly', 'readonly');
+      monto.classList.add('monto-display');
+      generarCamposPersonas();
+      actualizarMontoTotal();
+      categoriaSelect.removeAttribute('required');
+    } else if (tipo === 'Administrativos') {
+      categoriaAdminContainer.style.display = 'block';
+      categoriaSelect.setAttribute('required', 'required');
+      monto.removeAttribute('readonly');
+      monto.classList.remove('monto-display');
+    } else {
+      monto.removeAttribute('readonly');
+      monto.classList.remove('monto-display');
+      categoriaSelect.removeAttribute('required');
+    }
+  }
+
+  function generarCamposPersonas() {
+    const cont = document.getElementById('personas-container');
+    cont.innerHTML = '';
+    const n = parseInt(document.getElementById('cantidad_personas').value) || 1;
+
+    for (let i = 1; i <= n; i++) {
+      const div = document.createElement('div');
+      div.className = 'persona-row';
+      div.innerHTML = `
+            <div style="margin-bottom: 1rem; font-weight: 600; color: #374151;">
+                Persona ${i}
+            </div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr 2fr; gap: 1rem; align-items: end;">
+                <div class="form-group">
+                    <label>Nombre Completo</label>
+                    <input type="text" name="persona_nombre[]" placeholder="Nombre de la persona" required>
+                </div>
+                <div class="form-group">
+                    <label>Monto</label>
+                    <input type="number" name="persona_monto[]" step="0.01" value="0" oninput="actualizarMontoTotal()" required>
+                </div>
+                <div class="form-group">
+                    <label>CLABE</label>
+                    <input type="text" name="persona_clabe[]" placeholder="18 dígitos" required maxlength="18">
+                </div>
+            </div>
+        `;
+      cont.appendChild(div);
+    }
+  }
+
+  function actualizarMontoTotal() {
+    let total = 0;
+    document.querySelectorAll('input[name="persona_monto[]"]').forEach(m => {
+      total += parseFloat(m.value) || 0;
+    });
+    document.getElementById('monto').value = total.toFixed(2);
+    calcularComision();
+  }
+
+  // Correos (dropdown + "Otro…")
+  const CORREO_OPTIONS_HTML = `
+  <option value="">--Seleccione un correo--</option>
+  <option value="dagarcia@ad17solutions.com">dagarcia@ad17solutions.com</option>
+  <option value="marivero@ad17solutions.com">marivero@ad17solutions.com</option>
+  <option value="vmejia@ad17solutions.com">vmejia@ad17solutions.com</option>
+  <option value="gadelarosa@ad17solutions.com">gadelarosa@ad17solutions.com</option>
+  <option value="datoledano@ad17solutions.com">datoledano@ad17solutions.com</option>
+  <option value="otro">Otro…</option>
+`;
+
+  function initCorreoRow(row, isFirst = false) {
+    const select = row.querySelector('.correo-select');
+    const inputOtro = row.querySelector('.correo-otro');
+    const hidden = row.querySelector('.correo-hidden');
+    const addBtn = row.querySelector('.btn.btn-outline');
+
+    if (!isFirst && addBtn) { addBtn.remove(); }
+
+    function syncCorreo() {
+      if (select.value === 'otro') {
+        inputOtro.style.display = 'block';
+        inputOtro.required = true;
+        hidden.value = (inputOtro.value || '').trim();
+      } else {
+        inputOtro.style.display = 'none';
+        inputOtro.required = false;
+        hidden.value = select.value || '';
+      }
+    }
+
+    select.addEventListener('change', syncCorreo);
+    inputOtro.addEventListener('input', syncCorreo);
+    syncCorreo();
+  }
+
+  function agregarCorreo() {
+    const cont = document.getElementById('correos-container');
+    const div = document.createElement('div');
+    div.className = 'correo-row';
+    div.innerHTML = `
+    <select class="correo-select" required>${CORREO_OPTIONS_HTML}</select>
+    <input type="email" class="correo-otro" placeholder="correo@empresa.com" style="display:none;">
+    <input type="hidden" name="correo" class="correo-hidden">
+    <button type="button" onclick="removerCorreo(this)" class="remove-btn">✕</button>
+  `;
+    cont.appendChild(div);
+    initCorreoRow(div, false);
+  }
+
+  function removerCorreo(btn) {
+    btn.parentElement.remove();
+  }
+
+  function calcularComision() {
+    if (!tieneComision) return;
+    var montoInput = document.getElementById('monto');
+    var montoSinComision = parseFloat(montoInput.value.replace(/,/g, '')) || 0;
+    var montoComision = montoSinComision * (porcentajeComision / 100);
+    var montoTotal = montoSinComision + montoComision;
+    document.getElementById('monto-comision').textContent = '$' + montoComision.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    document.getElementById('monto-total').textContent = '$' + montoTotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    if (document.getElementById('anticipo').checked) {
+      var tipoAnticipo = document.getElementById('tipo_anticipo').value;
+      if (tipoAnticipo === 'porcentaje') {
+        calcularAnticipoPorcentaje();
+      } else {
+        calcularAnticipoCantidad();
+      }
+    }
+  }
+
+  // Anticipo
+  function toggleAnticipoField(cb) {
+    var container = document.getElementById('anticipo-container');
+    if (cb.checked) {
+      container.style.display = 'block';
+      container.classList.add('active');
+      toggleTipoAnticipo();
+      calcularAnticipoPorcentaje();
+    } else {
+      container.style.display = 'none';
+      container.classList.remove('active');
+      document.getElementById('porcentaje_anticipo').value = '';
+      document.getElementById('monto_anticipo').value = '';
+    }
+  }
+
+  function toggleTipoAnticipo() {
+    var tipo = document.getElementById('tipo_anticipo').value;
+    var porcentajeGroup = document.getElementById('anticipo-porcentaje-group');
+    var cantidadGroup = document.getElementById('anticipo-cantidad-group');
+
+    if (tipo === 'porcentaje') {
+      porcentajeGroup.style.display = 'block';
+      cantidadGroup.style.display = 'none';
+      document.getElementById('monto_anticipo').value = '';
+      calcularAnticipoPorcentaje();
+    } else {
+      porcentajeGroup.style.display = 'none';
+      cantidadGroup.style.display = 'block';
+      document.getElementById('porcentaje_anticipo').value = '';
+      calcularAnticipoCantidad();
+    }
+  }
+
+  function calcularAnticipoPorcentaje() {
+    var montoBase = parseFloat(document.getElementById('monto').value.replace(/,/g, '')) || 0;
+    if (tieneComision) { montoBase = montoBase + (montoBase * (porcentajeComision / 100)); }
+    var porcentaje = parseFloat(document.getElementById('porcentaje_anticipo').value) || 0;
+    var montoAnticipo = montoBase * (porcentaje / 100);
+    var montoRestante = montoBase - montoAnticipo;
+    actualizarDisplayAnticipo(montoAnticipo, porcentaje, montoRestante);
+  }
+
+  function calcularAnticipoCantidad() {
+    var montoBase = parseFloat(document.getElementById('monto').value.replace(/,/g, '')) || 0;
+    if (tieneComision) { montoBase = montoBase + (montoBase * (porcentajeComision / 100)); }
+    var montoAnticipo = parseFloat(document.getElementById('monto_anticipo').value.replace(/,/g, '')) || 0;
+    var porcentaje = montoBase > 0 ? (montoAnticipo / montoBase) * 100 : 0;
+    var montoRestante = montoBase - montoAnticipo;
+
+    if (montoAnticipo > montoBase) {
+      alert('El anticipo no puede ser mayor al monto total');
+      document.getElementById('monto_anticipo').value = montoBase.toFixed(2);
+      montoAnticipo = montoBase;
+      porcentaje = 100;
+      montoRestante = 0;
+    }
+    actualizarDisplayAnticipo(montoAnticipo, porcentaje, montoRestante);
+  }
+
+  function actualizarDisplayAnticipo(montoAnticipo, porcentaje, montoRestante) {
+    document.getElementById('display-anticipo').textContent = '$' + montoAnticipo.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    document.getElementById('display-anticipo-porcentaje').textContent = '(' + porcentaje.toFixed(2) + '%)';
+    document.getElementById('display-restante').textContent = '$' + montoRestante.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  function toggleCheckbox(id) {
+    const checkbox = document.getElementById(id);
+    checkbox.checked = !checkbox.checked;
+    if (id === 'anticipo') {
+      toggleAnticipoField(checkbox);
+    }
+  }
+
+  function formatMonto(input) {
+    var value = input.value.replace(/[^0-9.]/g, '');
+    var parts = value.split('.');
+    if (parts.length > 2) { value = parts[0] + '.' + parts.slice(1).join(''); }
+    if (parts.length === 2) { value = parts[0] + '.' + parts[1].slice(0, 2); }
+    input.value = value;
+    if (input.id === 'monto') { calcularComision(); }
+  }
+
+  // ACTUALIZADA: Mostrar nombre de archivo seleccionado
+  function updateFileDisplay(inputId, displayId) {
+    const input = document.getElementById(inputId);
+    const display = document.getElementById(displayId);
+    if (input.files[0]) {
+      display.innerHTML = `✅ ${input.files[0].name}`;
+      display.classList.add('active');
+    } else {
+      display.innerHTML = '';
+      display.classList.remove('active');
+    }
+  }
+
+  // Inicializaciones
+  document.addEventListener('DOMContentLoaded', function () {
+    var tipoPagoSelect = document.getElementById('tipo_pago');
+    if (tipoPagoSelect) {
+      tipoPagoSelect.addEventListener('change', function () { detectarComision(); });
+    }
+
+    document.getElementById('clabe').addEventListener('input', function () {
+      if (this.value.length === 18) {
+        this.style.borderColor = '#10b981';
+      } else {
+        this.style.borderColor = '#e5e7eb';
+      }
+    });
+
+    const primeraFilaCorreo = document.querySelector('#correos-container .correo-row');
+    if (primeraFilaCorreo) { initCorreoRow(primeraFilaCorreo, true); }
+  });
+
+  function prepareDestinatario() {
+    const sel = document.getElementById('destinatario');
+    const hid = document.getElementById('destinatario_hidden');
+
+    if (sel.value === 'otro') {
+      const txt = document.getElementById('destinatario_otro').value.trim();
+      if (!txt) { alert('Por favor ingrese el nombre del destinatario.'); return false; }
+      hid.value = txt;
+    }
+
+    if (document.getElementById('anticipo').checked) {
+      var tipoAnticipo = document.getElementById('tipo_anticipo').value;
+      if (tipoAnticipo === 'porcentaje') {
+        var porcentaje = parseFloat(document.getElementById('porcentaje_anticipo').value) || 0;
+        if (porcentaje <= 0 || porcentaje > 100) {
+          alert('Por favor ingrese un porcentaje de anticipo válido (entre 0 y 100).');
+          return false;
+        }
+      } else {
+        var montoAnticipo = parseFloat(document.getElementById('monto_anticipo').value.replace(/,/g, '')) || 0;
+        if (montoAnticipo <= 0) {
+          alert('Por favor ingrese un monto de anticipo válido.');
+          return false;
+        }
+      }
+    }
+
+    const filas = document.querySelectorAll('#correos-container .correo-row');
+    if (filas.length === 0) { alert('Agrega al menos un correo.'); return false; }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    for (const row of filas) {
+      const select = row.querySelector('.correo-select');
+      const inputOtro = row.querySelector('.correo-otro');
+      const hidden = row.querySelector('.correo-hidden');
+
+      if (select && select.value === 'otro') {
+        hidden.value = (inputOtro.value || '').trim();
+        if (!emailRegex.test(hidden.value)) {
+          alert('Ingresa un correo válido en la opción "Otro…".');
+          return false;
+        }
+      } else {
+        hidden.value = (select && select.value) ? select.value : '';
+        if (!emailRegex.test(hidden.value)) {
+          alert('Selecciona un correo válido de la lista.');
+          return false;
+        }
+      }
+    }
+
+    // Mostrar loading overlay y deshabilitar botón para prevenir duplicados
+    showLoadingOverlay();
+    return true;
+  }
+
+  // ========== LOADING OVERLAY FUNCTIONS ==========
+  var isSubmitting = false;
+
+  function showLoadingOverlay() {
+    if (isSubmitting) return false; // Prevenir duplicados
+    isSubmitting = true;
+
+    const overlay = document.getElementById('loadingOverlay');
+    const submitBtn = document.querySelector('.submit-btn');
+
+    // Deshabilitar botón
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '⏳ Procesando...';
+    }
+
+    // Mostrar overlay con animación
+    if (overlay) {
+      overlay.style.display = 'flex';
+      // Forzar reflow para animación
+      overlay.offsetHeight;
+      overlay.classList.add('active');
+    }
+  }
+
+  function hideLoadingOverlay() {
+    isSubmitting = false;
+
+    const overlay = document.getElementById('loadingOverlay');
+    const submitBtn = document.querySelector('.submit-btn');
+
+    // Restaurar botón
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '🚀 Enviar Solicitud de Pago';
+    }
+
+    // Ocultar overlay
+    if (overlay) {
+      overlay.classList.remove('active');
+      setTimeout(() => {
+        overlay.style.display = 'none';
+      }, 300);
+    }
+  }
+
+  // Ocultar overlay si hay error de navegación (back button)
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+      hideLoadingOverlay();
+    }
+  });
+
+  var tieneComision = false;
+  var porcentajeComision = 6.0;
+  function detectarComision() {
+    var tp = document.getElementById('tipo_pago').value;
+    tieneComision = (tp === 'BBVA Sin factura');
+    var box = document.getElementById('info-comision');
+    if (box) box.style.display = tieneComision ? 'block' : 'none';
+    calcularComision();
+  }
+  document.addEventListener('DOMContentLoaded', detectarComision);
+</script>
+
+{% endblock %}

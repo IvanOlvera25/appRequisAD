@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <!-- Responsive -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Mi App Flask{% endblock %}</title>
+
+  <!-- CSS base -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <!-- CSS específico del panel/admin -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin_styles.css') }}">
+
+  <!-- Iconos -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+  <!-- CSS extra por página -->
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <header>
+    <nav class="navbar">
+      <div class="navbar-logo">
+        <h1>AD17 Solutions</h1>
+      </div>
+      <button class="menu-toggle" aria-label="Toggle Navigation">&#9776;</button>
+      <div class="navbar-links">
+        <a href="{{ url_for('solicitar_pago') }}">Solicitar Pago</a>
+        {% if session.get('admin_logged_in') %}
+          <a href="{{ url_for('admin_dashboard') }}">Panel Admin</a>
+          {% if session.get('role') == 'admin' %}
+            <a href="{{ url_for('creditos_dashboard') }}">Créditos</a>
+            <a href="{{ url_for('estadisticas') }}">Estadísticas</a>
+            <a href="{{ url_for('pagos_recurrentes') }}">Pagos recurrentes</a>
+            <a href="{{ url_for('comisiones.comisiones') }}">Comisiones</a>
+            <a href="{{ url_for('proveedores_dashboard') }}">Proveedores</a>
+            <a href="{{ url_for('calendario') }}">Calendario</a>
+          {% endif %}
+          <a href="{{ url_for('exportar_solicitudes') }}">Exportar CSV</a>
+          <a href="{{ url_for('admin_logout') }}">Salir</a>
+        {% else %}
+          <a href="{{ url_for('admin_login') }}">Ingresar Admin</a>
+        {% endif %}
+      </div>
+    </nav>
+  </header>
+
+  <main class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    <p>Sistema de Solicitud de Pagos.</p>
+  </footer>
+
+  <!-- Script del layout -->
+  <script>
+  (function () {
+    var toggleButton = document.querySelector('.menu-toggle');
+    var navbarLinks = document.querySelector('.navbar-links');
+    if (toggleButton && navbarLinks) {
+      toggleButton.addEventListener('click', function () {
+        navbarLinks.classList.toggle('active');
+      });
+    }
+  })();
+  </script>
+
+  <!-- ÚNICO bloque de scripts por página -->
+  {% block scripts %}{% endblock %}
+</body>
+</html>
