@@ -796,7 +796,7 @@ app.config.setdefault("COMM_UPLOAD_FOLDER", os.path.join(app.root_path, "uploads
 os.makedirs(app.config["COMM_UPLOAD_FOLDER"], exist_ok=True)
 
 # Registro del Blueprint de Comisiones (sin url_prefix para mantener /comisiones)
-app.register_blueprint(comisiones_bp)
+app.register_blueprint(comisiones_bp, url_prefix="/comisiones")
 
 # --- Inicialización segura (se ejecuta 1 sola vez por worker) ---
 # --- Inicialización perezosa (una sola vez por proceso) ---
@@ -2220,7 +2220,7 @@ def send_liquidado_anticipo_email(solicitud, attachment_file=None):
 
 @app.route("/")
 def index():
-    return redirect(url_for("solicitar_pago"))
+    return redirect(url_for("admin_dashboard"))
 
 @app.route("/solicitar_pago", methods=["GET", "POST"])
 def solicitar_pago():
