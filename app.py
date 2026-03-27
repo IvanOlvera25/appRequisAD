@@ -2613,7 +2613,8 @@ def admin_login():
 
             "ddelarosa": "082291",
             "gildardo": "gilad17",
-            "vmejia": "FOME1005"
+            "vmejia": "FOME1005",
+            "DafneDeLaRosa": "dDLRz20!!25"
         }
         if username in coordinators and password == coordinators[username]:
             session["admin_logged_in"] = True
