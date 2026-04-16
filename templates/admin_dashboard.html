@@ -600,7 +600,12 @@
     </div>
     <div class="modal-body">
       <div class="info-section">
-        <p><strong>Solicitudes seleccionadas:</strong> <span id="cantidadSeleccionadas">0</span></p>
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.5rem; margin-bottom:.5rem;">
+          <p style="margin:0"><strong>Solicitudes seleccionadas:</strong> <span id="cantidadSeleccionadas">0</span></p>
+          <div id="montoTotalSeleccionadas" style="display:none; background:linear-gradient(135deg,#1a3a2a,#0d5c35); color:#fff; border-radius:10px; padding:.4rem 1rem; font-size:1rem; font-weight:700; letter-spacing:.02em; box-shadow:0 2px 8px rgba(0,0,0,.25);">
+            💰 Total: <span id="valorMontoTotal">$0.00</span>
+          </div>
+        </div>
         <div id="listaSeleccionadas" class="selected-list"></div>
       </div>
       <form id="formActualizacionMasiva" enctype="multipart/form-data">
@@ -780,14 +785,32 @@ function mostrarListaSeleccionadas(solicitudes) {
   const lista = document.getElementById('listaSeleccionadas');
   if (!lista) return;
   lista.innerHTML = '';
+
+  let totalMonto = 0;
+
   solicitudes.forEach(sol => {
+    const monto = parseFloat(sol.monto) || 0;
+    totalMonto += monto;
+
     const item = document.createElement('div');
     item.className = 'selected-item';
     item.innerHTML = `
       <span><strong>FP ${sol.fp}</strong> - ${sol.nombre} ${sol.anticipo === 'Si' ? '<span class="badge-anticipo">Con anticipo</span>' : ''}</span>
-      <span class="monto">${parseFloat(sol.monto).toLocaleString('es-MX',{minimumFractionDigits:2})}</span>`;
+      <span class="monto">$${monto.toLocaleString('es-MX',{minimumFractionDigits:2})}</span>`;
     lista.appendChild(item);
   });
+
+  // Mostrar monto total
+  const contenedorTotal = document.getElementById('montoTotalSeleccionadas');
+  const valorTotal = document.getElementById('valorMontoTotal');
+  if (contenedorTotal && valorTotal) {
+    if (solicitudes.length > 0) {
+      valorTotal.textContent = '$' + totalMonto.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      contenedorTotal.style.display = 'block';
+    } else {
+      contenedorTotal.style.display = 'none';
+    }
+  }
 }
 
 window.mostrarModalActualizacionMasiva = function () {
