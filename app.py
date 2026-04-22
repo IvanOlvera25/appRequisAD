@@ -624,6 +624,9 @@ def _build_filters(estado_filtro: str, busqueda: str, criterio: str):
         elif criterio == "nombre":
             where.append("LOWER(nombre) LIKE LOWER(?)")
             params.append(q)
+        elif criterio == "destinatario":
+            where.append("LOWER(destinatario) LIKE LOWER(?)")
+            params.append(q)
         else:
             # Búsqueda amplia
             where.append("""(
@@ -664,6 +667,9 @@ def query_solicitudes_paginated(page=1, page_size=PAGE_SIZE_DEFAULT, estado_filt
             params.append(f"%{busqueda}%")
         elif criterio == "nombre":
             where_clauses.append("nombre LIKE ?")
+            params.append(f"%{busqueda}%")
+        elif criterio == "destinatario":
+            where_clauses.append("destinatario LIKE ?")
             params.append(f"%{busqueda}%")
         else:  # "todos"
             where_clauses.append("""
