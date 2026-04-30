@@ -671,15 +671,19 @@ def query_solicitudes_paginated(page=1, page_size=PAGE_SIZE_DEFAULT, estado_filt
         elif criterio == "destinatario":
             where_clauses.append("destinatario LIKE ?")
             params.append(f"%{busqueda}%")
+        elif criterio == "descripcion":
+            where_clauses.append("descripcion LIKE ?")
+            params.append(f"%{busqueda}%")
         else:  # "todos"
             where_clauses.append("""
                 (fp LIKE ? OR
                  nombre LIKE ? OR
                  destinatario LIKE ? OR
                  tipo_solicitud LIKE ? OR
-                 CAST(monto AS TEXT) LIKE ?)
+                 CAST(monto AS TEXT) LIKE ? OR
+                 descripcion LIKE ?)
             """)
-            params.extend([f"%{busqueda}%"] * 5)
+            params.extend([f"%{busqueda}%"] * 6)
 
     where_sql = ""
     if where_clauses:
