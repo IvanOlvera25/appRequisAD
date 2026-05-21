@@ -1,5 +1,5 @@
 {% extends "layout.html" %}
-{% block title %}Gestión de Proveedores{% endblock %}
+{% block title %}Gestión de Proveedores | AD17 Solutions{% endblock %}
 {% block content %}
 <style>
     /* ==========================================================================
@@ -9,53 +9,113 @@
         --color-primary: #ff9800;
         --color-primary-hover: #ffa726;
         --color-primary-dark: #e65100;
-        --color-bg-card: #121212;
-        --color-bg-hover: rgba(255, 152, 0, 0.03);
-        --color-border: #222222;
-        --color-text-muted: #888888;
-        --color-text-light: #e0e0e0;
-        --border-radius-lg: 12px;
-        --border-radius-md: 8px;
-        --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        --color-bg-panel: #161a22;
+        --color-bg-card: #1f242e;
+        --color-bg-hover: rgba(255, 152, 0, 0.04);
+        --color-border: #2e3545;
+        --color-text-muted: #94a3b8;
+        --color-text-light: #f1f5f9;
+        --color-text-white: #ffffff;
+        --border-radius-lg: 16px;
+        --border-radius-md: 10px;
+        --border-radius-sm: 6px;
+        --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --glass-bg: rgba(31, 36, 46, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.05);
+        --shadow-premium: 0 10px 30px rgba(0, 0, 0, 0.4);
     }
 
     .proveedores-container {
-        color: #fff;
+        color: var(--color-text-light);
         padding: 10px 0 40px 0;
-        animation: fadeIn 0.4s ease-out;
+        animation: pageFadeIn 0.5s ease-out;
     }
 
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
+    @keyframes pageFadeIn {
+        from { opacity: 0; transform: translateY(15px); }
         to { opacity: 1; transform: translateY(0); }
     }
 
     /* ==========================================================================
        Header Section
        ========================================================================== */
-    .header-section {
+    .header-panel {
+        background: linear-gradient(135deg, var(--color-bg-card) 0%, rgba(31, 36, 46, 0.4) 100%);
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius-lg);
+        padding: 24px 30px;
+        margin-bottom: 25px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 25px;
         flex-wrap: wrap;
+        gap: 20px;
+        box-shadow: var(--shadow-premium);
+        backdrop-filter: blur(10px);
+    }
+
+    .header-info h2 {
+        font-size: 2rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--color-text-white) 30%, var(--color-text-muted) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0 0 6px 0;
+    }
+
+    .header-info p {
+        margin: 0;
+        color: var(--color-text-muted);
+        font-size: 0.95rem;
+    }
+
+    .header-actions {
+        display: flex;
+        align-items: center;
         gap: 15px;
     }
 
-    .header-section h2 {
-        font-size: 1.8rem;
-        font-weight: 700;
-        background: linear-gradient(135deg, #ffffff 0%, #a5a5a5 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin: 0;
+    /* Toggle de visualización */
+    .view-toggle-wrapper {
+        background-color: rgba(0, 0, 0, 0.25);
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius-md);
+        padding: 4px;
+        display: flex;
+        gap: 2px;
     }
 
-    .btn-nuevo {
+    .btn-toggle-view {
+        background: none;
+        border: none;
+        color: var(--color-text-muted);
+        width: 38px;
+        height: 38px;
+        border-radius: var(--border-radius-sm);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        transition: var(--transition-smooth);
+    }
+
+    .btn-toggle-view:hover {
+        color: var(--color-text-light);
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .btn-toggle-view.active {
+        background-color: var(--color-primary);
+        color: var(--color-text-white);
+        box-shadow: 0 4px 10px rgba(255, 152, 0, 0.3);
+    }
+
+    .btn-nuevo-prov {
         background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
         border: none;
-        color: #fff;
-        padding: 10px 20px;
+        color: var(--color-text-white);
+        padding: 10px 22px;
         font-size: 0.95rem;
         font-weight: 600;
         text-decoration: none;
@@ -63,83 +123,81 @@
         align-items: center;
         gap: 8px;
         border-radius: var(--border-radius-md);
-        box-shadow: 0 4px 15px rgba(230, 81, 0, 0.35);
+        box-shadow: 0 4px 15px rgba(230, 81, 0, 0.3);
         transition: var(--transition-smooth);
     }
 
-    .btn-nuevo:hover {
+    .btn-nuevo-prov:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(230, 81, 0, 0.5);
+        box-shadow: 0 6px 20px rgba(230, 81, 0, 0.45);
         background: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary) 100%);
-        color: #fff;
-    }
-
-    .btn-nuevo:active {
-        transform: translateY(0);
+        color: var(--color-text-white);
     }
 
     /* ==========================================================================
        Search Section
        ========================================================================== */
-    .search-section {
-        background-color: var(--color-bg-card);
-        border: 1px solid var(--color-border);
+    .search-panel {
+        background-color: var(--glass-bg);
+        border: 1px solid var(--glass-border);
         border-radius: var(--border-radius-lg);
-        padding: 16px 24px;
+        padding: 18px 24px;
         margin-bottom: 25px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        box-shadow: var(--shadow-premium);
+        backdrop-filter: blur(10px);
     }
 
-    .search-form {
+    .search-form-control {
         display: flex;
         gap: 12px;
         align-items: center;
         flex-wrap: wrap;
     }
 
-    .search-input-wrapper {
+    .search-input-container {
         position: relative;
         flex-grow: 1;
         min-width: 280px;
-        max-width: 550px;
+        max-width: 600px;
     }
 
-    .search-input-wrapper i {
+    .search-input-container i {
         position: absolute;
-        left: 14px;
+        left: 16px;
         top: 50%;
         transform: translateY(-50%);
-        color: #666;
+        color: var(--color-text-muted);
         transition: var(--transition-smooth);
+        font-size: 1.05rem;
     }
 
-    .search-input {
-        background-color: #1a1a1a;
-        color: #fff;
-        border: 1px solid #333;
+    .search-bar-input {
+        background-color: rgba(0, 0, 0, 0.3);
+        color: var(--color-text-light);
+        border: 1px solid var(--color-border);
         border-radius: var(--border-radius-md);
-        padding: 10px 12px 10px 40px;
+        padding: 12px 16px 12px 46px;
         font-size: 0.95rem;
         width: 100%;
         transition: var(--transition-smooth);
     }
 
-    .search-input:focus {
+    .search-bar-input:focus {
         outline: none;
         border-color: var(--color-primary);
-        box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.15);
-        background-color: #202020;
+        box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.15);
+        background-color: rgba(0, 0, 0, 0.45);
     }
 
-    .search-input:focus + i {
+    .search-bar-input:focus + i {
         color: var(--color-primary);
     }
 
-    .btn-search {
-        background-color: #222;
-        border: 1px solid #333;
-        color: #fff;
-        padding: 10px 24px;
+    .btn-exec-search {
+        background-color: #272d3b;
+        border: 1px solid var(--color-border);
+        color: var(--color-text-light);
+        padding: 12px 26px;
         cursor: pointer;
         font-size: 0.95rem;
         font-weight: 600;
@@ -150,96 +208,95 @@
         gap: 8px;
     }
 
-    .btn-search:hover {
+    .btn-exec-search:hover {
         background-color: var(--color-primary);
         border-color: var(--color-primary);
-        color: #fff;
+        color: var(--color-text-white);
+        box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
     }
 
-    .btn-clear {
+    .btn-clear-search {
         color: var(--color-primary);
         text-decoration: none;
         font-size: 0.95rem;
-        font-weight: 500;
+        font-weight: 600;
         transition: var(--transition-smooth);
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        padding: 8px 12px;
+        padding: 10px 16px;
         border-radius: var(--border-radius-md);
     }
 
-    .btn-clear:hover {
+    .btn-clear-search:hover {
         color: var(--color-primary-hover);
-        background-color: rgba(255, 152, 0, 0.05);
+        background-color: rgba(255, 152, 0, 0.08);
     }
 
     /* ==========================================================================
-       Responsive & Condensed Table
+       Vista 1: Tabla Fluida Responsiva
        ========================================================================== */
-    .table-container {
+    .view-table-mode {
+        display: none; /* Controlado por JS */
         width: 100%;
-        overflow-x: auto;
-        border-radius: var(--border-radius-lg);
         background-color: var(--color-bg-card);
         border: 1px solid var(--color-border);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--shadow-premium);
+        overflow: hidden;
     }
 
-    .proveedores-table {
+    .responsive-table {
         width: 100%;
         border-collapse: collapse;
         text-align: left;
-        min-width: 800px; /* Asegura un ancho mínimo para que no se amontone en móvil */
+        table-layout: fixed;
     }
 
-    .proveedores-table th {
-        background-color: #161616;
+    .responsive-table th {
+        background-color: #171c26;
         color: var(--color-primary);
-        font-weight: 600;
-        font-size: 0.82rem;
+        font-weight: 700;
+        font-size: 0.8rem;
         text-transform: uppercase;
-        letter-spacing: 0.8px;
-        padding: 16px 20px;
+        letter-spacing: 1px;
+        padding: 18px 24px;
         border-bottom: 2px solid var(--color-border);
     }
 
-    .proveedores-table td {
-        padding: 16px 20px;
-        border-bottom: 1px solid var(--color-border);
+    .responsive-table td {
+        padding: 16px 24px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
         font-size: 0.92rem;
         color: var(--color-text-light);
         vertical-align: middle;
         transition: var(--transition-smooth);
     }
 
-    .proveedores-table tbody tr {
+    .responsive-table tbody tr {
         transition: var(--transition-smooth);
     }
 
-    .proveedores-table tbody tr:hover {
+    .responsive-table tbody tr:hover {
         background-color: var(--color-bg-hover);
     }
 
-    .proveedores-table tbody tr:nth-child(odd) {
-        background-color: rgba(255,255,255,0.005);
-    }
-
-    /* Columnas Consolidadas */
-    .prov-info-cell {
+    /* Celdas personalizadas */
+    .prov-meta-cell {
         display: flex;
         flex-direction: column;
         gap: 4px;
     }
 
-    .prov-name-wrapper {
+    .prov-title-line {
         display: flex;
         align-items: center;
         gap: 8px;
     }
 
-    .prov-id-badge {
-        background: rgba(255, 152, 0, 0.1);
+    .prov-id-pill {
+        background: rgba(255, 152, 0, 0.08);
+        border: 1px solid rgba(255, 152, 0, 0.2);
         color: var(--color-primary);
         padding: 2px 6px;
         border-radius: 4px;
@@ -248,13 +305,16 @@
         font-family: monospace;
     }
 
-    .prov-name {
+    .prov-name-text {
         font-weight: 600;
-        color: #fff;
+        color: var(--color-text-white);
         font-size: 0.98rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
-    .prov-rfc {
+    .prov-sub-rfc {
         font-size: 0.78rem;
         color: var(--color-text-muted);
         font-family: monospace;
@@ -263,18 +323,18 @@
         gap: 6px;
     }
 
-    .contact-cell {
+    .prov-contact-cell {
         display: flex;
         flex-direction: column;
         gap: 4px;
     }
 
-    .contact-name {
+    .prov-contact-name {
         font-weight: 600;
-        color: #eee;
+        color: #e2e8f0;
     }
 
-    .contact-details {
+    .prov-contact-details {
         display: flex;
         flex-direction: column;
         gap: 2px;
@@ -282,73 +342,67 @@
         color: var(--color-text-muted);
     }
 
-    .contact-item {
+    .prov-contact-item {
         display: flex;
         align-items: center;
         gap: 6px;
     }
 
-    .contact-item i {
+    .prov-contact-item i {
         width: 14px;
         color: var(--color-primary);
         font-size: 0.75rem;
         text-align: center;
     }
 
-    .contact-item a {
+    .prov-contact-item a {
         color: var(--color-text-muted);
         text-decoration: none;
         transition: var(--transition-smooth);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
-    .contact-item a:hover {
+    .prov-contact-item a:hover {
         color: var(--color-primary);
     }
 
-    .reference-cell {
+    .prov-ref-text {
         font-size: 0.85rem;
-        color: #999;
-        max-width: 180px;
+        color: var(--color-text-muted);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
 
-    .muted-text {
-        color: #555;
-        font-style: italic;
-        font-size: 0.8rem;
-    }
-
-    /* Badges */
-    .metodos-badge {
-        background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
-        color: #fff;
-        padding: 4px 10px;
+    .badge-count-payment {
+        background: linear-gradient(135deg, rgba(46, 125, 50, 0.15) 0%, rgba(27, 94, 32, 0.3) 100%);
+        border: 1px solid rgba(46, 125, 50, 0.3);
+        color: #81c784;
+        padding: 4px 12px;
         border-radius: 12px;
         font-size: 0.78rem;
         font-weight: 600;
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        box-shadow: 0 2px 5px rgba(27, 94, 32, 0.25);
     }
 
-    .metodos-badge.zero {
-        background: #252525;
-        color: #777;
-        box-shadow: none;
+    .badge-count-payment.none {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: var(--color-text-muted);
     }
 
-    /* Botones de acción */
-    .actions-cell {
+    .actions-row-container {
         display: flex;
         gap: 8px;
         align-items: center;
-        flex-wrap: nowrap;
+        justify-content: center;
     }
 
-    .btn-action {
+    .btn-action-row {
         padding: 8px 12px;
         font-size: 0.8rem;
         font-weight: 600;
@@ -360,158 +414,440 @@
         transition: var(--transition-smooth);
     }
 
-    .btn-ver-detalle {
+    .btn-action-row.btn-detail {
         background-color: rgba(33, 150, 243, 0.08);
         border: 1px solid rgba(33, 150, 243, 0.2);
         color: #2196f3;
     }
 
-    .btn-ver-detalle:hover {
+    .btn-action-row.btn-detail:hover {
         background-color: #2196f3;
-        color: #fff;
+        color: var(--color-text-white);
         transform: translateY(-1px);
-        box-shadow: 0 4px 10px rgba(33, 150, 243, 0.25);
+        box-shadow: 0 4px 10px rgba(33, 150, 243, 0.2);
     }
 
-    .btn-editar-prov {
+    .btn-action-row.btn-edit {
         background-color: rgba(255, 152, 0, 0.08);
         border: 1px solid rgba(255, 152, 0, 0.2);
         color: var(--color-primary);
     }
 
-    .btn-editar-prov:hover {
+    .btn-action-row.btn-edit:hover {
         background-color: var(--color-primary);
-        color: #fff;
+        color: var(--color-text-white);
         transform: translateY(-1px);
-        box-shadow: 0 4px 10px rgba(255, 152, 0, 0.25);
+        box-shadow: 0 4px 10px rgba(255, 152, 0, 0.2);
     }
 
-    .no-data {
+    /* ==========================================================================
+       Vista 2: Grid de Tarjetas (Cards)
+       ========================================================================== */
+    .view-cards-mode {
+        display: none; /* Controlado por JS */
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 20px;
+    }
+
+    .provider-premium-card {
+        background-color: var(--color-bg-card);
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius-lg);
+        padding: 24px;
+        box-shadow: var(--shadow-premium);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+        transition: var(--transition-smooth);
+    }
+
+    .provider-premium-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+        opacity: 0;
+        transition: var(--transition-smooth);
+    }
+
+    .provider-premium-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(255, 152, 0, 0.3);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+    }
+
+    .provider-premium-card:hover::before {
+        opacity: 1;
+    }
+
+    .card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 16px;
+    }
+
+    .card-identity {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        max-width: 80%;
+    }
+
+    .avatar-icon-placeholder {
+        width: 44px;
+        height: 44px;
+        background: linear-gradient(135deg, #2a303d 0%, #171c26 100%);
+        border: 1px solid var(--color-border);
+        color: var(--color-primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+
+    .card-name-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        overflow: hidden;
+    }
+
+    .card-title-name {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--color-text-white);
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .card-rfc-tag {
+        font-size: 0.75rem;
+        color: var(--color-text-muted);
+        font-family: monospace;
+    }
+
+    .card-id-badge {
+        background: rgba(255, 152, 0, 0.08);
+        border: 1px solid rgba(255, 152, 0, 0.15);
+        color: var(--color-primary);
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        font-family: monospace;
+    }
+
+    .card-body-info {
+        border-top: 1px solid rgba(255, 255, 255, 0.04);
+        padding-top: 16px;
+        margin-bottom: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .card-info-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: 0.88rem;
+    }
+
+    .card-info-item i {
+        color: var(--color-primary);
+        width: 16px;
+        margin-top: 3px;
         text-align: center;
-        padding: 50px 20px;
+        font-size: 0.85rem;
+    }
+
+    .card-info-label {
+        font-weight: 600;
+        color: #94a3b8;
+    }
+
+    .card-info-val {
+        color: #cbd5e1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 200px;
+    }
+
+    .card-info-val a {
+        color: #cbd5e1;
+        text-decoration: none;
+        transition: var(--transition-smooth);
+    }
+
+    .card-info-val a:hover {
+        color: var(--color-primary);
+    }
+
+    .card-footer-actions {
+        display: flex;
+        gap: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.04);
+        padding-top: 16px;
+    }
+
+    .btn-card-action {
+        flex: 1;
+        padding: 10px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: var(--transition-smooth);
+    }
+
+    .btn-card-action.btn-detail {
+        background-color: rgba(33, 150, 243, 0.08);
+        border: 1px solid rgba(33, 150, 243, 0.2);
+        color: #2196f3;
+    }
+
+    .btn-card-action.btn-detail:hover {
+        background-color: #2196f3;
+        color: var(--color-text-white);
+        box-shadow: 0 4px 12px rgba(33, 150, 243, 0.25);
+    }
+
+    .btn-card-action.btn-edit {
+        background-color: rgba(255, 152, 0, 0.08);
+        border: 1px solid rgba(255, 152, 0, 0.2);
+        color: var(--color-primary);
+    }
+
+    .btn-card-action.btn-edit:hover {
+        background-color: var(--color-primary);
+        color: var(--color-text-white);
+        box-shadow: 0 4px 12px rgba(255, 152, 0, 0.25);
+    }
+
+    /* Empty state */
+    .empty-state-panel {
+        text-align: center;
+        padding: 60px 30px;
         background-color: var(--color-bg-card);
         border: 1px solid var(--color-border);
         border-radius: var(--border-radius-lg);
         color: var(--color-text-muted);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        box-shadow: var(--shadow-premium);
     }
 
-    .no-data i {
-        font-size: 3rem;
-        margin-bottom: 15px;
-        color: #444;
+    .empty-state-panel i {
+        font-size: 3.5rem;
+        margin-bottom: 20px;
+        color: #3b4252;
     }
 
-    .no-data p {
-        font-size: 1.1rem;
+    .empty-state-panel h3 {
+        font-size: 1.3rem;
+        color: var(--color-text-light);
+        margin: 0 0 10px 0;
+    }
+
+    .empty-state-panel p {
         margin: 0;
+        font-size: 0.95rem;
+    }
+
+    /* ==========================================================================
+       Configuraciones de Visualización (JS controlled)
+       ========================================================================== */
+    .view-mode-table .view-table-mode {
+        display: block;
+    }
+
+    .view-mode-cards .view-cards-mode {
+        display: grid;
+    }
+
+    /* ==========================================================================
+       Responsive & Breakpoints
+       ========================================================================== */
+    @media (max-width: 1024px) {
+        /* En pantallas menores a 1024px forzamos la vista de tarjetas para evitar scroll */
+        .header-actions .view-toggle-wrapper {
+            display: none !important;
+        }
+
+        .view-table-mode {
+            display: none !important;
+        }
+
+        .view-cards-mode {
+            display: grid !important;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .header-panel {
+            padding: 20px;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .btn-nuevo-prov {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .search-form-control {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .search-input-container {
+            max-width: 100%;
+        }
+
+        .btn-exec-search {
+            width: 100%;
+            justify-content: center;
+        }
     }
 </style>
 
-<div class="proveedores-container">
-    <div class="header-section">
-        <h2>Gestión de Proveedores</h2>
-        <a href="{{ url_for('nuevo_proveedor') }}" class="btn-nuevo">
-            <i class="fas fa-plus"></i> Nuevo Proveedor
-        </a>
+<div class="proveedores-container" id="container-root">
+    <!-- Header Panel -->
+    <div class="header-panel">
+        <div class="header-info">
+            <h2>Gestión de Proveedores</h2>
+            <p>Control e historial de proveedores y sus respectivos métodos de pago.</p>
+        </div>
+        <div class="header-actions">
+            <!-- View Toggle -->
+            <div class="view-toggle-wrapper">
+                <button type="button" id="toggle-table" class="btn-toggle-view" title="Vista de Tabla compacta">
+                    <i class="fas fa-list"></i>
+                </button>
+                <button type="button" id="toggle-cards" class="btn-toggle-view" title="Vista de Tarjetas">
+                    <i class="fas fa-th-large"></i>
+                </button>
+            </div>
+            <!-- Nuevo Proveedor Button -->
+            <a href="{{ url_for('nuevo_proveedor') }}" class="btn-nuevo-prov">
+                <i class="fas fa-plus"></i> Nuevo Proveedor
+            </a>
+        </div>
     </div>
 
-    <div class="search-section">
-        <form method="GET" action="{{ url_for('proveedores_dashboard') }}" class="search-form">
-            <div class="search-input-wrapper">
+    <!-- Search Section -->
+    <div class="search-panel">
+        <form method="GET" action="{{ url_for('proveedores_dashboard') }}" class="search-form-control">
+            <div class="search-input-container">
                 <input type="text"
                        name="busqueda"
                        placeholder="Buscar por nombre, RFC, email o teléfono..."
                        value="{{ busqueda }}"
-                       class="search-input">
+                       class="search-bar-input">
                 <i class="fas fa-search"></i>
             </div>
-            <button type="submit" class="btn-search">Buscar</button>
+            <button type="submit" class="btn-exec-search">
+                <i class="fas fa-filter"></i> Buscar
+            </button>
             {% if busqueda %}
-                <a href="{{ url_for('proveedores_dashboard') }}" class="btn-clear">
-                    <i class="fas fa-times-circle"></i> Limpiar
+                <a href="{{ url_for('proveedores_dashboard') }}" class="btn-clear-search">
+                    <i class="fas fa-times-circle"></i> Limpiar búsqueda
                 </a>
             {% endif %}
         </form>
     </div>
 
+    <!-- Data Display -->
     {% if proveedores %}
-        <div class="table-container">
-            <table class="proveedores-table">
+        <!-- VISTA 1: TABLA COMPACTA -->
+        <div class="view-table-mode">
+            <table class="responsive-table">
                 <thead>
                     <tr>
-                        <th style="width: 320px;">Proveedor</th>
-                        <th style="width: 250px;">Contacto Principal</th>
-                        <th style="width: 200px;">Referencia</th>
-                        <th style="width: 150px; text-align: center;">Métodos de Pago</th>
-                        <th style="width: 200px; text-align: center;">Acciones</th>
+                        <th style="width: 35%;">Proveedor</th>
+                        <th style="width: 25%;">Contacto Principal</th>
+                        <th style="width: 15%;">Referencia</th>
+                        <th style="width: 12%; text-align: center;">Métodos</th>
+                        <th style="width: 13%; text-align: center;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for proveedor in proveedores %}
                     <tr>
                         <td>
-                            <div class="prov-info-cell">
-                                <div class="prov-name-wrapper">
-                                    <span class="prov-id-badge">#{{ proveedor.id }}</span>
-                                    <span class="prov-name">{{ proveedor.nombre or 'Sin nombre' }}</span>
+                            <div class="prov-meta-cell">
+                                <div class="prov-title-line">
+                                    <span class="prov-id-pill">#{{ proveedor.id }}</span>
+                                    <span class="prov-name-text" title="{{ proveedor.nombre or 'Sin nombre' }}">{{ proveedor.nombre or 'Sin nombre' }}</span>
                                 </div>
-                                <div class="prov-rfc">
-                                    <i class="far fa-id-card"></i> {{ proveedor.rfc or 'Sin RFC registrado' }}
+                                <div class="prov-sub-rfc">
+                                    <i class="far fa-id-card"></i> {{ proveedor.rfc or 'Sin RFC' }}
                                 </div>
                             </div>
                         </td>
                         <td>
-                            <div class="contact-cell">
+                            <div class="prov-contact-cell">
                                 {% if proveedor.contacto %}
-                                    <div class="contact-name">{{ proveedor.contacto }}</div>
+                                    <div class="prov-contact-name">{{ proveedor.contacto }}</div>
                                 {% endif %}
-                                <div class="contact-details">
+                                <div class="prov-contact-details">
                                     {% if proveedor.telefono %}
-                                        <div class="contact-item">
+                                        <div class="prov-contact-item">
                                             <i class="fas fa-phone"></i>
                                             <span>{{ proveedor.telefono }}</span>
                                         </div>
                                     {% endif %}
                                     {% if proveedor.email %}
-                                        <div class="contact-item">
+                                        <div class="prov-contact-item">
                                             <i class="fas fa-envelope"></i>
-                                            <a href="mailto:{{ proveedor.email }}">{{ proveedor.email }}</a>
+                                            <a href="mailto:{{ proveedor.email }}" title="{{ proveedor.email }}">{{ proveedor.email }}</a>
                                         </div>
                                     {% endif %}
                                     {% if not proveedor.contacto and not proveedor.telefono and not proveedor.email %}
-                                        <span class="muted-text">Sin información de contacto</span>
+                                        <span style="color: var(--color-text-muted); font-style: italic;">Sin contacto</span>
                                     {% endif %}
                                 </div>
                             </div>
                         </td>
                         <td>
-                            <div class="reference-cell" title="{{ proveedor.referencia or '' }}">
+                            <div class="prov-ref-text" title="{{ proveedor.referencia or '' }}">
                                 {{ proveedor.referencia or '-' }}
                             </div>
                         </td>
                         <td style="text-align: center;">
                             {% if proveedor.num_metodos_pago > 0 %}
-                                <span class="metodos-badge">
-                                    <i class="fas fa-credit-card"></i>
-                                    {{ proveedor.num_metodos_pago }}
+                                <span class="badge-count-payment" title="{{ proveedor.num_metodos_pago }} método(s) de pago registrado(s)">
+                                    <i class="fas fa-wallet"></i> {{ proveedor.num_metodos_pago }}
                                 </span>
                             {% else %}
-                                <span class="metodos-badge zero">
-                                    <i class="fas fa-credit-card"></i>
-                                    0
+                                <span class="badge-count-payment none" title="Sin métodos de pago">
+                                    <i class="fas fa-wallet"></i> 0
                                 </span>
                             {% endif %}
                         </td>
                         <td style="text-align: center;">
-                            <div class="actions-cell">
+                            <div class="actions-row-container">
                                 <a href="{{ url_for('detalle_proveedor', proveedor_id=proveedor.id) }}"
-                                   class="btn-action btn-ver-detalle" title="Ver Detalle y Métodos de Pago">
-                                    <i class="fas fa-eye"></i> Detalle
+                                   class="btn-action-row btn-detail" title="Ver detalle y métodos de pago">
+                                    <i class="fas fa-eye"></i>
                                 </a>
                                 <a href="{{ url_for('editar_proveedor', proveedor_id=proveedor.id) }}"
-                                   class="btn-action btn-editar-prov" title="Editar Proveedor">
-                                    <i class="fas fa-edit"></i> Editar
+                                   class="btn-action-row btn-edit" title="Editar datos del proveedor">
+                                    <i class="fas fa-edit"></i>
                                 </a>
                             </div>
                         </td>
@@ -520,11 +856,134 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- VISTA 2: GRID DE TARJETAS -->
+        <div class="view-cards-mode">
+            {% for proveedor in proveedores %}
+            <div class="provider-premium-card">
+                <div class="card-top">
+                    <div class="card-identity">
+                        <div class="avatar-icon-placeholder">
+                            {{ (proveedor.nombre or 'P')[0] | upper }}
+                        </div>
+                        <div class="card-name-wrapper">
+                            <h3 class="card-title-name" title="{{ proveedor.nombre or 'Sin nombre' }}">{{ proveedor.nombre or 'Sin nombre' }}</h3>
+                            <span class="card-rfc-tag"><i class="far fa-id-card"></i> {{ proveedor.rfc or 'Sin RFC registrado' }}</span>
+                        </div>
+                    </div>
+                    <span class="card-id-badge">#{{ proveedor.id }}</span>
+                </div>
+
+                <div class="card-body-info">
+                    <div class="card-info-item">
+                        <i class="fas fa-user-tie"></i>
+                        <div>
+                            <span class="card-info-label">Contacto:</span>
+                            <span class="card-info-val" title="{{ proveedor.contacto or 'No especificado' }}">{{ proveedor.contacto or 'No especificado' }}</span>
+                        </div>
+                    </div>
+
+                    {% if proveedor.telefono %}
+                    <div class="card-info-item">
+                        <i class="fas fa-phone-alt"></i>
+                        <div>
+                            <span class="card-info-label">Teléfono:</span>
+                            <span class="card-info-val">{{ proveedor.telefono }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if proveedor.email %}
+                    <div class="card-info-item">
+                        <i class="fas fa-envelope"></i>
+                        <div>
+                            <span class="card-info-label">Correo:</span>
+                            <span class="card-info-val">
+                                <a href="mailto:{{ proveedor.email }}" title="{{ proveedor.email }}">{{ proveedor.email }}</a>
+                            </span>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="card-info-item">
+                        <i class="fas fa-wallet"></i>
+                        <div>
+                            <span class="card-info-label">Métodos de Pago:</span>
+                            {% if proveedor.num_metodos_pago > 0 %}
+                                <span style="color: #81c784; font-weight: bold;">{{ proveedor.num_metodos_pago }} activo(s)</span>
+                            {% else %}
+                                <span style="color: var(--color-text-muted);">Ninguno</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if proveedor.referencia %}
+                    <div class="card-info-item">
+                        <i class="fas fa-info-circle"></i>
+                        <div>
+                            <span class="card-info-label">Ref:</span>
+                            <span class="card-info-val" title="{{ proveedor.referencia }}">{{ proveedor.referencia }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="card-footer-actions">
+                    <a href="{{ url_for('detalle_proveedor', proveedor_id=proveedor.id) }}" class="btn-card-action btn-detail">
+                        <i class="fas fa-eye"></i> Detalle
+                    </a>
+                    <a href="{{ url_for('editar_proveedor', proveedor_id=proveedor.id) }}" class="btn-card-action btn-edit">
+                        <i class="fas fa-edit"></i> Editar
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     {% else %}
-        <div class="no-data">
-            <i class="fas fa-folder-open"></i>
-            <p>No se encontraron proveedores registrados.</p>
+        <!-- Empty State -->
+        <div class="empty-state-panel">
+            <i class="fas fa-user-slash"></i>
+            <h3>No se encontraron proveedores</h3>
+            <p>Intenta cambiar el criterio de búsqueda o agrega un nuevo proveedor.</p>
         </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const containerRoot = document.getElementById('container-root');
+    const toggleTableBtn = document.getElementById('toggle-table');
+    const toggleCardsBtn = document.getElementById('toggle-cards');
+
+    // Recuperar preferencia de modo de visualización o usar tarjetas por defecto
+    let activeMode = localStorage.getItem('proveedores-view-mode') || 'table';
+
+    function setViewMode(mode) {
+        if (mode === 'cards') {
+            containerRoot.classList.remove('view-mode-table');
+            containerRoot.classList.add('view-mode-cards');
+            toggleTableBtn.classList.remove('active');
+            toggleCardsBtn.classList.add('active');
+        } else {
+            containerRoot.classList.remove('view-mode-cards');
+            containerRoot.classList.add('view-mode-table');
+            toggleCardsBtn.classList.remove('active');
+            toggleTableBtn.classList.add('active');
+        }
+        localStorage.setItem('proveedores-view-mode', mode);
+        activeMode = mode;
+    }
+
+    // Inicializar vista
+    setViewMode(activeMode);
+
+    // Event Listeners
+    if (toggleTableBtn && toggleCardsBtn) {
+        toggleTableBtn.addEventListener('click', () => setViewMode('table'));
+        toggleCardsBtn.addEventListener('click', () => setViewMode('cards'));
+    }
+});
+</script>
 {% endblock %}

@@ -1,318 +1,926 @@
 {% extends "layout.html" %}
-{% block title %}Detalle de Proveedor{% endblock %}
+{% block title %}Detalle de Proveedor | AD17 Solutions{% endblock %}
 {% block content %}
 <style>
-    .detalle-container {
-        background-color: #000;
-        color: #fff;
-        padding: 20px;
-        min-height: 100vh;
+    /* ==========================================================================
+       Variables & Base Design Tokens
+       ========================================================================== */
+    :root {
+        --color-primary: #ff9800;
+        --color-primary-hover: #ffa726;
+        --color-primary-dark: #e65100;
+        --color-bg-panel: #161a22;
+        --color-bg-card: #1f242e;
+        --color-border: #2e3545;
+        --color-text-muted: #94a3b8;
+        --color-text-light: #f1f5f9;
+        --color-text-white: #ffffff;
+        --border-radius-lg: 16px;
+        --border-radius-md: 10px;
+        --border-radius-sm: 6px;
+        --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --shadow-premium: 0 10px 30px rgba(0, 0, 0, 0.4);
     }
-    
-    .header-section {
+
+    .detalle-container {
+        color: var(--color-text-light);
+        padding: 10px 0 40px 0;
+        animation: pageFadeIn 0.5s ease-out;
+    }
+
+    @keyframes pageFadeIn {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ==========================================================================
+       Top Action Bar
+       ========================================================================== */
+    .top-action-bar {
+        background: var(--color-bg-card);
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius-lg);
+        padding: 16px 24px;
+        margin-bottom: 25px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 15px;
+        box-shadow: var(--shadow-premium);
     }
-    
-    .btn-group {
+
+    .top-action-bar h2 {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--color-text-white);
+    }
+
+    .btn-group-actions {
         display: flex;
         gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
     }
-    
-    .btn {
-        background-color: #ff9800;
-        border: none;
-        color: #fff;
-        padding: 8px 16px;
-        cursor: pointer;
-        font-size: 0.95rem;
+
+    .btn-action-detail {
+        padding: 10px 18px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        border-radius: var(--border-radius-md);
         text-decoration: none;
-        display: inline-block;
-        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        border: none;
+        transition: var(--transition-smooth);
+        color: var(--color-text-white);
     }
-    
-    .btn:hover {
-        background-color: #e68900;
+
+    .btn-action-detail.btn-back {
+        background-color: #272d3b;
+        border: 1px solid var(--color-border);
+        color: var(--color-text-light);
     }
-    
-    .btn-edit {
-        background-color: #2196F3;
+
+    .btn-action-detail.btn-back:hover {
+        background-color: #333a4c;
+        color: var(--color-text-white);
+        transform: translateX(-2px);
     }
-    
-    .btn-edit:hover {
-        background-color: #1976D2;
+
+    .btn-action-detail.btn-edit {
+        background-color: rgba(33, 150, 243, 0.1);
+        border: 1px solid rgba(33, 150, 243, 0.3);
+        color: #2196f3;
     }
-    
-    .btn-delete {
+
+    .btn-action-detail.btn-edit:hover {
+        background-color: #2196f3;
+        color: var(--color-text-white);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(33, 150, 243, 0.25);
+    }
+
+    .btn-action-detail.btn-delete {
+        background-color: rgba(244, 67, 54, 0.1);
+        border: 1px solid rgba(244, 67, 54, 0.3);
+        color: #f44336;
+    }
+
+    .btn-action-detail.btn-delete:hover {
         background-color: #f44336;
+        color: var(--color-text-white);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(244, 67, 54, 0.25);
     }
-    
-    .btn-delete:hover {
-        background-color: #d32f2f;
-    }
-    
-    .info-section {
-        background-color: #111;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 30px;
-    }
-    
-    .info-grid {
+
+    /* ==========================================================================
+       Two Column Grid Layout
+       ========================================================================== */
+    .profile-grid-layout {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 20px;
+        grid-template-columns: 35% 65%;
+        gap: 25px;
+        align-items: start;
     }
-    
-    .info-item {
-        margin-bottom: 15px;
+
+    @media (max-width: 1024px) {
+        .profile-grid-layout {
+            grid-template-columns: 1fr;
+        }
     }
-    
-    .info-label {
-        color: #ff9800;
-        font-weight: bold;
-        margin-bottom: 5px;
+
+    /* Left Column: Profile Card */
+    .profile-identity-card {
+        background: var(--color-bg-card);
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius-lg);
+        padding: 30px 24px;
+        box-shadow: var(--shadow-premium);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
     }
-    
-    .info-value {
-        color: #fff;
-        font-size: 1.1rem;
+
+    .profile-avatar-large {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+        color: var(--color-text-white);
+        font-size: 2.2rem;
+        font-weight: 700;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 18px;
+        box-shadow: 0 8px 24px rgba(255, 152, 0, 0.25);
+        border: 2px solid rgba(255, 255, 255, 0.1);
     }
-    
-    .metodos-section {
-        margin-top: 30px;
+
+    .profile-title-name {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--color-text-white);
+        margin: 0 0 4px 0;
+        line-height: 1.3;
     }
-    
-    .metodos-header {
+
+    .profile-sub-rfc-badge {
+        background: rgba(255, 152, 0, 0.08);
+        border: 1px solid rgba(255, 152, 0, 0.2);
+        color: var(--color-primary);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-family: monospace;
+        font-weight: 600;
+        margin-bottom: 25px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        transition: var(--transition-smooth);
+    }
+
+    .profile-sub-rfc-badge:hover {
+        background: rgba(255, 152, 0, 0.15);
+        transform: scale(1.02);
+    }
+
+    .profile-details-list {
+        width: 100%;
+        text-align: left;
+        border-top: 1px solid rgba(255, 255, 255, 0.04);
+        padding-top: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .profile-detail-row {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .profile-detail-label {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        color: var(--color-text-muted);
+        letter-spacing: 0.8px;
+        font-weight: 700;
+    }
+
+    .profile-detail-value {
+        font-size: 0.95rem;
+        color: #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .profile-detail-value i {
+        color: var(--color-primary);
+        font-size: 0.9rem;
+        width: 16px;
+        text-align: center;
+    }
+
+    .profile-detail-value a {
+        color: #e2e8f0;
+        text-decoration: none;
+        transition: var(--transition-smooth);
+    }
+
+    .profile-detail-value a:hover {
+        color: var(--color-primary);
+        text-decoration: underline;
+    }
+
+    .btn-copy-inline {
+        background: none;
+        border: none;
+        color: var(--color-text-muted);
+        cursor: pointer;
+        padding: 2px;
+        font-size: 0.8rem;
+        transition: var(--transition-smooth);
+    }
+
+    .btn-copy-inline:hover {
+        color: var(--color-primary);
+        transform: scale(1.1);
+    }
+
+    /* Right Column: Payment Methods Section */
+    .payments-dashboard-card {
+        background: var(--color-bg-card);
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius-lg);
+        padding: 30px;
+        box-shadow: var(--shadow-premium);
+    }
+
+    .payments-dashboard-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 20px;
+        margin-bottom: 25px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        padding-bottom: 15px;
     }
-    
-    .metodos-table {
+
+    .payments-dashboard-header h3 {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin: 0;
+        color: var(--color-text-white);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .payments-dashboard-header h3 i {
+        color: var(--color-primary);
+    }
+
+    .btn-add-method {
+        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+        border: none;
+        color: var(--color-text-white);
+        padding: 8px 16px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        border-radius: var(--border-radius-md);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 4px 10px rgba(230, 81, 0, 0.2);
+        transition: var(--transition-smooth);
+    }
+
+    .btn-add-method:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(230, 81, 0, 0.35);
+        background: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary) 100%);
+    }
+
+    /* Visual bank card grid */
+    .bank-cards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+    }
+
+    .virtual-bank-card {
+        background: linear-gradient(135deg, #282f3d 0%, #151a24 100%);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 14px;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 175px;
+        overflow: hidden;
+        transition: var(--transition-smooth);
+    }
+
+    .virtual-bank-card:hover {
+        transform: translateY(-4px) scale(1.01);
+        border-color: rgba(255, 152, 0, 0.2);
+        box-shadow: 0 15px 25px rgba(0, 0, 0, 0.45);
+    }
+
+    /* CSS chip decoration */
+    .virtual-card-chip {
+        width: 32px;
+        height: 24px;
+        background: linear-gradient(135deg, #d4af37 0%, #aa7c11 100%);
+        border-radius: 4px;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .virtual-card-chip::after {
+        content: '';
+        position: absolute;
         width: 100%;
-        border-collapse: collapse;
+        height: 1px;
+        background: rgba(0, 0, 0, 0.2);
+        top: 50%;
+        left: 0;
     }
-    
-    .metodos-table th,
-    .metodos-table td {
-        border: 1px solid #444;
-        padding: 12px;
-        text-align: left;
+
+    .virtual-card-chip::before {
+        content: '';
+        position: absolute;
+        height: 100%;
+        width: 1px;
+        background: rgba(0, 0, 0, 0.2);
+        left: 50%;
+        top: 0;
     }
-    
-    .metodos-table th {
-        background-color: #333;
+
+    .virtual-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
     }
-    
-    .metodos-table tr:nth-child(even) {
-        background-color: #111;
+
+    .virtual-card-type {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        background: rgba(255, 255, 255, 0.08);
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-weight: 700;
+        color: #fff;
     }
-    
-    .btn-small {
-        padding: 4px 8px;
-        font-size: 0.85rem;
-        margin: 0 2px;
+
+    .virtual-card-clabe-wrapper {
+        margin: 15px 0;
     }
-    
-    /* Modal Styles */
-    .modal {
+
+    .virtual-card-clabe-label {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        color: var(--color-text-muted);
+        letter-spacing: 0.5px;
+        display: block;
+        margin-bottom: 2px;
+    }
+
+    .virtual-card-clabe {
+        font-family: monospace;
+        font-size: 1.05rem;
+        font-weight: 600;
+        letter-spacing: 1px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .virtual-card-bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+    }
+
+    .virtual-card-info-group {
+        display: flex;
+        flex-direction: column;
+        max-width: 65%;
+    }
+
+    .virtual-card-info-lbl {
+        font-size: 0.62rem;
+        text-transform: uppercase;
+        color: var(--color-text-muted);
+        letter-spacing: 0.5px;
+    }
+
+    .virtual-card-info-val {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #e2e8f0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .virtual-card-actions {
+        display: flex;
+        gap: 6px;
+    }
+
+    .btn-card-micro {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        transition: var(--transition-smooth);
+        text-decoration: none;
+    }
+
+    .btn-card-micro.edit {
+        background-color: rgba(33, 150, 243, 0.15);
+        color: #2196f3;
+    }
+
+    .btn-card-micro.edit:hover {
+        background-color: #2196f3;
+        color: #fff;
+    }
+
+    .btn-card-micro.delete {
+        background-color: rgba(244, 67, 54, 0.15);
+        color: #f44336;
+    }
+
+    .btn-card-micro.delete:hover {
+        background-color: #f44336;
+        color: #fff;
+    }
+
+    /* Empty payment state */
+    .empty-payments-box {
+        text-align: center;
+        padding: 40px 20px;
+        background-color: rgba(0, 0, 0, 0.2);
+        border: 1px dashed var(--color-border);
+        border-radius: var(--border-radius-md);
+        color: var(--color-text-muted);
+    }
+
+    .empty-payments-box i {
+        font-size: 2.2rem;
+        margin-bottom: 12px;
+        color: #3b4252;
+    }
+
+    .empty-payments-box p {
+        margin: 0;
+        font-size: 0.9rem;
+    }
+
+    /* ==========================================================================
+       Toast Popups
+       ========================================================================== */
+    .toast-popup {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background-color: #1a1e28;
+        color: var(--color-text-white);
+        padding: 12px 24px;
+        border-radius: 30px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        z-index: 10000;
+        opacity: 0;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        border: 1px solid var(--color-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .toast-popup i {
+        color: #81c784;
+    }
+
+    .toast-popup.show {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+
+    /* ==========================================================================
+       Modal Premium
+       ========================================================================== */
+    .premium-modal {
         display: none;
         position: fixed;
-        z-index: 1000;
+        z-index: 9999;
         left: 0;
         top: 0;
         width: 100%;
         height: 100%;
-        background-color: rgba(0,0,0,0.8);
+        background-color: rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(8px);
+        animation: modalFadeIn 0.3s ease-out;
+        overflow-y: auto;
     }
-    
-    .modal-content {
-        background-color: #222;
-        margin: 10% auto;
-        padding: 20px;
-        border: 1px solid #444;
-        width: 80%;
-        max-width: 600px;
-        border-radius: 8px;
+
+    @keyframes modalFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
     }
-    
-    .close {
-        color: #aaa;
-        float: right;
-        font-size: 28px;
-        font-weight: bold;
+
+    .premium-modal-content {
+        background-color: var(--color-bg-card);
+        margin: 8% auto;
+        padding: 0;
+        border: 1px solid var(--color-border);
+        width: 90%;
+        max-width: 550px;
+        border-radius: var(--border-radius-lg);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+        animation: modalSlideDown 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.15);
+        color: var(--color-text-light);
+        overflow: hidden;
+    }
+
+    @keyframes modalSlideDown {
+        from { transform: translateY(-40px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .premium-modal-header {
+        background: linear-gradient(135deg, #272d3b 0%, #151a24 100%);
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--color-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .premium-modal-header h3 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--color-text-white);
+    }
+
+    .premium-modal-close {
+        color: var(--color-text-muted);
+        font-size: 1.5rem;
         cursor: pointer;
+        transition: var(--transition-smooth);
+        background: none;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
     }
-    
-    .close:hover {
-        color: #fff;
+
+    .premium-modal-close:hover {
+        color: var(--color-text-white);
+        background-color: rgba(255,255,255,0.05);
     }
-    
-    .form-group {
-        margin-bottom: 15px;
+
+    .premium-modal-body {
+        padding: 24px;
     }
-    
-    .form-group label {
+
+    .form-group-modal {
+        margin-bottom: 20px;
+    }
+
+    .form-group-modal label {
         display: block;
-        margin-bottom: 5px;
-        color: #ff9800;
+        margin-bottom: 8px;
+        color: var(--color-text-muted);
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
-    
-    .form-group input,
-    .form-group select {
+
+    .form-control-modal {
         width: 100%;
-        padding: 8px;
-        background-color: #333;
-        color: #fff;
-        border: 1px solid #444;
-        border-radius: 4px;
+        padding: 10px 14px;
+        background-color: rgba(0, 0, 0, 0.25);
+        color: var(--color-text-light);
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius-md);
+        font-size: 0.95rem;
+        transition: var(--transition-smooth);
+    }
+
+    .form-control-modal:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.15);
+        background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    .premium-modal-footer {
+        padding: 16px 24px 24px 24px;
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+    }
+
+    .btn-modal-action {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        border-radius: var(--border-radius-md);
+        cursor: pointer;
+        border: none;
+        transition: var(--transition-smooth);
+    }
+
+    .btn-modal-action.save {
+        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+        color: var(--color-text-white);
+        box-shadow: 0 4px 10px rgba(230, 81, 0, 0.25);
+    }
+
+    .btn-modal-action.save:hover {
+        background: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary) 100%);
+        transform: translateY(-1px);
+    }
+
+    .btn-modal-action.cancel {
+        background-color: #272d3b;
+        color: var(--color-text-light);
+        border: 1px solid var(--color-border);
+    }
+
+    .btn-modal-action.cancel:hover {
+        background-color: #333a4c;
+        color: var(--color-text-white);
     }
 </style>
 
 <div class="detalle-container">
-    <div class="header-section">
-        <h2>Detalle del Proveedor</h2>
-        <div class="btn-group">
-            <a href="{{ url_for('proveedores_dashboard') }}" class="btn">← Regresar</a>
-            <a href="{{ url_for('editar_proveedor', proveedor_id=proveedor.id) }}" class="btn btn-edit">Editar</a>
-            <form method="POST" action="{{ url_for('eliminar_proveedor', proveedor_id=proveedor.id) }}" 
-                  style="display: inline;" 
-                  onsubmit="return confirm('¿Está seguro de eliminar este proveedor?');">
-                <button type="submit" class="btn btn-delete">Eliminar</button>
+    <!-- Top Action Bar -->
+    <div class="top-action-bar">
+        <h2>
+            <i class="fas fa-id-card-alt" style="color: var(--color-primary);"></i>
+            Ficha del Proveedor
+        </h2>
+        <div class="btn-group-actions">
+            <a href="{{ url_for('proveedores_dashboard') }}" class="btn-action-detail btn-back">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+            <a href="{{ url_for('editar_proveedor', proveedor_id=proveedor.id) }}" class="btn-action-detail btn-edit">
+                <i class="fas fa-edit"></i> Editar Datos
+            </a>
+            <form method="POST" action="{{ url_for('eliminar_proveedor', proveedor_id=proveedor.id) }}"
+                  style="display: inline;"
+                  onsubmit="return confirm('¿Está seguro de eliminar este proveedor de forma permanente?');">
+                <button type="submit" class="btn-action-detail btn-delete">
+                    <i class="fas fa-trash-alt"></i> Eliminar
+                </button>
             </form>
         </div>
     </div>
-    
-    <div class="info-section">
-        <h3>Información General</h3>
-        <div class="info-grid">
-            <div>
-                <div class="info-item">
-                    <div class="info-label">ID:</div>
-                    <div class="info-value">{{ proveedor.id }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Nombre:</div>
-                    <div class="info-value">{{ proveedor.nombre or 'No especificado' }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">RFC:</div>
-                    <div class="info-value">{{ proveedor.rfc or 'No especificado' }}</div>
-                </div>
+
+    <!-- Profile Grid Layout -->
+    <div class="profile-grid-layout">
+        <!-- Left: Profile Info Card -->
+        <div class="profile-identity-card">
+            <div class="profile-avatar-large">
+                {{ (proveedor.nombre or 'P')[0] | upper }}
             </div>
-            <div>
-                <div class="info-item">
-                    <div class="info-label">Contacto:</div>
-                    <div class="info-value">{{ proveedor.contacto or 'No especificado' }}</div>
+            <h3 class="profile-title-name">{{ proveedor.nombre or 'Sin nombre registrado' }}</h3>
+            
+            <span class="profile-sub-rfc-badge" onclick="copyToClipboard('{{ proveedor.rfc or '' }}', 'RFC')" title="Hacer clic para copiar RFC">
+                <i class="far fa-id-card"></i> {{ proveedor.rfc or 'Sin RFC registrado' }}
+                {% if proveedor.rfc %}
+                    <i class="far fa-copy" style="font-size: 0.75rem; margin-left: 2px;"></i>
+                {% endif %}
+            </span>
+
+            <div class="profile-details-list">
+                <div class="profile-detail-row">
+                    <span class="profile-detail-label">ID Proveedor</span>
+                    <span class="profile-detail-value"><i class="fas fa-hashtag"></i> #{{ proveedor.id }}</span>
                 </div>
-                <div class="info-item">
-                    <div class="info-label">Teléfono:</div>
-                    <div class="info-value">{{ proveedor.telefono or 'No especificado' }}</div>
+
+                <div class="profile-detail-row">
+                    <span class="profile-detail-label">Nombre de Contacto</span>
+                    <span class="profile-detail-value">
+                        <i class="fas fa-user-tie"></i> {{ proveedor.contacto or 'No especificado' }}
+                    </span>
                 </div>
-                <div class="info-item">
-                    <div class="info-label">Email:</div>
-                    <div class="info-value">{{ proveedor.email or 'No especificado' }}</div>
+
+                <div class="profile-detail-row">
+                    <span class="profile-detail-label">Teléfono Principal</span>
+                    <span class="profile-detail-value">
+                        <i class="fas fa-phone-alt"></i>
+                        {% if proveedor.telefono %}
+                            {{ proveedor.telefono }}
+                            <button class="btn-copy-inline" onclick="copyToClipboard('{{ proveedor.telefono }}', 'Teléfono')" title="Copiar Teléfono">
+                                <i class="far fa-copy"></i>
+                            </button>
+                        {% else %}
+                            No registrado
+                        {% endif %}
+                    </span>
                 </div>
+
+                <div class="profile-detail-row">
+                    <span class="profile-detail-label">Correo Electrónico</span>
+                    <span class="profile-detail-value">
+                        <i class="fas fa-envelope"></i>
+                        {% if proveedor.email %}
+                            <a href="mailto:{{ proveedor.email }}">{{ proveedor.email }}</a>
+                            <button class="btn-copy-inline" onclick="copyToClipboard('{{ proveedor.email }}', 'Correo')" title="Copiar Correo">
+                                <i class="far fa-copy"></i>
+                            </button>
+                        {% else %}
+                            No registrado
+                        {% endif %}
+                    </span>
+                </div>
+
+                <div class="profile-detail-row">
+                    <span class="profile-detail-label">Dirección Fiscal</span>
+                    <span class="profile-detail-value" style="align-items: flex-start; line-height: 1.4;">
+                        <i class="fas fa-map-marker-alt" style="margin-top: 3px;"></i> {{ proveedor.direccion or 'Dirección no especificada' }}
+                    </span>
+                </div>
+
+                {% if proveedor.referencia %}
+                <div class="profile-detail-row">
+                    <span class="profile-detail-label">Notas / Referencia</span>
+                    <span class="profile-detail-value" style="align-items: flex-start; line-height: 1.4; color: var(--color-text-muted);">
+                        <i class="fas fa-info-circle" style="margin-top: 3px;"></i> {{ proveedor.referencia }}
+                    </span>
+                </div>
+                {% endif %}
             </div>
         </div>
-        <div class="info-item" style="margin-top: 20px;">
-            <div class="info-label">Dirección:</div>
-            <div class="info-value">{{ proveedor.direccion or 'No especificada' }}</div>
-        </div>
-    </div>
-    
-    <div class="metodos-section">
-        <div class="metodos-header">
-            <h3>Métodos de Pago</h3>
-            <button onclick="openModal()" class="btn">+ Agregar Método de Pago</button>
-        </div>
-        
-        {% if metodos_pago %}
-            <table class="metodos-table">
-                <thead>
-                    <tr>
-                        <th>Tipo</th>
-                        <th>Banco</th>
-                        <th>Beneficiario</th>
-                        <th>CLABE</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
+
+        <!-- Right: Payment Methods -->
+        <div class="payments-dashboard-card">
+            <div class="payments-dashboard-header">
+                <h3>
+                    <i class="fas fa-credit-card"></i>
+                    Métodos de Pago Registrados
+                </h3>
+                <button onclick="openModal()" class="btn-add-method">
+                    <i class="fas fa-plus"></i> Agregar Método
+                </button>
+            </div>
+
+            {% if metodos_pago %}
+                <div class="bank-cards-grid">
                     {% for metodo in metodos_pago %}
-                    <tr>
-                        <td>{{ metodo.metodo_nombre or 'No especificado' }}</td>
-                        <td>{{ metodo.banco or '-' }}</td>
-                        <td>{{ metodo.beneficiario or '-' }}</td>
-                        <td>{{ metodo.clabe or '-' }}</td>
-                        <td>
-                            <button onclick="editMetodo({{ metodo.metodo_regID }}, '{{ metodo.metodo_id }}', '{{ metodo.banco }}', '{{ metodo.beneficiario }}', '{{ metodo.clabe }}')" 
-                                    class="btn btn-edit btn-small">Editar</button>
-                            <form method="POST" 
-                                  action="{{ url_for('eliminar_metodo_pago', metodo_regID=metodo.metodo_regID) }}" 
+                    <div class="virtual-bank-card">
+                        <div class="virtual-card-top">
+                            <div class="virtual-card-chip"></div>
+                            <span class="virtual-card-type">{{ metodo.metodo_nombre or 'Transferencia' }}</span>
+                        </div>
+
+                        <div class="virtual-card-clabe-wrapper">
+                            <span class="virtual-card-clabe-label">CLABE Interbancaria</span>
+                            <span class="virtual-card-clabe">
+                                {{ metodo.clabe or 'NO REGISTRADA' }}
+                                {% if metodo.clabe %}
+                                <button class="btn-copy-inline" style="color: #fff;" onclick="copyToClipboard('{{ metodo.clabe }}', 'CLABE')" title="Copiar CLABE">
+                                    <i class="far fa-copy"></i>
+                                </button>
+                                {% endif %}
+                            </span>
+                        </div>
+
+                        <div class="virtual-card-bottom">
+                            <div class="virtual-card-info-group">
+                                <span class="virtual-card-info-lbl">Beneficiario</span>
+                                <span class="virtual-card-info-val" title="{{ metodo.beneficiario or '-' }}">{{ metodo.beneficiario or '-' }}</span>
+                            </div>
+                            <div class="virtual-card-info-group" style="text-align: right; max-width: 35%;">
+                                <span class="virtual-card-info-lbl">Banco</span>
+                                <span class="virtual-card-info-val" style="color: var(--color-primary);" title="{{ metodo.banco or '-' }}">{{ metodo.banco or '-' }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Card Actions Hover Floating Overlay -->
+                        <div class="virtual-card-actions" style="position: absolute; top: 12px; right: 12px;">
+                            <button onclick="editMetodo({{ metodo.metodo_regID }}, '{{ metodo.metodo_id }}', '{{ metodo.banco }}', '{{ metodo.beneficiario }}', '{{ metodo.clabe }}')"
+                                    class="btn-card-micro edit" title="Editar este método de pago">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <form method="POST"
+                                  action="{{ url_for('eliminar_metodo_pago', metodo_regID=metodo.metodo_regID) }}"
                                   style="display: inline;">
                                 <input type="hidden" name="proveedor_id" value="{{ proveedor.id }}">
-                                <button type="submit" 
-                                        class="btn btn-delete btn-small"
-                                        onclick="return confirm('¿Eliminar este método de pago?');">Eliminar</button>
+                                <button type="submit"
+                                        class="btn-card-micro delete"
+                                        title="Eliminar este método de pago"
+                                        onclick="return confirm('¿Está seguro de eliminar este método de pago?');">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
                             </form>
-                        </td>
-                    </tr>
+                        </div>
+                    </div>
                     {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p style="color: #999;">No hay métodos de pago registrados.</p>
-        {% endif %}
+                </div>
+            {% else %}
+                <div class="empty-payments-box">
+                    <i class="fas fa-credit-card"></i>
+                    <p>No hay métodos de pago registrados para este proveedor.</p>
+                </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 
-<!-- Modal para agregar método de pago -->
-<div id="metodoModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal()">&times;</span>
-        <h3 id="modalTitle">Agregar Método de Pago</h3>
-        
+<!-- Modal para agregar/editar método de pago -->
+<div id="metodoModal" class="premium-modal">
+    <div class="premium-modal-content">
+        <div class="premium-modal-header">
+            <h3 id="modalTitle">Agregar Método de Pago</h3>
+            <button class="premium-modal-close" onclick="closeModal()">&times;</button>
+        </div>
+
         <form method="POST" id="metodoForm" action="{{ url_for('agregar_metodo_pago', proveedor_id=proveedor.id) }}">
             <input type="hidden" name="proveedor_id" value="{{ proveedor.id }}">
             
-            <div class="form-group">
-                <label for="metodo_id">Tipo de Método:</label>
-                <select name="metodo_id" id="metodo_id" required>
-                    <option value="">Seleccione...</option>
-                    {% for tipo in tipos_metodos %}
-                        <option value="{{ tipo.regID }}">{{ tipo.forma }}</option>
-                    {% endfor %}
-                </select>
+            <div class="premium-modal-body">
+                <div class="form-group-modal">
+                    <label for="metodo_id">Tipo de Método de Pago *</label>
+                    <select name="metodo_id" id="metodo_id" class="form-control-modal" required>
+                        <option value="">Seleccione...</option>
+                        {% for tipo in tipos_metodos %}
+                            <option value="{{ tipo.regID }}">{{ tipo.forma }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group-modal">
+                    <label for="banco">Institución Bancaria</label>
+                    <input type="text" name="banco" id="banco" class="form-control-modal" placeholder="Ej. BBVA, Banorte, Santander..." maxlength="255">
+                </div>
+                
+                <div class="form-group-modal">
+                    <label for="beneficiario">Nombre del Beneficiario</label>
+                    <input type="text" name="beneficiario" id="beneficiario" class="form-control-modal" placeholder="Nombre completo del titular" maxlength="255">
+                </div>
+                
+                <div class="form-group-modal">
+                    <label for="clabe">CLABE Interbancaria (18 dígitos)</label>
+                    <input type="text" name="clabe" id="clabe" class="form-control-modal" placeholder="012345678901234567" maxlength="20" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                    <small style="color: var(--color-text-muted); font-size: 0.8rem; margin-top: 4px; display: block;">Solo números. Deben ser 18 dígitos.</small>
+                </div>
             </div>
             
-            <div class="form-group">
-                <label for="banco">Banco:</label>
-                <input type="text" name="banco" id="banco" maxlength="255">
-            </div>
-            
-            <div class="form-group">
-                <label for="beneficiario">Beneficiario:</label>
-                <input type="text" name="beneficiario" id="beneficiario" maxlength="255">
-            </div>
-            
-            <div class="form-group">
-                <label for="clabe">CLABE:</label>
-                <input type="text" name="clabe" id="clabe" maxlength="20">
-            </div>
-            
-            <div class="form-group">
-                <button type="submit" class="btn">Guardar</button>
-                <button type="button" class="btn btn-delete" onclick="closeModal()">Cancelar</button>
+            <div class="premium-modal-footer">
+                <button type="button" class="btn-modal-action cancel" onclick="closeModal()">Cancelar</button>
+                <button type="submit" class="btn-modal-action save">Guardar cambios</button>
             </div>
         </form>
     </div>
 </div>
 
+<!-- Toast Popup Container -->
+<div id="toast-msg" class="toast-popup">
+    <i class="fas fa-check-circle"></i>
+    <span id="toast-text">Copiado al portapapeles</span>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
 <script>
 function openModal() {
     document.getElementById('metodoModal').style.display = 'block';
@@ -336,10 +944,36 @@ function editMetodo(regID, metodoId, banco, beneficiario, clabe) {
     document.getElementById('clabe').value = clabe;
 }
 
+// Cerrar modal al hacer clic fuera del contenido
 window.onclick = function(event) {
-    if (event.target == document.getElementById('metodoModal')) {
+    const modal = document.getElementById('metodoModal');
+    if (event.target == modal) {
         closeModal();
     }
 }
+
+// Función para copia rápida
+function copyToClipboard(text, label) {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(function() {
+        const toast = document.getElementById('toast-msg');
+        const toastText = document.getElementById('toast-text');
+        toastText.textContent = `${label} copiado con éxito`;
+        toast.classList.add('show');
+        setTimeout(function() {
+            toast.classList.remove('show');
+        }, 2500);
+    }, function(err) {
+        console.error('No se pudo copiar: ', err);
+    });
+}
+
+// Validación de longitud de CLABE en modal
+document.getElementById('clabe').addEventListener('input', function(e) {
+    this.value = this.value.replace(/[^0-9]/g, '');
+    if (this.value.length > 18) {
+        this.value = this.value.slice(0, 18);
+    }
+});
 </script>
 {% endblock %}

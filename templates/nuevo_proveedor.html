@@ -1,245 +1,454 @@
 {% extends "layout.html" %}
-{% block title %}Nuevo Proveedor{% endblock %}
+{% block title %}Nuevo Proveedor | AD17 Solutions{% endblock %}
 {% block content %}
 <style>
-    .form-container {
-        background-color: #000;
-        color: #fff;
-        padding: 20px;
-        min-height: 100vh;
+    /* ==========================================================================
+       Variables & Base Design Tokens
+       ========================================================================== */
+    :root {
+        --color-primary: #ff9800;
+        --color-primary-hover: #ffa726;
+        --color-primary-dark: #e65100;
+        --color-bg-card: #1f242e;
+        --color-border: #2e3545;
+        --color-text-muted: #94a3b8;
+        --color-text-light: #f1f5f9;
+        --color-text-white: #ffffff;
+        --border-radius-lg: 16px;
+        --border-radius-md: 10px;
+        --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --shadow-premium: 0 15px 35px rgba(0, 0, 0, 0.4);
     }
 
+    .form-container {
+        color: var(--color-text-light);
+        padding: 20px 0 50px 0;
+        animation: pageFadeIn 0.5s ease-out;
+    }
+
+    @keyframes pageFadeIn {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ==========================================================================
+       Form Card & Header
+       ========================================================================== */
     .form-card {
-        background-color: #111;
-        padding: 30px;
-        border-radius: 8px;
-        max-width: 800px;
+        background-color: var(--color-bg-card);
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius-lg);
+        max-width: 850px;
         margin: 0 auto;
+        padding: 40px;
+        box-shadow: var(--shadow-premium);
     }
 
     .form-header {
         margin-bottom: 30px;
         text-align: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        padding-bottom: 20px;
     }
 
+    .form-header h2 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin: 0 0 8px 0;
+        color: var(--color-text-white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .form-header h2 i {
+        color: var(--color-primary);
+    }
+
+    .form-header p {
+        margin: 0;
+        color: var(--color-text-muted);
+        font-size: 0.95rem;
+    }
+
+    /* ==========================================================================
+       Alert Note
+       ========================================================================== */
+    .info-alert-note {
+        background-color: rgba(255, 152, 0, 0.04);
+        border-left: 4px solid var(--color-primary);
+        border-right: 1px solid rgba(255, 152, 0, 0.08);
+        border-top: 1px solid rgba(255, 152, 0, 0.08);
+        border-bottom: 1px solid rgba(255, 152, 0, 0.08);
+        padding: 16px 20px;
+        border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;
+        margin-bottom: 35px;
+        font-size: 0.92rem;
+        color: #ffb74d;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        line-height: 1.4;
+    }
+
+    .info-alert-note i {
+        font-size: 1.1rem;
+        margin-top: 2px;
+    }
+
+    .optional-badge {
+        font-size: 0.72rem;
+        color: var(--color-text-muted);
+        background-color: rgba(255, 255, 255, 0.05);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: normal;
+        margin-left: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    /* ==========================================================================
+       Sections & Grid Layout
+       ========================================================================== */
+    .form-section {
+        margin-bottom: 35px;
+    }
+
+    .form-section h3 {
+        color: var(--color-primary);
+        font-size: 1.15rem;
+        font-weight: 700;
+        margin: 0 0 20px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        padding-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .form-section h3 i {
+        font-size: 1rem;
+    }
+
+    .form-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+        .form-grid-2 {
+            grid-template-columns: 1fr;
+        }
+        .form-card {
+            padding: 25px 20px;
+        }
+    }
+
+    /* ==========================================================================
+       Form Inputs Premium
+       ========================================================================== */
     .form-group {
-        margin-bottom: 20px;
+        margin-bottom: 22px;
     }
 
     .form-group label {
         display: block;
         margin-bottom: 8px;
-        color: #ff9800;
-        font-weight: bold;
+        color: var(--color-text-muted);
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
-    .form-group input,
-    .form-group textarea {
+    .input-icon-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .input-icon-wrapper i {
+        position: absolute;
+        left: 14px;
+        color: var(--color-text-muted);
+        font-size: 0.95rem;
+        transition: var(--transition-smooth);
+        pointer-events: none;
+    }
+
+    .form-input-control {
         width: 100%;
-        padding: 10px;
-        background-color: #333;
-        color: #fff;
-        border: 1px solid #444;
-        border-radius: 4px;
-        font-size: 1rem;
+        padding: 12px 16px 12px 42px;
+        background-color: rgba(0, 0, 0, 0.25);
+        color: var(--color-text-light);
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius-md);
+        font-size: 0.95rem;
+        transition: var(--transition-smooth);
     }
 
-    .form-group input:focus,
-    .form-group textarea:focus {
+    /* Textarea doesn't need icon padding */
+    .form-input-control.textarea {
+        padding: 12px 16px;
+        resize: vertical;
+        font-family: inherit;
+    }
+
+    .form-input-control:focus {
         outline: none;
-        border-color: #ff9800;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.15);
+        background-color: rgba(0, 0, 0, 0.4);
     }
 
-    .form-section {
-        margin-bottom: 30px;
+    .form-input-control:focus + i {
+        color: var(--color-primary);
     }
 
-    .form-section h3 {
-        color: #ff9800;
-        margin-bottom: 20px;
-        border-bottom: 1px solid #444;
-        padding-bottom: 10px;
+    .required-indicator {
+        color: #ef5350;
+        margin-left: 2px;
     }
 
+    /* ==========================================================================
+       Action Buttons
+       ========================================================================== */
     .form-actions {
         display: flex;
-        gap: 10px;
-        justify-content: center;
-        margin-top: 30px;
+        gap: 15px;
+        justify-content: flex-end;
+        border-top: 1px solid rgba(255, 255, 255, 0.04);
+        padding-top: 25px;
+        margin-top: 15px;
     }
 
-    .btn {
-        background-color: #ff9800;
-        border: none;
-        color: #fff;
-        padding: 10px 20px;
+    .btn-form {
+        padding: 12px 28px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        border-radius: var(--border-radius-md);
         cursor: pointer;
-        font-size: 1rem;
-        border-radius: 4px;
+        border: none;
         text-decoration: none;
-        display: inline-block;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: var(--transition-smooth);
     }
 
-    .btn:hover {
-        background-color: #e68900;
+    .btn-form.submit {
+        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+        color: var(--color-text-white);
+        box-shadow: 0 4px 15px rgba(230, 81, 0, 0.35);
     }
 
-    .btn-cancel {
-        background-color: #666;
+    .btn-form.submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(230, 81, 0, 0.5);
+        background: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary) 100%);
     }
 
-    .btn-cancel:hover {
-        background-color: #555;
+    .btn-form.cancel {
+        background-color: #272d3b;
+        color: var(--color-text-light);
+        border: 1px solid var(--color-border);
     }
 
-    .required {
-        color: #ff5252;
+    .btn-form.cancel:hover {
+        background-color: #333a4c;
+        color: var(--color-text-white);
     }
 
-    .info-note {
-        background-color: #1a1a1a;
-        padding: 15px;
-        border-left: 4px solid #ff9800;
-        margin-bottom: 20px;
-        font-size: 0.9rem;
-        color: #ccc;
-    }
-
-    .optional-badge {
-        font-size: 0.8rem;
-        color: #999;
-        font-weight: normal;
-        margin-left: 5px;
+    @media (max-width: 576px) {
+        .form-actions {
+            flex-direction: column;
+        }
+        .btn-form {
+            width: 100%;
+        }
     }
 </style>
 
 <div class="form-container">
     <div class="form-card">
         <div class="form-header">
-            <h2>Nuevo Proveedor</h2>
+            <h2><i class="fas fa-plus-circle"></i> Nuevo Proveedor</h2>
+            <p>Registra un nuevo proveedor en la plataforma completando los campos indicados.</p>
         </div>
 
-        <div class="info-note">
-            <strong>Nota:</strong> Los campos marcados con <span class="required">*</span> son obligatorios.
-            Los datos bancarios son opcionales y se pueden agregar o modificar después.
+        <!-- Alert note -->
+        <div class="info-alert-note">
+            <i class="fas fa-info-circle"></i>
+            <div>
+                Los campos marcados con <span class="required-indicator">*</span> son obligatorios. La información bancaria del proveedor es opcional y puede ser registrada en cualquier otro momento desde la ficha de detalle.
+            </div>
         </div>
 
         <form method="POST" action="{{ url_for('nuevo_proveedor') }}">
+            <!-- Section: General Info -->
             <div class="form-section">
-                <h3>Información General</h3>
+                <h3><i class="fas fa-building"></i> Información General</h3>
+                
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label for="nombre">Nombre Comercial / Razón Social <span class="required-indicator">*</span></label>
+                        <div class="input-icon-wrapper">
+                            <input type="text"
+                                   id="nombre"
+                                   name="nombre"
+                                   class="form-input-control"
+                                   required
+                                   maxlength="255"
+                                   placeholder="Nombre de la empresa o proveedor">
+                            <i class="fas fa-signature"></i>
+                        </div>
+                    </div>
 
-                <div class="form-group">
-                    <label for="nombre">Nombre del Proveedor <span class="required">*</span></label>
-                    <input type="text"
-                           id="nombre"
-                           name="nombre"
-                           required
-                           maxlength="255"
-                           placeholder="Razón social o nombre comercial">
+                    <div class="form-group">
+                        <label for="rfc">RFC <span class="optional-badge">Opcional</span></label>
+                        <div class="input-icon-wrapper">
+                            <input type="text"
+                                   id="rfc"
+                                   name="rfc"
+                                   class="form-input-control"
+                                   maxlength="13"
+                                   placeholder="RFC (12 o 13 caracteres)">
+                            <i class="far fa-id-card"></i>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="rfc">RFC <span class="optional-badge">(opcional)</span></label>
-                    <input type="text"
-                           id="rfc"
-                           name="rfc"
-                           maxlength="13"
-                           placeholder="RFC del proveedor">
-                </div>
-
-                <div class="form-group">
-                    <label for="direccion">Dirección <span class="optional-badge">(opcional)</span></label>
+                    <label for="direccion">Dirección Física / Fiscal <span class="optional-badge">Opcional</span></label>
                     <textarea id="direccion"
                               name="direccion"
                               rows="3"
-                              placeholder="Dirección completa del proveedor"></textarea>
+                              class="form-input-control textarea"
+                              placeholder="Calle, Número, Colonia, C.P., Ciudad, Estado"></textarea>
                 </div>
 
                 <div class="form-group">
-                    <label for="referencia">Referencia <span class="optional-badge">(opcional)</span></label>
+                    <label for="referencia">Referencia / Notas internas <span class="optional-badge">Opcional</span></label>
                     <textarea id="referencia"
                               name="referencia"
                               rows="2"
-                              placeholder="Información adicional, referencias o notas del proveedor"></textarea>
+                              class="form-input-control textarea"
+                              placeholder="Comentarios adicionales, referencias de facturación o acuerdos comerciales..."></textarea>
                 </div>
             </div>
 
+            <!-- Section: Contact Info -->
             <div class="form-section">
-                <h3>Información de Contacto</h3>
-
+                <h3><i class="fas fa-address-book"></i> Información de Contacto</h3>
+                
                 <div class="form-group">
-                    <label for="contacto">Nombre de Contacto <span class="optional-badge">(opcional)</span></label>
-                    <input type="text"
-                           id="contacto"
-                           name="contacto"
-                           maxlength="255"
-                           placeholder="Persona de contacto">
+                    <label for="contacto">Persona de Contacto Principal <span class="optional-badge">Opcional</span></label>
+                    <div class="input-icon-wrapper">
+                        <input type="text"
+                               id="contacto"
+                               name="contacto"
+                               class="form-input-control"
+                               maxlength="255"
+                               placeholder="Nombre completo de la persona a cargo">
+                        <i class="fas fa-user"></i>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="telefono">Teléfono <span class="optional-badge">(opcional)</span></label>
-                    <input type="tel"
-                           id="telefono"
-                           name="telefono"
-                           maxlength="20"
-                           placeholder="Número telefónico">
-                </div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label for="telefono">Teléfono de Contacto <span class="optional-badge">Opcional</span></label>
+                        <div class="input-icon-wrapper">
+                            <input type="tel"
+                                   id="telefono"
+                                   name="telefono"
+                                   class="form-input-control"
+                                   maxlength="20"
+                                   placeholder="Ej. +52 55 1234 5678">
+                            <i class="fas fa-phone-alt"></i>
+                        </div>
+                    </div>
 
-                <div class="form-group">
-                    <label for="email">Email <span class="optional-badge">(opcional)</span></label>
-                    <input type="email"
-                           id="email"
-                           name="email"
-                           maxlength="255"
-                           placeholder="Correo electrónico">
+                    <div class="form-group">
+                        <label for="email">Correo Electrónico <span class="optional-badge">Opcional</span></label>
+                        <div class="input-icon-wrapper">
+                            <input type="email"
+                                   id="email"
+                                   name="email"
+                                   class="form-input-control"
+                                   maxlength="255"
+                                   placeholder="Ej. contacto@empresa.com">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
 
+            <!-- Section: Bank Account (Optional initial payment method) -->
             <div class="form-section">
-                <h3>Información Bancaria (Método de Pago Inicial)</h3>
-
-                <div class="info-note" style="margin-bottom: 20px;">
-                    <strong>Información bancaria:</strong> Puedes agregar la información bancaria ahora o después.
-                    Si agregas estos datos, se creará automáticamente un método de pago por transferencia.
+                <h3><i class="fas fa-university"></i> Información Bancaria <span class="optional-badge">Opcional</span></h3>
+                
+                <div class="info-alert-note" style="background-color: rgba(255,255,255,0.02); border-left-color: var(--color-border); color: var(--color-text-muted);">
+                    <i class="fas fa-wallet"></i>
+                    <div>
+                        Si completas estos campos opcionales, el sistema creará automáticamente un primer método de pago bajo el tipo de **Transferencia Electrónica**.
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="banco">Banco <span class="optional-badge">(opcional)</span></label>
-                    <input type="text"
-                           id="banco"
-                           name="banco"
-                           maxlength="255"
-                           placeholder="Nombre del banco">
-                </div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label for="banco">Institución Bancaria</label>
+                        <div class="input-icon-wrapper">
+                            <input type="text"
+                                   id="banco"
+                                   name="banco"
+                                   class="form-input-control"
+                                   maxlength="255"
+                                   placeholder="Ej. BBVA, Banorte, Santander...">
+                            <i class="fas fa-university"></i>
+                        </div>
+                    </div>
 
-                <div class="form-group">
-                    <label for="clabe">CLABE <span class="optional-badge">(opcional)</span></label>
-                    <input type="text"
-                           id="clabe"
-                           name="clabe"
-                           maxlength="20"
-                           pattern="[0-9]*"
-                           placeholder="CLABE interbancaria (18 dígitos)"
-                           oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                    <small style="color: #999; font-size: 0.85rem;">Solo números, 18 dígitos</small>
+                    <div class="form-group">
+                        <label for="clabe">CLABE Interbancaria (18 dígitos)</label>
+                        <div class="input-icon-wrapper">
+                            <input type="text"
+                                   id="clabe"
+                                   name="clabe"
+                                   class="form-input-control"
+                                   maxlength="20"
+                                   pattern="[0-9]*"
+                                   placeholder="CLABE de 18 dígitos sin espacios"
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                            <i class="fas fa-credit-card"></i>
+                        </div>
+                        <small style="color: var(--color-text-muted); font-size: 0.8rem; margin-top: 4px; display: block;">Solo números. Deben ser 18 dígitos.</small>
+                    </div>
                 </div>
             </div>
 
+            <!-- Form Actions -->
             <div class="form-actions">
-                <button type="submit" class="btn">Crear Proveedor</button>
-                <a href="{{ url_for('proveedores_dashboard') }}" class="btn btn-cancel">Cancelar</a>
+                <a href="{{ url_for('proveedores_dashboard') }}" class="btn-form cancel">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+                <button type="submit" class="btn-form submit">
+                    <i class="fas fa-check"></i> Crear Proveedor
+                </button>
             </div>
         </form>
     </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
-    // Validación de CLABE (opcional pero útil)
+    // Validación en tiempo de escritura para CLABE
     document.getElementById('clabe').addEventListener('input', function(e) {
-        // Eliminar cualquier caracter que no sea número
         this.value = this.value.replace(/[^0-9]/g, '');
-
-        // Limitar a 18 caracteres
         if (this.value.length > 18) {
             this.value = this.value.slice(0, 18);
         }
