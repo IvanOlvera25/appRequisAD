@@ -6222,6 +6222,15 @@ def nuevo_proveedor():
                 remote_conn.close()
                 return redirect(url_for("nuevo_proveedor"))
 
+            # Verificar si el nombre ya existe en la base de datos para evitar error 1062
+            cursor.execute("SELECT provID FROM AD17_Proveedores.Datos WHERE nombre = %s LIMIT 1", (nombre,))
+            existing_prov = cursor.fetchone()
+            if existing_prov:
+                flash(f"El nombre '{nombre}' ya está en uso por otro proveedor.", "error")
+                cursor.close()
+                remote_conn.close()
+                return redirect(url_for("nuevo_proveedor"))
+
             # Obtener metadatos de auditoría
             audit_data = get_audit_metadata()
 
@@ -6436,29 +6445,109 @@ def editar_proveedor(proveedor_id):
             # === ACTUALIZAR DATOS ===
             required_fields, all_fields = get_required_fields(cursor, "AD17_Proveedores.Datos")
 
-            datos_data = {
-                'provID': proveedor_id,
-                'nombre': nombre[:255],
-                'rfc': rfc[:13] if rfc else '',
-                'direccion': direccion[:500] if direccion else ''
-            }
-            # Agregar campos de auditoría disponibles
-            for field, value in audit_mapping.items():
-                if field in all_fields:
-                    datos_data[field] = value
+            # Obtener el registro activo actual del proveedor
+            cursor.execute("""
+                SELECT regID, nombre FROM AD17_Proveedores.Datos
+                WHERE provID = %s
+                ORDER BY regID DESC LIMIT 1
+            """, (proveedor_id,))
+            current_record = cursor.fetchone()
+            current_nombre = current_record['nombre'] if current_record else None
+            current_regID = current_record['regID'] if current_record else None
 
-            # Insertar nuevo registro en Datos (mantener historial)
-            fields = list(datos_data.keys())
-            values = list(datos_data.values())
-            placeholders = ', '.join(['%s'] * len(fields))
+            # Buscar si el nuevo nombre ya existe en la base de datos
+            cursor.execute("""
+                SELECT regID, provID FROM AD17_Proveedores.Datos
+                WHERE nombre = %s LIMIT 1
+            """, (nombre,))
+            existing_name_record = cursor.fetchone()
 
-            datos_query = f"INSERT INTO AD17_Proveedores.Datos ({', '.join(fields)}) VALUES ({placeholders})"
+            if existing_name_record:
+                existing_provID = existing_name_record['provID']
+                existing_regID = existing_name_record['regID']
+                
+                # Caso 1: Pertenece a OTRO proveedor
+                if str(existing_provID) != str(proveedor_id):
+                    flash(f"El nombre '{nombre}' ya está en uso por otro proveedor.", "error")
+                    cursor.close()
+                    remote_conn.close()
+                    return redirect(url_for("editar_proveedor", proveedor_id=proveedor_id))
+                
+                # Caso 2: Pertenece al mismo proveedor y es su nombre activo actual
+                elif nombre == current_nombre:
+                    # Hacer UPDATE del registro activo en lugar de un INSERT que fallaría por unicidad
+                    update_data = {
+                        'rfc': rfc[:13] if rfc else '',
+                        'direccion': direccion[:500] if direccion else '',
+                        'referencia': referencia[:64] if referencia else ''
+                    }
+                    for field, value in audit_mapping.items():
+                        if field in all_fields:
+                            update_data[field] = value
 
-            print(f"Query Datos: {datos_query}")
-            print(f"Valores Datos: {values}")
+                    set_clause = ', '.join([f"{field} = %s" for field in update_data.keys()])
+                    values = list(update_data.values())
+                    values.append(current_regID)
 
-            cursor.execute(datos_query, values)
-            log_database_operation("INSERT", "Datos", datos_data)
+                    datos_query = f"UPDATE AD17_Proveedores.Datos SET {set_clause} WHERE regID = %s"
+                    print(f"Query Datos (UPDATE): {datos_query}")
+                    print(f"Valores Datos (UPDATE): {values}")
+                    
+                    cursor.execute(datos_query, values)
+                    log_database_operation("UPDATE", "Datos", {**update_data, 'regID': current_regID})
+                
+                # Caso 3: Pertenece al mismo proveedor pero era un nombre histórico viejo
+                else:
+                    # Eliminar el registro antiguo que tiene este nombre para liberar la restricción UNIQUE
+                    cursor.execute("DELETE FROM AD17_Proveedores.Datos WHERE regID = %s", (existing_regID,))
+                    log_database_operation("DELETE", "Datos", {'regID': existing_regID, 'nombre': nombre})
+                    
+                    # Insertar nuevo registro
+                    datos_data = {
+                        'provID': proveedor_id,
+                        'nombre': nombre[:255],
+                        'rfc': rfc[:13] if rfc else '',
+                        'direccion': direccion[:500] if direccion else '',
+                        'referencia': referencia[:64] if referencia else ''
+                    }
+                    for field, value in audit_mapping.items():
+                        if field in all_fields:
+                            datos_data[field] = value
+
+                    fields = list(datos_data.keys())
+                    values = list(datos_data.values())
+                    placeholders = ', '.join(['%s'] * len(fields))
+
+                    datos_query = f"INSERT INTO AD17_Proveedores.Datos ({', '.join(fields)}) VALUES ({placeholders})"
+                    print(f"Query Datos (INSERT HIST): {datos_query}")
+                    print(f"Valores Datos (INSERT HIST): {values}")
+                    
+                    cursor.execute(datos_query, values)
+                    log_database_operation("INSERT", "Datos", datos_data)
+            
+            else:
+                # Caso 4: El nombre es completamente nuevo y no existe en la base de datos
+                datos_data = {
+                    'provID': proveedor_id,
+                    'nombre': nombre[:255],
+                    'rfc': rfc[:13] if rfc else '',
+                    'direccion': direccion[:500] if direccion else '',
+                    'referencia': referencia[:64] if referencia else ''
+                }
+                for field, value in audit_mapping.items():
+                    if field in all_fields:
+                        datos_data[field] = value
+
+                fields = list(datos_data.keys())
+                values = list(datos_data.values())
+                placeholders = ', '.join(['%s'] * len(fields))
+
+                datos_query = f"INSERT INTO AD17_Proveedores.Datos ({', '.join(fields)}) VALUES ({placeholders})"
+                print(f"Query Datos (INSERT NEW): {datos_query}")
+                print(f"Valores Datos (INSERT NEW): {values}")
+                
+                cursor.execute(datos_query, values)
+                log_database_operation("INSERT", "Datos", datos_data)
 
             # === ACTUALIZAR CONTACTOS ===
             required_fields, all_fields = get_required_fields(cursor, "AD17_Proveedores.Contactos")
