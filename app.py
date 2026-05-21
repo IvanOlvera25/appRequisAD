@@ -2623,7 +2623,8 @@ def admin_login():
             (username == "Rubengarcia" and password == "Dany1712") or
             (username == "DiegoGarciaToledano" and password == "daGt20!!25") or
             (username == "Gadelarosa" and password == "05360") or
-            (username == "mrivero" and password == "B230163z")):
+            (username == "mrivero" and password == "B230163z") or
+            (username == "kcgandarilla@ad17solutions.com" and password == "KaC051205")):
             session["admin_logged_in"] = True
             session["role"] = "admin"
             flash("Has iniciado sesión correctamente (Administrador).", "success")
