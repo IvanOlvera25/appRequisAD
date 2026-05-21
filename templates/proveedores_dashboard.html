@@ -2,186 +2,528 @@
 {% block title %}Gestión de Proveedores{% endblock %}
 {% block content %}
 <style>
-    .proveedores-container {
-        background-color: #000;
-        color: #fff;
-        padding: 20px;
-        min-height: 100vh;
+    /* ==========================================================================
+       Variables & Base Design Tokens
+       ========================================================================== */
+    :root {
+        --color-primary: #ff9800;
+        --color-primary-hover: #ffa726;
+        --color-primary-dark: #e65100;
+        --color-bg-card: #121212;
+        --color-bg-hover: rgba(255, 152, 0, 0.03);
+        --color-border: #222222;
+        --color-text-muted: #888888;
+        --color-text-light: #e0e0e0;
+        --border-radius-lg: 12px;
+        --border-radius-md: 8px;
+        --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
+    .proveedores-container {
+        color: #fff;
+        padding: 10px 0 40px 0;
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ==========================================================================
+       Header Section
+       ========================================================================== */
     .header-section {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 30px;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .header-section h2 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #ffffff 0%, #a5a5a5 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0;
     }
 
     .btn-nuevo {
-        background-color: #ff9800;
+        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
         border: none;
         color: #fff;
         padding: 10px 20px;
-        cursor: pointer;
-        font-size: 1rem;
+        font-size: 0.95rem;
+        font-weight: 600;
         text-decoration: none;
-        display: inline-block;
-        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: var(--border-radius-md);
+        box-shadow: 0 4px 15px rgba(230, 81, 0, 0.35);
+        transition: var(--transition-smooth);
     }
 
     .btn-nuevo:hover {
-        background-color: #e68900;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(230, 81, 0, 0.5);
+        background: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary) 100%);
+        color: #fff;
     }
 
+    .btn-nuevo:active {
+        transform: translateY(0);
+    }
+
+    /* ==========================================================================
+       Search Section
+       ========================================================================== */
     .search-section {
-        margin-bottom: 20px;
+        background-color: var(--color-bg-card);
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius-lg);
+        padding: 16px 24px;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
 
     .search-form {
         display: flex;
-        gap: 10px;
+        gap: 12px;
         align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .search-input-wrapper {
+        position: relative;
+        flex-grow: 1;
+        min-width: 280px;
+        max-width: 550px;
+    }
+
+    .search-input-wrapper i {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #666;
+        transition: var(--transition-smooth);
     }
 
     .search-input {
-        background-color: #333;
+        background-color: #1a1a1a;
         color: #fff;
-        border: 1px solid #444;
-        padding: 8px 12px;
-        font-size: 1rem;
-        width: 300px;
+        border: 1px solid #333;
+        border-radius: var(--border-radius-md);
+        padding: 10px 12px 10px 40px;
+        font-size: 0.95rem;
+        width: 100%;
+        transition: var(--transition-smooth);
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.15);
+        background-color: #202020;
+    }
+
+    .search-input:focus + i {
+        color: var(--color-primary);
     }
 
     .btn-search {
-        background-color: #ff9800;
-        border: none;
+        background-color: #222;
+        border: 1px solid #333;
         color: #fff;
-        padding: 8px 20px;
+        padding: 10px 24px;
         cursor: pointer;
-        font-size: 1rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        border-radius: var(--border-radius-md);
+        transition: var(--transition-smooth);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
     }
 
     .btn-search:hover {
-        background-color: #e68900;
+        background-color: var(--color-primary);
+        border-color: var(--color-primary);
+        color: #fff;
+    }
+
+    .btn-clear {
+        color: var(--color-primary);
+        text-decoration: none;
+        font-size: 0.95rem;
+        font-weight: 500;
+        transition: var(--transition-smooth);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        border-radius: var(--border-radius-md);
+    }
+
+    .btn-clear:hover {
+        color: var(--color-primary-hover);
+        background-color: rgba(255, 152, 0, 0.05);
+    }
+
+    /* ==========================================================================
+       Responsive & Condensed Table
+       ========================================================================== */
+    .table-container {
+        width: 100%;
+        overflow-x: auto;
+        border-radius: var(--border-radius-lg);
+        background-color: var(--color-bg-card);
+        border: 1px solid var(--color-border);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
     }
 
     .proveedores-table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 20px;
-    }
-
-    .proveedores-table th,
-    .proveedores-table td {
-        border: 1px solid #444;
-        padding: 12px;
         text-align: left;
+        min-width: 800px; /* Asegura un ancho mínimo para que no se amontone en móvil */
     }
 
     .proveedores-table th {
-        background-color: #333;
-        font-weight: bold;
+        background-color: #161616;
+        color: var(--color-primary);
+        font-weight: 600;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        padding: 16px 20px;
+        border-bottom: 2px solid var(--color-border);
     }
 
-    .proveedores-table tbody tr:nth-child(odd) {
-        background-color: #111;
+    .proveedores-table td {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--color-border);
+        font-size: 0.92rem;
+        color: var(--color-text-light);
+        vertical-align: middle;
+        transition: var(--transition-smooth);
+    }
+
+    .proveedores-table tbody tr {
+        transition: var(--transition-smooth);
     }
 
     .proveedores-table tbody tr:hover {
-        background-color: #222;
+        background-color: var(--color-bg-hover);
     }
 
-    .btn-ver {
-        background-color: #2196F3;
-        border: none;
-        color: #fff;
-        padding: 6px 12px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        text-decoration: none;
-        display: inline-block;
+    .proveedores-table tbody tr:nth-child(odd) {
+        background-color: rgba(255,255,255,0.005);
+    }
+
+    /* Columnas Consolidadas */
+    .prov-info-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .prov-name-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .prov-id-badge {
+        background: rgba(255, 152, 0, 0.1);
+        color: var(--color-primary);
+        padding: 2px 6px;
         border-radius: 4px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        font-family: monospace;
     }
 
-    .btn-ver:hover {
-        background-color: #1976D2;
+    .prov-name {
+        font-weight: 600;
+        color: #fff;
+        font-size: 0.98rem;
+    }
+
+    .prov-rfc {
+        font-size: 0.78rem;
+        color: var(--color-text-muted);
+        font-family: monospace;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .contact-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .contact-name {
+        font-weight: 600;
+        color: #eee;
+    }
+
+    .contact-details {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        font-size: 0.8rem;
+        color: var(--color-text-muted);
+    }
+
+    .contact-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .contact-item i {
+        width: 14px;
+        color: var(--color-primary);
+        font-size: 0.75rem;
+        text-align: center;
+    }
+
+    .contact-item a {
+        color: var(--color-text-muted);
+        text-decoration: none;
+        transition: var(--transition-smooth);
+    }
+
+    .contact-item a:hover {
+        color: var(--color-primary);
+    }
+
+    .reference-cell {
+        font-size: 0.85rem;
+        color: #999;
+        max-width: 180px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .muted-text {
+        color: #555;
+        font-style: italic;
+        font-size: 0.8rem;
+    }
+
+    /* Badges */
+    .metodos-badge {
+        background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+        color: #fff;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 2px 5px rgba(27, 94, 32, 0.25);
+    }
+
+    .metodos-badge.zero {
+        background: #252525;
+        color: #777;
+        box-shadow: none;
+    }
+
+    /* Botones de acción */
+    .actions-cell {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: nowrap;
+    }
+
+    .btn-action {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: var(--transition-smooth);
+    }
+
+    .btn-ver-detalle {
+        background-color: rgba(33, 150, 243, 0.08);
+        border: 1px solid rgba(33, 150, 243, 0.2);
+        color: #2196f3;
+    }
+
+    .btn-ver-detalle:hover {
+        background-color: #2196f3;
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(33, 150, 243, 0.25);
+    }
+
+    .btn-editar-prov {
+        background-color: rgba(255, 152, 0, 0.08);
+        border: 1px solid rgba(255, 152, 0, 0.2);
+        color: var(--color-primary);
+    }
+
+    .btn-editar-prov:hover {
+        background-color: var(--color-primary);
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(255, 152, 0, 0.25);
     }
 
     .no-data {
         text-align: center;
-        padding: 40px;
-        color: #999;
+        padding: 50px 20px;
+        background-color: var(--color-bg-card);
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius-lg);
+        color: var(--color-text-muted);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
     }
 
-    .metodos-badge {
-        background-color: #4CAF50;
-        color: #fff;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 0.85rem;
+    .no-data i {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        color: #444;
+    }
+
+    .no-data p {
+        font-size: 1.1rem;
+        margin: 0;
     }
 </style>
 
 <div class="proveedores-container">
     <div class="header-section">
         <h2>Gestión de Proveedores</h2>
-        <a href="{{ url_for('nuevo_proveedor') }}" class="btn-nuevo">+ Nuevo Proveedor</a>
+        <a href="{{ url_for('nuevo_proveedor') }}" class="btn-nuevo">
+            <i class="fas fa-plus"></i> Nuevo Proveedor
+        </a>
     </div>
 
     <div class="search-section">
         <form method="GET" action="{{ url_for('proveedores_dashboard') }}" class="search-form">
-            <input type="text"
-                   name="busqueda"
-                   placeholder="Buscar por nombre, RFC, email o teléfono..."
-                   value="{{ busqueda }}"
-                   class="search-input">
+            <div class="search-input-wrapper">
+                <input type="text"
+                       name="busqueda"
+                       placeholder="Buscar por nombre, RFC, email o teléfono..."
+                       value="{{ busqueda }}"
+                       class="search-input">
+                <i class="fas fa-search"></i>
+            </div>
             <button type="submit" class="btn-search">Buscar</button>
             {% if busqueda %}
-                <a href="{{ url_for('proveedores_dashboard') }}" style="color: #ff9800;">Limpiar</a>
+                <a href="{{ url_for('proveedores_dashboard') }}" class="btn-clear">
+                    <i class="fas fa-times-circle"></i> Limpiar
+                </a>
             {% endif %}
         </form>
     </div>
 
     {% if proveedores %}
-        <table class="proveedores-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Nombre</th>
-                    <th>RFC</th>
-                    <th>Contacto</th>
-                    <th>Teléfono</th>
-                    <th>Email</th>
-                    <th>Referencia</th>
-
-                    <th>Métodos de Pago</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for proveedor in proveedores %}
-                <tr>
-                    <td>{{ proveedor.id }}</td>
-                    <td>{{ proveedor.nombre or '-' }}</td>
-                    <td>{{ proveedor.rfc or '-' }}</td>
-                    <td>{{ proveedor.contacto or '-' }}</td>
-                    <td>{{ proveedor.telefono or '-' }}</td>
-                    <td>{{ proveedor.email or '-' }}</td>
-                    <td>{{ proveedor.referencia or '-' }}</td>
-
-                    <td>
-                        <span class="metodos-badge">{{ proveedor.num_metodos_pago }}</span>
-                    </td>
-                    <td>
-                        <a href="{{ url_for('detalle_proveedor', proveedor_id=proveedor.id) }}"
-                           class="btn-ver">Ver Detalle</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-container">
+            <table class="proveedores-table">
+                <thead>
+                    <tr>
+                        <th style="width: 320px;">Proveedor</th>
+                        <th style="width: 250px;">Contacto Principal</th>
+                        <th style="width: 200px;">Referencia</th>
+                        <th style="width: 150px; text-align: center;">Métodos de Pago</th>
+                        <th style="width: 200px; text-align: center;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for proveedor in proveedores %}
+                    <tr>
+                        <td>
+                            <div class="prov-info-cell">
+                                <div class="prov-name-wrapper">
+                                    <span class="prov-id-badge">#{{ proveedor.id }}</span>
+                                    <span class="prov-name">{{ proveedor.nombre or 'Sin nombre' }}</span>
+                                </div>
+                                <div class="prov-rfc">
+                                    <i class="far fa-id-card"></i> {{ proveedor.rfc or 'Sin RFC registrado' }}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="contact-cell">
+                                {% if proveedor.contacto %}
+                                    <div class="contact-name">{{ proveedor.contacto }}</div>
+                                {% endif %}
+                                <div class="contact-details">
+                                    {% if proveedor.telefono %}
+                                        <div class="contact-item">
+                                            <i class="fas fa-phone"></i>
+                                            <span>{{ proveedor.telefono }}</span>
+                                        </div>
+                                    {% endif %}
+                                    {% if proveedor.email %}
+                                        <div class="contact-item">
+                                            <i class="fas fa-envelope"></i>
+                                            <a href="mailto:{{ proveedor.email }}">{{ proveedor.email }}</a>
+                                        </div>
+                                    {% endif %}
+                                    {% if not proveedor.contacto and not proveedor.telefono and not proveedor.email %}
+                                        <span class="muted-text">Sin información de contacto</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="reference-cell" title="{{ proveedor.referencia or '' }}">
+                                {{ proveedor.referencia or '-' }}
+                            </div>
+                        </td>
+                        <td style="text-align: center;">
+                            {% if proveedor.num_metodos_pago > 0 %}
+                                <span class="metodos-badge">
+                                    <i class="fas fa-credit-card"></i>
+                                    {{ proveedor.num_metodos_pago }}
+                                </span>
+                            {% else %}
+                                <span class="metodos-badge zero">
+                                    <i class="fas fa-credit-card"></i>
+                                    0
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            <div class="actions-cell">
+                                <a href="{{ url_for('detalle_proveedor', proveedor_id=proveedor.id) }}"
+                                   class="btn-action btn-ver-detalle" title="Ver Detalle y Métodos de Pago">
+                                    <i class="fas fa-eye"></i> Detalle
+                                </a>
+                                <a href="{{ url_for('editar_proveedor', proveedor_id=proveedor.id) }}"
+                                   class="btn-action btn-editar-prov" title="Editar Proveedor">
+                                    <i class="fas fa-edit"></i> Editar
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% else %}
         <div class="no-data">
-            <p>No se encontraron proveedores.</p>
+            <i class="fas fa-folder-open"></i>
+            <p>No se encontraron proveedores registrados.</p>
         </div>
     {% endif %}
 </div>
