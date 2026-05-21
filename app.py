@@ -235,7 +235,10 @@ def verify_and_fix_remote_tables():
         return True
     except Exception as e:
         print(f"Error verificando/corrigiendo tablas remotas: {e}")
-        connection.rollback()
+        try:
+            connection.rollback()
+        except Exception as rollback_err:
+            print(f"Error al hacer rollback: {rollback_err}")
         return False
     finally:
         connection.close()
@@ -348,7 +351,10 @@ def sync_solicitudes_to_remote():
 
     except Exception as e:
         print(f"Error durante la sincronización de solicitudes: {e}")
-        remote_conn.rollback()
+        try:
+            remote_conn.rollback()
+        except Exception as rollback_err:
+            print(f"Error al hacer rollback: {rollback_err}")
         return False
     finally:
         local_conn.close()
@@ -513,7 +519,10 @@ def sync_creditos_to_remote():
         print(f"❌ Error durante la sincronización de créditos: {e}")
         import traceback
         traceback.print_exc()
-        remote_conn.rollback()
+        try:
+            remote_conn.rollback()
+        except Exception as rollback_err:
+            print(f"Error al hacer rollback: {rollback_err}")
         return False
     finally:
         local_conn.close()
@@ -5835,10 +5844,16 @@ def get_required_fields(cursor, table_name):
     all_fields = {}
 
     for col in cursor.fetchall():
-        col_name = col[0]
-        col_type = col[1]
-        col_null = col[2]
-        col_default = col[4]
+        if isinstance(col, dict):
+            col_name = col.get('Field', col.get('field'))
+            col_type = col.get('Type', col.get('type'))
+            col_null = col.get('Null', col.get('null'))
+            col_default = col.get('Default', col.get('default'))
+        else:
+            col_name = col[0]
+            col_type = col[1]
+            col_null = col[2]
+            col_default = col[4]
 
         all_fields[col_name] = col_type
 
@@ -6325,7 +6340,10 @@ def nuevo_proveedor():
         except Exception as e:
             print(f"Error detallado al crear proveedor: {e}")
             if 'remote_conn' in locals():
-                remote_conn.rollback()
+                try:
+                    remote_conn.rollback()
+                except Exception as rollback_err:
+                    print(f"Error al hacer rollback: {rollback_err}")
             flash(f"Error al crear proveedor: {e}", "error")
             return redirect(url_for("nuevo_proveedor"))
 
@@ -6481,7 +6499,10 @@ def editar_proveedor(proveedor_id):
         print(f"Error al editar proveedor: {e}")
         log_database_operation("UPDATE", "Proveedor", {}, error=str(e))
         if 'remote_conn' in locals():
-            remote_conn.rollback()
+            try:
+                remote_conn.rollback()
+            except Exception as rollback_err:
+                print(f"Error al hacer rollback: {rollback_err}")
         flash(f"Error al editar proveedor: {e}", "error")
         return redirect(url_for("proveedores_dashboard"))
 
@@ -6565,7 +6586,10 @@ def agregar_metodo_pago(proveedor_id):
         log_database_operation("INSERT", "MetodosDePago", metodo_data, error=str(e))
         flash(f"Error al agregar método de pago: {e}", "error")
         if 'remote_conn' in locals():
-            remote_conn.rollback()
+            try:
+                remote_conn.rollback()
+            except Exception as rollback_err:
+                print(f"Error al hacer rollback: {rollback_err}")
 
     return redirect(url_for("detalle_proveedor", proveedor_id=proveedor_id))
 
@@ -6709,7 +6733,10 @@ def editar_metodo_pago(metodo_regID):
         log_database_operation("UPDATE", "MetodosDePago", update_data, error=str(e))
         flash(f"Error al actualizar método de pago: {e}", "error")
         if 'remote_conn' in locals():
-            remote_conn.rollback()
+            try:
+                remote_conn.rollback()
+            except Exception as rollback_err:
+                print(f"Error al hacer rollback: {rollback_err}")
 
     return redirect(url_for("detalle_proveedor", proveedor_id=proveedor_id))
 
@@ -7007,7 +7034,10 @@ def test_proveedores_connection():
 
         except Exception as e:
             debug_info.append(f"\n✗ Error en prueba de inserción: {e}")
-            remote_conn.rollback()
+            try:
+                remote_conn.rollback()
+            except Exception as rollback_err:
+                debug_info.append(f"Error al hacer rollback: {rollback_err}")
 
         cursor.close()
         remote_conn.close()
