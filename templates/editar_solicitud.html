@@ -462,6 +462,13 @@
 
       <div class="form-grid form-grid-2">
         <div class="form-group">
+          <label for="beneficiario">
+            Beneficiario de la Cuenta <span class="required">*</span>
+          </label>
+          <input type="text" name="beneficiario" id="beneficiario" value="{{ solicitud.beneficiario or '' }}" required>
+        </div>
+
+        <div class="form-group">
           <label for="banco">
             Banco (Cuenta destino) <span class="required">*</span>
           </label>

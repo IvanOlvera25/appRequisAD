@@ -71,7 +71,6 @@ def verify_and_fix_remote_tables():
                 columns = [row['Field'] for row in cursor.fetchall()]
                 print(f"Columnas existentes en tabla Pagos: {columns}")
 
-                # Columnas requeridas
                 required_columns = {
                     'fp': "VARCHAR(50) NOT NULL",
                     'nombre': "VARCHAR(255) NOT NULL",
@@ -84,6 +83,7 @@ def verify_and_fix_remote_tables():
                     'datos_deposito': "TEXT NOT NULL",
                     'banco': "VARCHAR(255) NOT NULL",
                     'clabe': "VARCHAR(255) NOT NULL",
+                    'beneficiario': "VARCHAR(255) DEFAULT NULL",
                     'monto': "DECIMAL(15,2) NOT NULL",
                     'estado': "VARCHAR(50) NOT NULL",
                     'fecha': "DATETIME NOT NULL",
@@ -151,6 +151,7 @@ def verify_and_fix_remote_tables():
                         datos_deposito TEXT NOT NULL,
                         banco VARCHAR(255) NOT NULL,
                         clabe VARCHAR(255) NOT NULL,
+                        beneficiario VARCHAR(255) DEFAULT NULL,
                         monto DECIMAL(15,2) NOT NULL,
                         estado VARCHAR(50) NOT NULL,
                         fecha DATETIME NOT NULL,
@@ -305,7 +306,7 @@ def sync_solicitudes_to_remote():
                             UPDATE Pagos SET
                                 nombre = %s, destinatario = %s, correo = %s, departamento = %s,
                                 tipo_solicitud = %s, tipo_pago = %s, descripcion = %s,
-                                datos_deposito = %s, banco = %s, clabe = %s, monto = %s,
+                                datos_deposito = %s, banco = %s, clabe = %s, beneficiario = %s, monto = %s,
                                 estado = %s, fecha = %s, fecha_limite = %s,
                                 archivo_adjunto = %s, anticipo = %s, porcentaje_anticipo = %s,
                                 monto_restante = %s, categoria_administrativa = %s, fecha_sincronizacion = NOW()
@@ -313,7 +314,7 @@ def sync_solicitudes_to_remote():
                         """, (
                             data['nombre'], data.get('destinatario', ''), data['correo'], data['departamento'],
                             data['tipo_solicitud'], data['tipo_pago'], data['descripcion'],
-                            data['datos_deposito'], data['banco'], data['clabe'], data['monto'],
+                            data['datos_deposito'], data['banco'], data['clabe'], data.get('beneficiario', ''), data['monto'],
                             data['estado'], data['fecha'], data['fecha_limite'],
                             data.get('archivo_adjunto', ''), data.get('anticipo', 'No'),
                             data.get('porcentaje_anticipo', 0.0), data.get('monto_restante', 0.0),
@@ -325,15 +326,15 @@ def sync_solicitudes_to_remote():
                         cursor.execute("""
                             INSERT INTO Pagos (
                                 fp, nombre, destinatario, correo, departamento, tipo_solicitud,
-                                tipo_pago, descripcion, datos_deposito, banco, clabe, monto,
+                                tipo_pago, descripcion, datos_deposito, banco, clabe, beneficiario, monto,
                                 estado, fecha, fecha_limite, archivo_adjunto, anticipo,
                                 porcentaje_anticipo, monto_restante, categoria_administrativa, fecha_sincronizacion
-                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                         """, (
                             data['fp'], data['nombre'], data.get('destinatario', ''), data['correo'],
                             data['departamento'], data['tipo_solicitud'], data['tipo_pago'],
                             data['descripcion'], data['datos_deposito'], data['banco'],
-                            data['clabe'], data['monto'], data['estado'], data['fecha'],
+                            data['clabe'], data.get('beneficiario', ''), data['monto'], data['estado'], data['fecha'],
                             data['fecha_limite'], data.get('archivo_adjunto', ''), data.get('anticipo', 'No'),
                             data.get('porcentaje_anticipo', 0.0), data.get('monto_restante', 0.0),
                             data.get('categoria_administrativa', '')
@@ -725,7 +726,7 @@ def query_solicitudes_paginated(page=1, page_size=PAGE_SIZE_DEFAULT, estado_filt
             id, fp, nombre, destinatario, correo, departamento,
             tipo_solicitud, tipo_pago, monto, estado, fecha, fecha_limite,
             archivo_adjunto, archivo_factura, archivo_recibo, archivo_orden_compra,
-            banco, clabe, referencia, descripcion, datos_deposito,
+            banco, clabe, beneficiario, referencia, descripcion, datos_deposito,
             anticipo, porcentaje_anticipo, monto_anticipo, monto_restante, tipo_anticipo,
             tiene_comision, porcentaje_comision, monto_sin_comision, monto_comision,
             historial_estados, fecha_aprobado, fecha_liquidado, fecha_ultimo_cambio
@@ -981,6 +982,9 @@ def migrate_db():
     if "referencia" not in columns:
         conn.execute("ALTER TABLE solicitudes ADD COLUMN referencia TEXT NOT NULL DEFAULT ''")
         print("Columna 'referencia' agregada a la tabla 'solicitudes'.")
+    if "beneficiario" not in columns:
+        conn.execute("ALTER TABLE solicitudes ADD COLUMN beneficiario TEXT NOT NULL DEFAULT ''")
+        print("Columna 'beneficiario' agregada a la tabla 'solicitudes'.")
 
     # NUEVA COLUMNA PARA CATEGORÍA ADMINISTRATIVA
     if "categoria_administrativa" not in columns:
@@ -1030,6 +1034,7 @@ def init_db():
             datos_deposito TEXT NOT NULL,
             banco TEXT NOT NULL,
             clabe TEXT NOT NULL,
+            beneficiario TEXT NOT NULL DEFAULT '',
             monto REAL NOT NULL,
             estado TEXT NOT NULL,
             fecha TEXT NOT NULL,
@@ -2377,6 +2382,7 @@ def solicitar_pago():
         # -------- datos bancarios y fechas --------
         banco = request.form.get("banco")
         clabe = request.form.get("clabe")
+        beneficiario = request.form.get("beneficiario", "").strip()
         referencia = request.form.get("referencia", "")
 
         fecha_limite = request.form.get("fecha_limite")
@@ -2488,15 +2494,15 @@ def solicitar_pago():
         conn.execute("""
             INSERT INTO solicitudes
             (fp, nombre, destinatario, correo, departamento, tipo_solicitud, tipo_pago, descripcion,
-             datos_deposito, banco, clabe, referencia, monto, estado, fecha, fecha_limite, archivo_adjunto,
+             datos_deposito, banco, clabe, beneficiario, referencia, monto, estado, fecha, fecha_limite, archivo_adjunto,
              archivo_factura, archivo_recibo, archivo_orden_compra,
              anticipo, porcentaje_anticipo, monto_restante, es_programada, tiene_comision,
              porcentaje_comision, monto_comision, monto_sin_comision, tipo_anticipo, monto_anticipo,
              categoria_administrativa)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             fp, nombre, destinatario, correo, departamento, tipo_solicitud, tipo_pago, descripcion,
-            datos_deposito, banco, clabe, referencia, monto, estado, fecha, fecha_limite, archivo_adjunto,
+            datos_deposito, banco, clabe, beneficiario, referencia, monto, estado, fecha, fecha_limite, archivo_adjunto,
             archivo_factura, archivo_recibo, archivo_orden_compra,
             anticipo_val, porcentaje_anticipo, monto_restante, es_programada_val, tiene_comision,
             porcentaje_comision, monto_comision, monto_sin_comision, tipo_anticipo, monto_anticipo,
@@ -2731,6 +2737,7 @@ def admin_dashboard():
             # detalles
             "banco": row.get("banco") or "",
             "clabe": row.get("clabe") or "",
+            "beneficiario": row.get("beneficiario") or "",
             "referencia": row.get("referencia") or "",
             "descripcion": row.get("descripcion") or "",
             "datos_deposito": row.get("datos_deposito") or "",
@@ -2760,6 +2767,7 @@ def admin_dashboard():
         # si algo clave falta, lo traeremos directo de la tabla
         if (
             _empty(it["banco"]) or _empty(it["clabe"]) or it["referencia"] is None
+            or _empty(it["beneficiario"])
             or _empty(it["descripcion"]) or _empty(it["datos_deposito"])
             or it["anticipo"] is None
             or it["porcentaje_anticipo"] is None
@@ -2781,7 +2789,7 @@ def admin_dashboard():
             # ===== ACTUALIZADO: Query incluye los nuevos campos de archivos =====
             rows = conn.execute(
                 f"""
-                SELECT id, banco, clabe, referencia, descripcion, datos_deposito,
+                SELECT id, banco, clabe, beneficiario, referencia, descripcion, datos_deposito,
                        anticipo, porcentaje_anticipo, monto_anticipo, monto_restante, tipo_anticipo,
                        tiene_comision, porcentaje_comision, monto_sin_comision, monto_comision, monto,
                        archivo_factura, archivo_recibo, archivo_orden_compra,
@@ -2801,6 +2809,7 @@ def admin_dashboard():
                 # bancarios / descripción
                 if _empty(it["banco"]): it["banco"] = ex.get("banco") or ""
                 if _empty(it["clabe"]): it["clabe"] = ex.get("clabe") or ""
+                if _empty(it["beneficiario"]): it["beneficiario"] = ex.get("beneficiario") or ""
                 if it["referencia"] in (None, ""): it["referencia"] = ex.get("referencia") or ""
                 if _empty(it["descripcion"]): it["descripcion"] = ex.get("descripcion") or ""
                 if _empty(it["datos_deposito"]): it["datos_deposito"] = ex.get("datos_deposito") or ""
@@ -2931,6 +2940,7 @@ def admin_solicitudes_json():
 
             "banco": row.get("banco") or "",
             "clabe": row.get("clabe") or "",
+            "beneficiario": row.get("beneficiario") or "",
             "referencia": row.get("referencia") or "",
             "descripcion": row.get("descripcion") or "",
             "datos_deposito": row.get("datos_deposito") or "",
@@ -2951,6 +2961,7 @@ def admin_solicitudes_json():
         items.append(item)
 
         if (_empty(item["banco"]) or _empty(item["clabe"]) or item["referencia"] is None
+                or _empty(item["beneficiario"])
                 or _empty(item["descripcion"]) or _empty(item["datos_deposito"])
                 or item["anticipo"] is None or item["porcentaje_anticipo"] is None
                 or item["monto_anticipo"] is None or item["monto_restante"] is None
@@ -2963,7 +2974,7 @@ def admin_solicitudes_json():
             qmarks = ",".join("?" for _ in missing_ids)
             rows = conn.execute(
                 f"""
-                SELECT id, banco, clabe, referencia, descripcion, datos_deposito,
+                SELECT id, banco, clabe, beneficiario, referencia, descripcion, datos_deposito,
                        anticipo, porcentaje_anticipo, monto_anticipo, monto_restante, tipo_anticipo,
                        tiene_comision, porcentaje_comision, monto_sin_comision, monto_comision, monto
                 FROM solicitudes WHERE id IN ({qmarks})
@@ -2977,7 +2988,7 @@ def admin_solicitudes_json():
                 ex = extra.get(it["id"])
                 if not ex:
                     continue
-                for k in ("banco","clabe","referencia","descripcion","datos_deposito",
+                for k in ("banco","clabe","beneficiario","referencia","descripcion","datos_deposito",
                           "anticipo","porcentaje_anticipo","monto_anticipo","monto_restante","tipo_anticipo",
                           "tiene_comision","porcentaje_comision","monto_sin_comision","monto_comision","monto"):
                     if it.get(k) in (None, ""):
@@ -3527,6 +3538,7 @@ def editar_solicitud(solicitud_id):
         datos_deposito = request.form.get("datos_deposito")
         banco = request.form.get("banco")
         clabe = request.form.get("clabe")
+        beneficiario = request.form.get("beneficiario", "").strip()
         fecha_limite = request.form.get("fecha_limite")
         estado = request.form.get("estado")
         referencia = request.form.get("referencia", "")
@@ -3644,7 +3656,7 @@ def editar_solicitud(solicitud_id):
             UPDATE solicitudes SET
                 fp = ?, nombre = ?, destinatario = ?, correo = ?, departamento = ?,
                 tipo_solicitud = ?, tipo_pago = ?, descripcion = ?, datos_deposito = ?,
-                banco = ?, clabe = ?, referencia = ?, monto = ?, estado = ?, fecha_limite = ?,
+                banco = ?, clabe = ?, beneficiario = ?, referencia = ?, monto = ?, estado = ?, fecha_limite = ?,
                 archivo_adjunto = ?, archivo_factura = ?, archivo_recibo = ?, archivo_orden_compra = ?,
                 anticipo = ?, porcentaje_anticipo = ?, monto_restante = ?,
                 tiene_comision = ?, porcentaje_comision = ?, monto_comision = ?, monto_sin_comision = ?,
@@ -3652,7 +3664,7 @@ def editar_solicitud(solicitud_id):
             WHERE id = ?
         """, (
             fp, nombre, destinatario, correo, departamento, tipo_solicitud, tipo_pago,
-            descripcion, datos_deposito, banco, clabe, referencia, monto, estado, fecha_limite,
+            descripcion, datos_deposito, banco, clabe, beneficiario, referencia, monto, estado, fecha_limite,
             archivo_adjunto, archivo_factura, archivo_recibo, archivo_orden_compra,
             anticipo_val, porcentaje_anticipo, monto_restante,
             tiene_comision, porcentaje_comision, monto_comision, monto_sin_comision,
@@ -5887,8 +5899,12 @@ def proveedores_dashboard():
         )
         cursor = remote_conn.cursor(dictionary=True)
 
+        # Verificar si la columna 'notas' existe en Datos
+        cursor.execute("SHOW COLUMNS FROM AD17_Proveedores.Datos LIKE 'notas'")
+        has_notas = cursor.fetchone() is not None
+
         # Query base para obtener proveedores con sus datos más recientes
-        query = """
+        query = f"""
             SELECT
                 i.id AS id,
                 d.regID AS datos_regID,
@@ -5896,6 +5912,7 @@ def proveedores_dashboard():
                 d.rfc AS rfc,
                 d.direccion AS direccion,
                 d.referencia AS referencia,
+                {"d.notas" if has_notas else "''"} AS notas,
 
                 c.regID AS contacto_regID,
                 c.contacto AS contacto,
@@ -5927,8 +5944,11 @@ def proveedores_dashboard():
                 OR c.telefono LIKE %s
                 OR d.referencia LIKE %s
             """
+            if has_notas:
+                query += " OR d.notas LIKE %s"
+            
             busqueda_param = f"%{busqueda}%"
-            params = [busqueda_param] * 5
+            params = [busqueda_param] * (6 if has_notas else 5)
         else:
             params = []
 
@@ -5971,8 +5991,12 @@ def detalle_proveedor(proveedor_id):
         )
         cursor = remote_conn.cursor(dictionary=True)
 
+        # Verificar si la columna 'notas' existe en Datos
+        cursor.execute("SHOW COLUMNS FROM AD17_Proveedores.Datos LIKE 'notas'")
+        has_notas = cursor.fetchone() is not None
+
         # Obtener datos del proveedor
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT
                 i.id AS id,
                 d.regID AS datos_regID,
@@ -5980,6 +6004,7 @@ def detalle_proveedor(proveedor_id):
                 d.rfc AS rfc,
                 d.direccion AS direccion,
                 d.referencia AS referencia,
+                {"d.notas" if has_notas else "''"} AS notas,
 
                 c.regID AS contacto_regID,
                 c.contacto AS contacto,
@@ -6188,6 +6213,7 @@ def nuevo_proveedor():
         rfc = request.form.get("rfc", "").strip()
         direccion = request.form.get("direccion", "").strip()  # AQUÍ ESTABA EL ERROR - faltaban los paréntesis
         referencia = request.form.get("referencia", "").strip()
+        notas = request.form.get("notas", "").strip()
 
         contacto = request.form.get("contacto", "").strip()
         telefono = request.form.get("telefono", "").strip()
@@ -6275,6 +6301,8 @@ def nuevo_proveedor():
                 'direccion': (direccion or '')[:500],  # Limitar longitud
                 'referencia': (referencia or '')[:500]
             }
+            if 'notas' in all_fields:
+                datos_data['notas'] = (notas or '')[:500]
 
             # Agregar campos de auditoría
             for field, value in audit_mapping.items():
@@ -6379,15 +6407,20 @@ def editar_proveedor(proveedor_id):
         )
         cursor = remote_conn.cursor(dictionary=True)
 
+        # Verificar si la columna 'notas' existe en Datos
+        cursor.execute("SHOW COLUMNS FROM AD17_Proveedores.Datos LIKE 'notas'")
+        has_notas = cursor.fetchone() is not None
+
         if request.method == "GET":
             # Obtener datos actuales
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT
                     i.id AS id,
                     d.nombre AS nombre,
                     d.rfc AS rfc,
                     d.direccion AS direccion,
                     d.referencia AS referencia,
+                    {"d.notas" if has_notas else "''"} AS notas,
 
                     c.contacto AS contacto,
                     c.telefono AS telefono,
@@ -6424,6 +6457,7 @@ def editar_proveedor(proveedor_id):
             rfc = request.form.get("rfc", "").strip()
             direccion = request.form.get("direccion", "").strip()
             referencia = request.form.get("referencia", "").strip()
+            notas = request.form.get("notas", "").strip()
             contacto = request.form.get("contacto", "").strip()
             telefono = request.form.get("telefono", "").strip()
             email = request.form.get("email", "").strip()
@@ -6480,8 +6514,10 @@ def editar_proveedor(proveedor_id):
                     update_data = {
                         'rfc': rfc[:13] if rfc else '',
                         'direccion': direccion[:500] if direccion else '',
-                        'referencia': referencia[:64] if referencia else ''
+                        'referencia': referencia[:64] if referencia else '',
                     }
+                    if 'notas' in all_fields:
+                        update_data['notas'] = notas[:500] if notas else ''
                     for field, value in audit_mapping.items():
                         if field in all_fields:
                             update_data[field] = value
@@ -6509,8 +6545,10 @@ def editar_proveedor(proveedor_id):
                         'nombre': nombre[:255],
                         'rfc': rfc[:13] if rfc else '',
                         'direccion': direccion[:500] if direccion else '',
-                        'referencia': referencia[:64] if referencia else ''
+                        'referencia': referencia[:64] if referencia else '',
                     }
+                    if 'notas' in all_fields:
+                        datos_data['notas'] = notas[:500] if notas else ''
                     for field, value in audit_mapping.items():
                         if field in all_fields:
                             datos_data[field] = value
@@ -6533,8 +6571,10 @@ def editar_proveedor(proveedor_id):
                     'nombre': nombre[:255],
                     'rfc': rfc[:13] if rfc else '',
                     'direccion': direccion[:500] if direccion else '',
-                    'referencia': referencia[:64] if referencia else ''
+                    'referencia': referencia[:64] if referencia else '',
                 }
+                if 'notas' in all_fields:
+                    datos_data['notas'] = notas[:500] if notas else ''
                 for field, value in audit_mapping.items():
                     if field in all_fields:
                         datos_data[field] = value

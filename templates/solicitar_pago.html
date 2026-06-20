@@ -887,7 +887,7 @@
           <option value="">--Seleccione un proveedor--</option>
           {% for prov in proveedores %}
           <option value="{{ prov.nombre }}" data-banco="{{ prov.banco }}" data-clabe="{{ prov.clabe }}"
-            data-referencia="{{ prov.referencia }}">
+            data-referencia="{{ prov.referencia }}" data-beneficiario="{{ prov.beneficiario or '' }}">
             {{ prov.nombre }}
           </option>
           {% endfor %}
@@ -906,6 +906,10 @@
       <input type="hidden" name="destinatario" id="destinatario_hidden" value="">
 
       <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label for="beneficiario">Beneficiario de la Cuenta <span class="required">*</span></label>
+          <input type="text" name="beneficiario" id="beneficiario" required placeholder="Nombre del titular de la cuenta">
+        </div>
         <div class="form-group">
           <label for="banco">Banco (Cuenta destino) <span class="required">*</span></label>
           <input type="text" name="banco" id="banco" required placeholder="Ej: BBVA México">
@@ -1223,6 +1227,7 @@
     const hid = document.getElementById('destinatario_hidden');
     const bancoIn = document.getElementById('banco');
     const clabeIn = document.getElementById('clabe');
+    const beneficiarioIn = document.getElementById('beneficiario');
     const referenciaIn = document.getElementById('referencia');
 
     if (val === 'otro') {
@@ -1231,6 +1236,7 @@
       hid.value = '';
       bancoIn.value = '';
       clabeIn.value = '';
+      beneficiarioIn.value = '';
       referenciaIn.value = '';
 
       document.getElementById('destinatario_otro')
@@ -1244,6 +1250,7 @@
       const opt = sel.selectedOptions[0];
       bancoIn.value = opt.dataset.banco || '';
       clabeIn.value = opt.dataset.clabe || '';
+      beneficiarioIn.value = opt.dataset.beneficiario || '';
       referenciaIn.value = opt.dataset.referencia || '';
     }
   }

@@ -322,12 +322,26 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="referencia">Referencia / Notas internas</label>
-                    <textarea id="referencia"
-                              name="referencia"
-                              rows="2"
+                    <label for="referencia">Referencia del Proveedor</label>
+                    <div class="input-icon-wrapper">
+                        <input type="text"
+                               id="referencia"
+                               name="referencia"
+                               class="form-input-control"
+                               maxlength="64"
+                               value="{{ proveedor.referencia or '' }}"
+                               placeholder="Código de cliente, número de cuenta del proveedor, etc.">
+                        <i class="fas fa-hashtag"></i>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="notas">Notas internas</label>
+                    <textarea id="notas"
+                              name="notas"
+                              rows="3"
                               class="form-input-control textarea"
-                              placeholder="Comentarios adicionales, referencias de facturación o acuerdos comerciales...">{{ proveedor.referencia or '' }}</textarea>
+                              placeholder="Notas o comentarios internos sobre el proveedor...">{{ proveedor.notas or '' }}</textarea>
                 </div>
             </div>
 

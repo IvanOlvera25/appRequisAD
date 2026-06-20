@@ -781,9 +781,18 @@
 
                 {% if proveedor.referencia %}
                 <div class="profile-detail-row">
-                    <span class="profile-detail-label">Notas / Referencia</span>
+                    <span class="profile-detail-label">Referencia</span>
+                    <span class="profile-detail-value" style="align-items: flex-start; line-height: 1.4;">
+                        <i class="fas fa-hashtag" style="margin-top: 3px;"></i> {{ proveedor.referencia }}
+                    </span>
+                </div>
+                {% endif %}
+
+                {% if proveedor.notas %}
+                <div class="profile-detail-row">
+                    <span class="profile-detail-label">Notas Internas</span>
                     <span class="profile-detail-value" style="align-items: flex-start; line-height: 1.4; color: var(--color-text-muted);">
-                        <i class="fas fa-info-circle" style="margin-top: 3px;"></i> {{ proveedor.referencia }}
+                        <i class="fas fa-sticky-note" style="margin-top: 3px;"></i> {{ proveedor.notas }}
                     </span>
                 </div>
                 {% endif %}

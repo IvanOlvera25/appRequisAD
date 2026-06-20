@@ -926,6 +926,16 @@
                         </div>
                     </div>
                     {% endif %}
+
+                    {% if proveedor.notas %}
+                    <div class="card-info-item">
+                        <i class="fas fa-sticky-note"></i>
+                        <div>
+                            <span class="card-info-label">Notas:</span>
+                            <span class="card-info-val" title="{{ proveedor.notas }}">{{ proveedor.notas }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
 
                 <div class="card-footer-actions">
