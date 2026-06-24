@@ -8687,7 +8687,5 @@ def _start_alerts_once():
     except Exception as e:
         print(f"[alerts] error start once: {e}")
 
-
-
 if __name__ == "__main__":
-    app.run(debug=False, threaded=True)
+    app.run(debug=False, threaded=True, port=5005)
