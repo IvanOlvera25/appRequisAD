@@ -1247,11 +1247,11 @@
       oc.style.display = 'none';
       oc.classList.remove('active');
       hid.value = val;
-      const opt = sel.selectedOptions[0];
-      bancoIn.value = opt.dataset.banco || '';
-      clabeIn.value = opt.dataset.clabe || '';
-      beneficiarioIn.value = opt.dataset.beneficiario || '';
-      referenciaIn.value = opt.dataset.referencia || '';
+      const opt = sel.options[sel.selectedIndex];
+      bancoIn.value = (opt.dataset.banco && opt.dataset.banco !== 'None' && opt.dataset.banco !== 'null') ? opt.dataset.banco : '';
+      clabeIn.value = (opt.dataset.clabe && opt.dataset.clabe !== 'None' && opt.dataset.clabe !== 'null') ? opt.dataset.clabe : '';
+      beneficiarioIn.value = (opt.dataset.beneficiario && opt.dataset.beneficiario !== 'None' && opt.dataset.beneficiario !== 'null') ? opt.dataset.beneficiario : '';
+      referenciaIn.value = (opt.dataset.referencia && opt.dataset.referencia !== 'None' && opt.dataset.referencia !== 'null') ? opt.dataset.referencia : '';
     }
   }
 

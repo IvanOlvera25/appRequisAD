@@ -779,23 +779,19 @@
                     </span>
                 </div>
 
-                {% if proveedor.referencia %}
                 <div class="profile-detail-row">
                     <span class="profile-detail-label">Referencia</span>
                     <span class="profile-detail-value" style="align-items: flex-start; line-height: 1.4;">
-                        <i class="fas fa-hashtag" style="margin-top: 3px;"></i> {{ proveedor.referencia }}
+                        <i class="fas fa-hashtag" style="margin-top: 3px;"></i> {{ proveedor.referencia or 'Sin referencia registrada' }}
                     </span>
                 </div>
-                {% endif %}
 
-                {% if proveedor.notas %}
                 <div class="profile-detail-row">
                     <span class="profile-detail-label">Notas Internas</span>
                     <span class="profile-detail-value" style="align-items: flex-start; line-height: 1.4; color: var(--color-text-muted);">
-                        <i class="fas fa-sticky-note" style="margin-top: 3px;"></i> {{ proveedor.notas }}
+                        <i class="fas fa-sticky-note" style="margin-top: 3px;"></i> {{ proveedor.notas or 'Sin notas registradas' }}
                     </span>
                 </div>
-                {% endif %}
             </div>
         </div>
 

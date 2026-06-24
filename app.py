@@ -231,6 +231,30 @@ def verify_and_fix_remote_tables():
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                 """)
 
+        # Verificar y agregar columna 'notas' en AD17_Proveedores.Datos
+        try:
+            import mysql.connector
+            prov_conn = mysql.connector.connect(
+                host="ad17solutions.dscloud.me",
+                port=3307,
+                user="IvanUriel",
+                password="iuOp20!!25",
+                database="AD17_Proveedores",
+                charset='utf8mb4'
+            )
+            prov_cursor = prov_conn.cursor()
+            prov_cursor.execute("SHOW COLUMNS FROM Datos LIKE 'notas'")
+            has_notas_col = prov_cursor.fetchone() is not None
+            if not has_notas_col:
+                print("Agregando columna 'notas' a tabla Datos remota...")
+                prov_cursor.execute("ALTER TABLE Datos ADD COLUMN notas TEXT NULL")
+                prov_conn.commit()
+                print("Columna 'notas' agregada exitosamente a la tabla Datos.")
+            prov_cursor.close()
+            prov_conn.close()
+        except Exception as e_prov:
+            print(f"Nota: No se pudo agregar la columna 'notas' automáticamente en Datos (puede requerir ejecución manual): {e_prov}")
+
         connection.commit()
         print("Verificación y corrección de tablas completada exitosamente")
         return True
