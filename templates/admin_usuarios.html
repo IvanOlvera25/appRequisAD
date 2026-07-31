@@ -1,0 +1,182 @@
+{% extends "layout.html" %}
+{% block title %}Usuarios del Panel{% endblock %}
+
+{% block extra_css %}
+<style>
+  .usuarios-wrap { max-width: 1000px; margin: 0 auto; display: grid; gap: 1.25rem; }
+  .usuarios-card {
+    background: linear-gradient(180deg, #262626 0%, #212121 100%);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 10px 26px rgba(0,0,0,.35);
+  }
+  .usuarios-card h2 {
+    font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: .5rem;
+  }
+  .usuarios-card h2 i { color: var(--primary-color); }
+
+  /* Formulario crear */
+  .form-crear { display: flex; flex-wrap: wrap; gap: .75rem; align-items: flex-end; }
+  .form-crear .campo { display: flex; flex-direction: column; gap: .3rem; }
+  .form-crear label { font-size: .75rem; color: #9ca3af; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+  .form-crear input, .form-crear select {
+    background: var(--input-bg); color: var(--text-color);
+    border: 1px solid var(--border-color); border-radius: 8px;
+    padding: .5rem .7rem; font-size: .9rem; min-width: 200px; outline: none;
+  }
+  .form-crear input:focus, .form-crear select:focus { border-color: var(--primary-color); }
+  .btn-naranja {
+    background: var(--primary-color); color: #fff; border: none; border-radius: 8px;
+    padding: .55rem 1.1rem; font-weight: 700; cursor: pointer; font-size: .9rem;
+  }
+  .btn-naranja:hover { background: #e06d17; }
+
+  /* Tabla */
+  .tabla-usuarios { width: 100%; border-collapse: collapse; }
+  .tabla-usuarios th {
+    text-align: left; padding: .55rem .75rem; font-size: .75rem; color: #9ca3af;
+    text-transform: uppercase; letter-spacing: .04em;
+    border-bottom: 2px solid var(--border-color);
+    background: rgba(243,124,34,.06);
+  }
+  .tabla-usuarios td { padding: .55rem .75rem; border-top: 1px solid rgba(68,68,68,.5); font-size: .88rem; vertical-align: middle; }
+  .tabla-usuarios tr.inactivo td { opacity: .45; }
+
+  .badge-rol, .badge-estado {
+    display: inline-block; padding: .15rem .6rem; border-radius: 999px;
+    font-size: .72rem; font-weight: 700; letter-spacing: .02em;
+  }
+  .badge-rol.admin { background: rgba(243,124,34,.15); color: var(--primary-color); border: 1px solid rgba(243,124,34,.4); }
+  .badge-rol.coordinador { background: rgba(47,109,246,.15); color: #6d9bff; border: 1px solid rgba(47,109,246,.4); }
+  .badge-estado.on { background: rgba(40,167,69,.15); color: #4cd964; border: 1px solid rgba(40,167,69,.4); }
+  .badge-estado.off { background: rgba(220,53,69,.12); color: #ff7b86; border: 1px solid rgba(220,53,69,.35); }
+
+  /* Acciones por fila */
+  .acciones { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+  .acciones details { position: relative; }
+  .acciones summary {
+    list-style: none; cursor: pointer; user-select: none;
+    background: transparent; color: var(--text-color);
+    border: 1px solid var(--border-color); border-radius: 8px;
+    padding: .35rem .7rem; font-size: .8rem; font-weight: 600; display: inline-flex; align-items: center; gap: .35rem;
+  }
+  .acciones summary::-webkit-details-marker { display: none; }
+  .acciones summary:hover { border-color: var(--primary-color); color: var(--primary-color); }
+  .acciones details[open] summary { border-color: var(--primary-color); color: var(--primary-color); }
+  .form-pass {
+    position: absolute; right: 0; top: calc(100% + 6px); z-index: 20;
+    background: #262626; border: 1px solid var(--border-color); border-radius: 10px;
+    padding: .75rem; display: flex; gap: .5rem; box-shadow: 0 12px 28px rgba(0,0,0,.5);
+  }
+  .form-pass input {
+    background: var(--input-bg); color: var(--text-color);
+    border: 1px solid var(--border-color); border-radius: 8px;
+    padding: .45rem .6rem; font-size: .85rem; width: 180px; outline: none;
+  }
+  .form-pass input:focus { border-color: var(--primary-color); }
+  .btn-mini {
+    border: none; border-radius: 8px; padding: .45rem .8rem;
+    font-size: .8rem; font-weight: 700; cursor: pointer;
+  }
+  .btn-mini.guardar { background: var(--primary-color); color: #fff; }
+  .btn-mini.guardar:hover { background: #e06d17; }
+  .btn-toggle {
+    background: transparent; border: 1px solid var(--border-color); color: #9ca3af;
+    border-radius: 8px; padding: .35rem .7rem; font-size: .8rem; font-weight: 600; cursor: pointer;
+  }
+  .btn-toggle:hover { border-color: #ff7b86; color: #ff7b86; }
+  .btn-toggle.reactivar:hover { border-color: #4cd964; color: #4cd964; }
+
+  .hint { font-size: .78rem; color: #9ca3af; margin-top: .6rem; }
+
+  @media (max-width: 768px) {
+    .form-crear input, .form-crear select { min-width: 0; width: 100%; }
+    .form-crear .campo { width: 100%; }
+    .tabla-usuarios-scroll { overflow-x: auto; }
+    .form-pass { position: static; margin-top: .5rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="usuarios-wrap">
+
+  <div class="usuarios-card">
+    <h2><i class="fa-solid fa-user-plus"></i> Crear nuevo usuario</h2>
+    <form class="form-crear" method="POST" action="{{ url_for('admin_usuarios_crear') }}" autocomplete="off">
+      <div class="campo">
+        <label for="nuevo-username">Usuario</label>
+        <input id="nuevo-username" name="username" type="text" required placeholder="ej. jlopez" autocomplete="off">
+      </div>
+      <div class="campo">
+        <label for="nuevo-password">Contraseña</label>
+        <input id="nuevo-password" name="password" type="password" required minlength="4" placeholder="mínimo 4 caracteres" autocomplete="new-password">
+      </div>
+      <div class="campo">
+        <label for="nuevo-rol">Rol</label>
+        <select id="nuevo-rol" name="rol" required>
+          <option value="coordinador">Coordinador</option>
+          <option value="admin">Administrador</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-naranja"><i class="fa-solid fa-plus"></i> Crear usuario</button>
+    </form>
+    <p class="hint">El administrador tiene acceso completo (créditos, estadísticas, proveedores, usuarios). El coordinador solo ve el panel de solicitudes.</p>
+  </div>
+
+  <div class="usuarios-card">
+    <h2><i class="fa-solid fa-users-gear"></i> Usuarios del panel</h2>
+    <div class="tabla-usuarios-scroll">
+      <table class="tabla-usuarios">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th>Creado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in usuarios %}
+          <tr class="{{ 'inactivo' if not u.activo }}">
+            <td>
+              <strong>{{ u.username }}</strong>
+              {% if session.get('username') and session.get('username')|lower == u.username|lower %}
+                <span style="color:#9ca3af; font-size:.75rem;">(tú)</span>
+              {% endif %}
+            </td>
+            <td><span class="badge-rol {{ u.rol }}">{{ 'Administrador' if u.rol == 'admin' else 'Coordinador' }}</span></td>
+            <td><span class="badge-estado {{ 'on' if u.activo else 'off' }}">{{ 'Activo' if u.activo else 'Inactivo' }}</span></td>
+            <td style="color:#9ca3af; font-size:.8rem;">{{ (u.fecha_creacion or '')[:10] }}</td>
+            <td>
+              <div class="acciones">
+                <details>
+                  <summary><i class="fa-solid fa-key"></i> Contraseña</summary>
+                  <form class="form-pass" method="POST" action="{{ url_for('admin_usuarios_password', uid=u.id) }}" autocomplete="off">
+                    <input type="password" name="password" required minlength="4" placeholder="Nueva contraseña" autocomplete="new-password">
+                    <button type="submit" class="btn-mini guardar">Guardar</button>
+                  </form>
+                </details>
+                <form method="POST" action="{{ url_for('admin_usuarios_toggle', uid=u.id) }}"
+                      onsubmit="return confirm('¿Seguro que quieres {{ 'desactivar' if u.activo else 'reactivar' }} a {{ u.username }}?');">
+                  {% if u.activo %}
+                    <button type="submit" class="btn-toggle"><i class="fa-solid fa-user-slash"></i> Desactivar</button>
+                  {% else %}
+                    <button type="submit" class="btn-toggle reactivar"><i class="fa-solid fa-user-check"></i> Reactivar</button>
+                  {% endif %}
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="hint"><i class="fa-solid fa-circle-info"></i> Los usuarios desactivados no pueden iniciar sesión, pero conservan su historial. No puedes desactivarte a ti mismo ni al único administrador activo.</p>
+  </div>
+
+</div>
+{% endblock %}

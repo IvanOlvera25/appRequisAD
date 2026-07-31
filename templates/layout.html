@@ -30,21 +30,66 @@
       </div>
       <button class="menu-toggle" aria-label="Toggle Navigation">&#9776;</button>
       <div class="navbar-links">
-        <a href="{{ url_for('solicitar_pago') }}">Solicitar Pago</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'solicitar_pago' }}" href="{{ url_for('solicitar_pago') }}">
+          <i class="fa-solid fa-file-invoice-dollar"></i> Solicitar Pago
+        </a>
         {% if session.get('admin_logged_in') %}
-          <a href="{{ url_for('admin_dashboard') }}">Panel Admin</a>
+          <a class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard' }}" href="{{ url_for('admin_dashboard') }}">
+            <i class="fa-solid fa-table-columns"></i> Panel
+          </a>
+
           {% if session.get('role') == 'admin' %}
-            <a href="{{ url_for('creditos_dashboard') }}">Créditos</a>
-            <a href="{{ url_for('estadisticas') }}">Estadísticas</a>
-            <a href="{{ url_for('pagos_recurrentes') }}">Pagos recurrentes</a>
-            <a href="{{ url_for('comisiones.comisiones') }}">Comisiones</a>
-            <a href="{{ url_for('proveedores_dashboard') }}">Proveedores</a>
-            <a href="{{ url_for('calendario') }}">Calendario</a>
+            {% set fin_activo = request.endpoint in ('creditos_dashboard', 'pagos_recurrentes') or (request.endpoint or '').startswith('comisiones.') %}
+            <div class="nav-dropdown {{ 'child-active' if fin_activo }}">
+              <button type="button" class="nav-link nav-dropdown-toggle">
+                <i class="fa-solid fa-coins"></i> Finanzas <i class="fa-solid fa-chevron-down nav-caret"></i>
+              </button>
+              <div class="nav-dropdown-menu">
+                <a class="{{ 'active' if request.endpoint == 'creditos_dashboard' }}" href="{{ url_for('creditos_dashboard') }}"><i class="fa-solid fa-hand-holding-dollar"></i> Créditos</a>
+                <a class="{{ 'active' if request.endpoint == 'pagos_recurrentes' }}" href="{{ url_for('pagos_recurrentes') }}"><i class="fa-solid fa-rotate"></i> Pagos recurrentes</a>
+                <a class="{{ 'active' if (request.endpoint or '').startswith('comisiones.') }}" href="{{ url_for('comisiones.comisiones') }}"><i class="fa-solid fa-percent"></i> Comisiones</a>
+              </div>
+            </div>
+
+            {% set ana_activo = request.endpoint in ('estadisticas', 'calendario') %}
+            <div class="nav-dropdown {{ 'child-active' if ana_activo }}">
+              <button type="button" class="nav-link nav-dropdown-toggle">
+                <i class="fa-solid fa-chart-line"></i> Análisis <i class="fa-solid fa-chevron-down nav-caret"></i>
+              </button>
+              <div class="nav-dropdown-menu">
+                <a class="{{ 'active' if request.endpoint == 'estadisticas' }}" href="{{ url_for('estadisticas') }}"><i class="fa-solid fa-chart-pie"></i> Estadísticas</a>
+                <a class="{{ 'active' if request.endpoint == 'calendario' }}" href="{{ url_for('calendario') }}"><i class="fa-solid fa-calendar-days"></i> Calendario</a>
+                <a href="{{ url_for('exportar_solicitudes') }}"><i class="fa-solid fa-file-csv"></i> Exportar CSV</a>
+              </div>
+            </div>
+
+            {% set adm_activo = request.endpoint in ('proveedores_dashboard', 'admin_usuarios') %}
+            <div class="nav-dropdown {{ 'child-active' if adm_activo }}">
+              <button type="button" class="nav-link nav-dropdown-toggle">
+                <i class="fa-solid fa-gear"></i> Administración <i class="fa-solid fa-chevron-down nav-caret"></i>
+              </button>
+              <div class="nav-dropdown-menu">
+                <a class="{{ 'active' if request.endpoint == 'proveedores_dashboard' }}" href="{{ url_for('proveedores_dashboard') }}"><i class="fa-solid fa-truck-field"></i> Proveedores</a>
+                <a class="{{ 'active' if request.endpoint == 'admin_usuarios' }}" href="{{ url_for('admin_usuarios') }}"><i class="fa-solid fa-users-gear"></i> Usuarios</a>
+              </div>
+            </div>
+          {% else %}
+            <a class="nav-link" href="{{ url_for('exportar_solicitudes') }}"><i class="fa-solid fa-file-csv"></i> Exportar CSV</a>
           {% endif %}
-          <a href="{{ url_for('exportar_solicitudes') }}">Exportar CSV</a>
-          <a href="{{ url_for('admin_logout') }}">Salir</a>
+
+          <div class="nav-dropdown nav-user">
+            <button type="button" class="nav-link nav-dropdown-toggle">
+              <span class="nav-avatar"><i class="fa-solid fa-user"></i></span>
+              <span class="nav-username">{{ session.get('username') or 'Usuario' }}</span>
+              <i class="fa-solid fa-chevron-down nav-caret"></i>
+            </button>
+            <div class="nav-dropdown-menu nav-dropdown-menu-right">
+              <span class="nav-rol">{{ 'Administrador' if session.get('role') == 'admin' else 'Coordinador' }}</span>
+              <a class="nav-salir" href="{{ url_for('admin_logout') }}"><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</a>
+            </div>
+          </div>
         {% else %}
-          <a href="{{ url_for('admin_login') }}">Ingresar Admin</a>
+          <a class="nav-link" href="{{ url_for('admin_login') }}"><i class="fa-solid fa-right-to-bracket"></i> Ingresar</a>
         {% endif %}
       </div>
     </nav>
@@ -78,6 +123,23 @@
         navbarLinks.classList.toggle('active');
       });
     }
+
+    // Menús desplegables del navbar
+    var dropdowns = Array.prototype.slice.call(document.querySelectorAll('.nav-dropdown'));
+    dropdowns.forEach(function (dd) {
+      var toggle = dd.querySelector('.nav-dropdown-toggle');
+      if (!toggle) return;
+      toggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var estabaAbierto = dd.classList.contains('open');
+        dropdowns.forEach(function (d) { d.classList.remove('open'); });
+        if (!estabaAbierto) dd.classList.add('open');
+      });
+    });
+    // Cerrar al hacer clic fuera
+    document.addEventListener('click', function () {
+      dropdowns.forEach(function (d) { d.classList.remove('open'); });
+    });
   })();
   </script>
 

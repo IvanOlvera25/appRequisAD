@@ -11,6 +11,7 @@ import json
 import sqlite3
 import mimetypes
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -1124,9 +1125,55 @@ def init_db():
     conn.commit()
     conn.close()
 
+# === USUARIOS DEL PANEL (admin y coordinadores) ===
+def ensure_usuarios_table():
+    """
+    Crea la tabla usuarios y, si está vacía, migra los usuarios que antes
+    estaban hardcodeados en el código (con sus contraseñas ya hasheadas).
+    """
+    conn = get_db_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+            password_hash TEXT NOT NULL,
+            rol TEXT NOT NULL CHECK (rol IN ('admin','coordinador')),
+            activo INTEGER NOT NULL DEFAULT 1,
+            fecha_creacion TEXT NOT NULL,
+            creado_por TEXT
+        )
+    """)
+    total = conn.execute("SELECT COUNT(*) FROM usuarios").fetchone()[0]
+    if total == 0:
+        # Migración única: usuarios que existían hardcodeados antes del módulo de usuarios.
+        # Tras el primer arranque conviene rotar estas contraseñas desde /admin/usuarios.
+        semilla = [
+            ("dagarcia", "daGt20!!23", "admin"),
+            ("BrandonViNu", "Bvn2016!", "admin"),
+            ("Rubengarcia", "Dany1712", "admin"),
+            ("DiegoGarciaToledano", "daGt20!!25", "admin"),
+            ("Gadelarosa", "05360", "admin"),
+            ("mrivero", "B230163z", "admin"),
+            ("kcgandarilla@ad17solutions.com", "KaC051205", "admin"),
+            ("ddelarosa", "082291", "coordinador"),
+            ("gildardo", "gilad17", "coordinador"),
+            ("vmejia", "FOME1005", "coordinador"),
+            ("DafneDeLaRosa", "dDLRz20!!25", "coordinador"),
+        ]
+        ahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        for u, p, r in semilla:
+            conn.execute(
+                "INSERT INTO usuarios (username, password_hash, rol, activo, fecha_creacion, creado_por) VALUES (?, ?, ?, 1, ?, 'migracion')",
+                (u, generate_password_hash(p), r, ahora)
+            )
+        print(f"[usuarios] Migrados {len(semilla)} usuarios a la tabla usuarios")
+    conn.commit()
+    conn.close()
+
 # Inicializa la base de datos y ejecuta migraciones
 init_db()
 migrate_db()
+ensure_usuarios_table()
 
 
 def ensure_recurring_tables():
@@ -2650,32 +2697,22 @@ def admin_login():
     if session.get("admin_logged_in"):
         return redirect(url_for("admin_dashboard"))
     if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
+        username = (request.form.get("username") or "").strip()
+        password = request.form.get("password") or ""
         remember = request.form.get("remember_me")
         session.permanent = True if remember else False
-        if ((username == ADMIN_USER and password == ADMIN_PASS) or
-            (username == "BrandonViNu" and password == "Bvn2016!") or
-            (username == "Rubengarcia" and password == "Dany1712") or
-            (username == "DiegoGarciaToledano" and password == "daGt20!!25") or
-            (username == "Gadelarosa" and password == "05360") or
-            (username == "mrivero" and password == "B230163z") or
-            (username == "kcgandarilla@ad17solutions.com" and password == "KaC051205")):
+        conn = get_db_connection()
+        user = conn.execute(
+            "SELECT * FROM usuarios WHERE username = ? COLLATE NOCASE AND activo = 1",
+            (username,)
+        ).fetchone()
+        conn.close()
+        if user and check_password_hash(user["password_hash"], password):
             session["admin_logged_in"] = True
-            session["role"] = "admin"
-            flash("Has iniciado sesión correctamente (Administrador).", "success")
-            return redirect(url_for("admin_dashboard"))
-        coordinators = {
-
-            "ddelarosa": "082291",
-            "gildardo": "gilad17",
-            "vmejia": "FOME1005",
-            "DafneDeLaRosa": "dDLRz20!!25"
-        }
-        if username in coordinators and password == coordinators[username]:
-            session["admin_logged_in"] = True
-            session["role"] = "coordinador"
-            flash("Has iniciado sesión correctamente (Coordinador).", "success")
+            session["role"] = user["rol"]
+            session["username"] = user["username"]
+            rol_txt = "Administrador" if user["rol"] == "admin" else "Coordinador"
+            flash(f"Has iniciado sesión correctamente ({rol_txt}).", "success")
             return redirect(url_for("admin_dashboard"))
         flash("Credenciales incorrectas.", "error")
         return render_template("admin_login.html")
@@ -2685,8 +2722,127 @@ def admin_login():
 def admin_logout():
     session.pop("admin_logged_in", None)
     session.pop("role", None)
+    session.pop("username", None)
     flash("Has cerrado sesión.", "success")
     return redirect(url_for("admin_login"))
+
+
+# === GESTIÓN DE USUARIOS DEL PANEL (solo rol admin) ===
+def _solo_admin():
+    """Devuelve un redirect si el visitante no es admin; None si puede pasar."""
+    if not session.get("admin_logged_in"):
+        return redirect(url_for("admin_login"))
+    if session.get("role") != "admin":
+        flash("No tienes permiso para gestionar usuarios.", "error")
+        return redirect(url_for("admin_dashboard"))
+    return None
+
+
+@app.route("/admin/usuarios")
+def admin_usuarios():
+    guard = _solo_admin()
+    if guard:
+        return guard
+    conn = get_db_connection()
+    usuarios = conn.execute(
+        "SELECT id, username, rol, activo, fecha_creacion, creado_por "
+        "FROM usuarios ORDER BY rol, username COLLATE NOCASE"
+    ).fetchall()
+    conn.close()
+    return render_template("admin_usuarios.html", usuarios=usuarios)
+
+
+@app.route("/admin/usuarios/crear", methods=["POST"])
+def admin_usuarios_crear():
+    guard = _solo_admin()
+    if guard:
+        return guard
+    username = (request.form.get("username") or "").strip()
+    password = request.form.get("password") or ""
+    rol = (request.form.get("rol") or "").strip()
+    if not username:
+        flash("✗ El nombre de usuario es obligatorio.", "error")
+        return redirect(url_for("admin_usuarios"))
+    if len(password) < 4:
+        flash("✗ La contraseña debe tener al menos 4 caracteres.", "error")
+        return redirect(url_for("admin_usuarios"))
+    if rol not in ("admin", "coordinador"):
+        flash("✗ Rol inválido.", "error")
+        return redirect(url_for("admin_usuarios"))
+    conn = get_db_connection()
+    try:
+        conn.execute(
+            "INSERT INTO usuarios (username, password_hash, rol, activo, fecha_creacion, creado_por) VALUES (?, ?, ?, 1, ?, ?)",
+            (username, generate_password_hash(password), rol,
+             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+             session.get("username") or "admin")
+        )
+        conn.commit()
+        flash(f"✓ Usuario '{username}' creado como {rol}.", "success")
+    except sqlite3.IntegrityError:
+        flash(f"✗ El usuario '{username}' ya existe.", "error")
+    finally:
+        conn.close()
+    return redirect(url_for("admin_usuarios"))
+
+
+@app.route("/admin/usuarios/<int:uid>/password", methods=["POST"])
+def admin_usuarios_password(uid):
+    guard = _solo_admin()
+    if guard:
+        return guard
+    password = request.form.get("password") or ""
+    if len(password) < 4:
+        flash("✗ La contraseña debe tener al menos 4 caracteres.", "error")
+        return redirect(url_for("admin_usuarios"))
+    conn = get_db_connection()
+    user = conn.execute("SELECT username FROM usuarios WHERE id = ?", (uid,)).fetchone()
+    if not user:
+        conn.close()
+        flash("✗ Usuario no encontrado.", "error")
+        return redirect(url_for("admin_usuarios"))
+    conn.execute(
+        "UPDATE usuarios SET password_hash = ? WHERE id = ?",
+        (generate_password_hash(password), uid)
+    )
+    conn.commit()
+    conn.close()
+    flash(f"✓ Contraseña de '{user['username']}' actualizada.", "success")
+    return redirect(url_for("admin_usuarios"))
+
+
+@app.route("/admin/usuarios/<int:uid>/toggle", methods=["POST"])
+def admin_usuarios_toggle(uid):
+    guard = _solo_admin()
+    if guard:
+        return guard
+    conn = get_db_connection()
+    user = conn.execute("SELECT username, rol, activo FROM usuarios WHERE id = ?", (uid,)).fetchone()
+    if not user:
+        conn.close()
+        flash("✗ Usuario no encontrado.", "error")
+        return redirect(url_for("admin_usuarios"))
+    # No puedes desactivarte a ti mismo
+    if user["activo"] and (session.get("username") or "").lower() == user["username"].lower():
+        conn.close()
+        flash("✗ No puedes desactivar tu propio usuario.", "error")
+        return redirect(url_for("admin_usuarios"))
+    # No dejar el sistema sin administradores activos
+    if user["activo"] and user["rol"] == "admin":
+        admins_activos = conn.execute(
+            "SELECT COUNT(*) FROM usuarios WHERE rol = 'admin' AND activo = 1"
+        ).fetchone()[0]
+        if admins_activos <= 1:
+            conn.close()
+            flash("✗ No puedes desactivar al único administrador activo.", "error")
+            return redirect(url_for("admin_usuarios"))
+    nuevo = 0 if user["activo"] else 1
+    conn.execute("UPDATE usuarios SET activo = ? WHERE id = ?", (nuevo, uid))
+    conn.commit()
+    conn.close()
+    accion = "reactivado" if nuevo else "desactivado"
+    flash(f"✓ Usuario '{user['username']}' {accion}.", "success")
+    return redirect(url_for("admin_usuarios"))
 
 @app.route("/actualizar_flujo", methods=["POST"])
 def actualizar_flujo():
