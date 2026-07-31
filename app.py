@@ -43,7 +43,10 @@ def get_remote_db_connection():
             password="iuOp20!!25",
             database="AD17_Costos",  # Cambiado de "AD17_Costos.Pagos" a "AD17_Costos"
             charset='utf8mb4',
-            cursorclass=pymysql.cursors.DictCursor
+            cursorclass=pymysql.cursors.DictCursor,
+            connect_timeout=10,
+            read_timeout=120,
+            write_timeout=120
         )
         return connection
     except Exception as e:
@@ -236,6 +239,7 @@ def verify_and_fix_remote_tables():
             import mysql.connector
             prov_conn = mysql.connector.connect(
                 host="ad17solutions.dscloud.me",
+                connection_timeout=30,
                 port=3307,
                 user="IvanUriel",
                 password="iuOp20!!25",
@@ -2292,6 +2296,7 @@ def solicitar_pago():
     try:
         remote_conn = mysql.connector.connect(
             host="ad17solutions.dscloud.me",
+            connection_timeout=30,
             port=3307,
             user="IvanUriel",
             password="iuOp20!!25",
@@ -2313,6 +2318,7 @@ def solicitar_pago():
     try:
         remote_conn = mysql.connector.connect(
             host="ad17solutions.dscloud.me",
+            connection_timeout=30,
             port=3307,
             user="IvanUriel",
             password="iuOp20!!25",
@@ -3527,6 +3533,7 @@ def editar_solicitud(solicitud_id):
     try:
         remote_conn = mysql.connector.connect(
             host="ad17solutions.dscloud.me",
+            connection_timeout=30,
             port=3307,
             user="IvanUriel",
             password="iuOp20!!25",
@@ -5813,10 +5820,11 @@ def validar_datos_pago(datos):
 
     return errores
 
-try:
-    start_scheduler()
-except Exception as e:
-    print(f"Error iniciando programador: {e}")
+# NOTA: start_scheduler() ya NO se llama al importar el módulo.
+# En PythonAnywhere el import debe ser instantáneo (el Emperor mata la app si tarda)
+# y APScheduler no funciona ahí (uWSGI sin --enable-threads).
+# La sincronización y recordatorios corren vía tareas.py (pestaña Tasks de PythonAnywhere).
+# En desarrollo local, _init_once lo inicia en la primera petición.
 
 # AGREGAR ESTAS RUTAS A TU app.py DESPUÉS DE LAS RUTAS DE CRÉDITOS
 
@@ -5915,6 +5923,7 @@ def proveedores_dashboard():
         # Conectar a la base de datos remota de proveedores
         remote_conn = mysql.connector.connect(
             host="ad17solutions.dscloud.me",
+            connection_timeout=30,
             port=3307,
             user="IvanUriel",
             password="iuOp20!!25",
@@ -6007,6 +6016,7 @@ def detalle_proveedor(proveedor_id):
     try:
         remote_conn = mysql.connector.connect(
             host="ad17solutions.dscloud.me",
+            connection_timeout=30,
             port=3307,
             user="IvanUriel",
             password="iuOp20!!25",
@@ -6107,6 +6117,7 @@ def check_id_field_size():
     try:
         remote_conn = mysql.connector.connect(
             host="ad17solutions.dscloud.me",
+            connection_timeout=30,
             port=3307,
             user="IvanUriel",
             password="iuOp20!!25",
@@ -6255,6 +6266,7 @@ def nuevo_proveedor():
         try:
             remote_conn = mysql.connector.connect(
                 host="ad17solutions.dscloud.me",
+                connection_timeout=30,
                 port=3307,
                 user="IvanUriel",
                 password="iuOp20!!25",
@@ -6423,6 +6435,7 @@ def editar_proveedor(proveedor_id):
     try:
         remote_conn = mysql.connector.connect(
             host="ad17solutions.dscloud.me",
+            connection_timeout=30,
             port=3307,
             user="IvanUriel",
             password="iuOp20!!25",
@@ -6682,6 +6695,7 @@ def agregar_metodo_pago(proveedor_id):
     try:
         remote_conn = mysql.connector.connect(
             host="ad17solutions.dscloud.me",
+            connection_timeout=30,
             port=3307,
             user="IvanUriel",
             password="iuOp20!!25",
@@ -6755,6 +6769,7 @@ def verify_and_add_audit_columns():
     try:
         remote_conn = mysql.connector.connect(
             host="ad17solutions.dscloud.me",
+            connection_timeout=30,
             port=3307,
             user="IvanUriel",
             password="iuOp20!!25",
@@ -6801,12 +6816,9 @@ def verify_and_add_audit_columns():
         print(f"Error al verificar/agregar columnas de auditoría: {e}")
         return False
 
-# Llamar esta función al iniciar la aplicación
-# Agrega esto después de start_scheduler() al final de tu archivo
-try:
-    verify_and_add_audit_columns()
-except Exception as e:
-    print(f"Error verificando columnas de auditoría: {e}")
+# NOTA: verify_and_add_audit_columns() ya NO se llama al importar el módulo.
+# Se conectaba al MySQL remoto en cada arranque (y el ALTER siempre falla por permisos),
+# lo que colgaba el import en PythonAnywhere. Ejecútala manualmente si haces cambios de esquema.
 
 
 @app.route("/proveedores/editar_metodo_pago/<int:metodo_regID>", methods=["POST"])
@@ -6831,6 +6843,7 @@ def editar_metodo_pago(metodo_regID):
     try:
         remote_conn = mysql.connector.connect(
             host="ad17solutions.dscloud.me",
+            connection_timeout=30,
             port=3307,
             user="IvanUriel",
             password="iuOp20!!25",
@@ -6908,6 +6921,7 @@ def eliminar_metodo_pago(metodo_regID):
     try:
         remote_conn = mysql.connector.connect(
             host="ad17solutions.dscloud.me",
+            connection_timeout=30,
             port=3307,
             user="IvanUriel",
             password="iuOp20!!25",
@@ -6946,6 +6960,7 @@ def eliminar_proveedor(proveedor_id):
     try:
         remote_conn = mysql.connector.connect(
             host="ad17solutions.dscloud.me",
+            connection_timeout=30,
             port=3307,
             user="IvanUriel",
             password="iuOp20!!25",
@@ -6982,6 +6997,7 @@ def verify_and_add_audit_columns():
     try:
         remote_conn = mysql.connector.connect(
             host="ad17solutions.dscloud.me",
+            connection_timeout=30,
             port=3307,
             user="IvanUriel",
             password="iuOp20!!25",
@@ -7028,12 +7044,9 @@ def verify_and_add_audit_columns():
         print(f"Error al verificar/agregar columnas de auditoría: {e}")
         return False
 
-# Llamar esta función al iniciar la aplicación
-# Agrega esto después de start_scheduler() al final de tu archivo
-try:
-    verify_and_add_audit_columns()
-except Exception as e:
-    print(f"Error verificando columnas de auditoría: {e}")
+# NOTA: verify_and_add_audit_columns() ya NO se llama al importar el módulo.
+# Se conectaba al MySQL remoto en cada arranque (y el ALTER siempre falla por permisos),
+# lo que colgaba el import en PythonAnywhere. Ejecútala manualmente si haces cambios de esquema.
 
 
 @app.route("/proveedores/check_structure")
@@ -7050,6 +7063,7 @@ def check_table_structure():
     try:
         remote_conn = mysql.connector.connect(
             host="ad17solutions.dscloud.me",
+            connection_timeout=30,
             port=3307,
             user="IvanUriel",
             password="iuOp20!!25",
@@ -7132,6 +7146,7 @@ def test_proveedores_connection():
         # Probar conexión
         remote_conn = mysql.connector.connect(
             host="ad17solutions.dscloud.me",
+            connection_timeout=30,
             port=3307,
             user="IvanUriel",
             password="iuOp20!!25",
@@ -8683,6 +8698,9 @@ def start_alerts_scheduler():
     """
     if getattr(app, "_alerts_scheduler_started", False):
         return
+    # En PythonAnywhere (uWSGI sin threads) esto siempre falla: no reintentar en cada petición
+    if getattr(app, "_alerts_scheduler_failed", False):
+        return
     try:
         scheduler = BackgroundScheduler()
         # Revisa cada 2 minutos
@@ -8698,6 +8716,7 @@ def start_alerts_scheduler():
         print("[alerts] Scheduler de alertas iniciado (cada 2 min)")
         atexit.register(lambda: scheduler.shutdown())
     except Exception as e:
+        app._alerts_scheduler_failed = True
         print(f"[alerts] No se pudo iniciar scheduler: {e}")
 
 
