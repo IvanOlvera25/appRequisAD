@@ -2321,6 +2321,139 @@ def send_liquidado_anticipo_email(solicitud, attachment_file=None):
 def index():
     return redirect(url_for("admin_dashboard"))
 
+# === CACHÉ DE DATOS DEL NAS (conceptos indirectos y proveedores) ===
+# El formulario de solicitudes no debe depender del NAS en tiempo real: si el NAS
+# está lento o fuera de línea, se sirve la última copia buena (memoria o SQLite).
+CACHE_REMOTO_TTL = 600        # segundos que una copia se considera fresca (10 min)
+CACHE_REMOTO_REINTENTO = 60   # no reintentar contra el NAS más de 1 vez por minuto
+_cache_remoto = {}            # clave -> {"data": ..., "ts": epoch}
+_cache_remoto_intento = {}    # clave -> epoch del último intento de refresco
+
+
+def _conn_nas_rapida(db):
+    """Conexión pymysql al NAS con timeouts cortos, pensada para páginas interactivas."""
+    return pymysql.connect(
+        host="ad17solutions.dscloud.me", port=3307,
+        user="IvanUriel", password="iuOp20!!25",
+        database=db, charset="utf8mb4",
+        connect_timeout=5, read_timeout=25, write_timeout=25,
+        cursorclass=pymysql.cursors.DictCursor
+    )
+
+
+def _cache_sqlite_get(clave):
+    try:
+        conn = get_db_connection()
+        conn.execute("CREATE TABLE IF NOT EXISTS cache_remoto (clave TEXT PRIMARY KEY, json TEXT NOT NULL, ts REAL NOT NULL)")
+        row = conn.execute("SELECT json, ts FROM cache_remoto WHERE clave = ?", (clave,)).fetchone()
+        conn.close()
+        if row:
+            return json.loads(row["json"]), row["ts"]
+    except Exception as e:
+        print(f"[cache] Error leyendo '{clave}' de SQLite: {e}")
+    return None, 0
+
+
+def _cache_sqlite_put(clave, data, ts):
+    try:
+        conn = get_db_connection()
+        conn.execute("CREATE TABLE IF NOT EXISTS cache_remoto (clave TEXT PRIMARY KEY, json TEXT NOT NULL, ts REAL NOT NULL)")
+        conn.execute("INSERT OR REPLACE INTO cache_remoto (clave, json, ts) VALUES (?, ?, ?)",
+                     (clave, json.dumps(data, default=str), ts))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"[cache] Error guardando '{clave}' en SQLite: {e}")
+
+
+def _datos_remotos_cached(clave, fetch_fn):
+    """
+    Devuelve datos del NAS con caché tolerante a fallas:
+    - copia fresca (< CACHE_REMOTO_TTL): se sirve sin tocar el NAS
+    - copia vieja: se intenta refrescar (máx. 1 intento/minuto); si el NAS
+      falla, se sirve la copia vieja — datos viejos son mejor que formulario vacío
+    """
+    ahora = time.time()
+    ent = _cache_remoto.get(clave)
+    if ent is None:
+        data, ts = _cache_sqlite_get(clave)
+        if data is not None:
+            ent = _cache_remoto[clave] = {"data": data, "ts": ts}
+    if ent and (ahora - ent["ts"] < CACHE_REMOTO_TTL):
+        return ent["data"]
+    if ahora - _cache_remoto_intento.get(clave, 0) < CACHE_REMOTO_REINTENTO:
+        return ent["data"] if ent else []
+    _cache_remoto_intento[clave] = ahora
+    try:
+        data = fetch_fn()
+        _cache_remoto[clave] = {"data": data, "ts": ahora}
+        _cache_sqlite_put(clave, data, ahora)
+        return data
+    except Exception as e:
+        print(f"[cache] NAS no disponible para '{clave}': {e}")
+        return ent["data"] if ent else []
+
+
+def _fetch_conceptos_indirectos():
+    c = _conn_nas_rapida("AD17_Costos")
+    try:
+        with c.cursor() as cur:
+            cur.execute("""SELECT regID as id, concepto
+                           FROM AD17_Costos.Conceptos_Indirectos
+                           WHERE habilitado = 1
+                           ORDER BY concepto ASC""")
+            return cur.fetchall()
+    finally:
+        c.close()
+
+
+def _fetch_proveedores_nas():
+    c = _conn_nas_rapida("AD17_Proveedores")
+    try:
+        with c.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    i.id AS id,
+                    d.nombre AS nombre,
+                    d.rfc AS rfc,
+                    d.direccion AS direccion,
+                    d.referencia AS referencia,
+                    c.regID AS contID,
+                    c.contacto AS contacto,
+                    c.telefono AS telefono,
+                    c.email AS email,
+                    p.regID AS metID,
+                    m.forma AS metodo,
+                    p.banco AS banco,
+                    p.beneficiario AS beneficiario,
+                    p.clabe AS clabe
+                FROM AD17_Proveedores.ID AS i
+                LEFT JOIN (
+                    SELECT * FROM AD17_Proveedores.Datos
+                    WHERE regID IN (
+                        SELECT max(regID) FROM AD17_Proveedores.Datos GROUP BY provID
+                    )
+                ) AS d ON d.provID LIKE i.id
+                LEFT JOIN (
+                    SELECT * FROM AD17_Proveedores.Contactos
+                    WHERE regID IN (
+                        SELECT max(regID) FROM AD17_Proveedores.Contactos GROUP BY provID
+                    )
+                ) AS c ON c.provID LIKE i.id
+                LEFT JOIN (
+                    SELECT * FROM AD17_Proveedores.MetodosDePago
+                    WHERE regID IN (
+                        SELECT max(regID) FROM AD17_Proveedores.MetodosDePago GROUP BY provID
+                    )
+                ) AS p ON p.provID LIKE i.id
+                LEFT JOIN AD17_Proveedores.Metodos AS m on m.regID LIKE p.metodo
+                ORDER BY d.nombre ASC;
+            """)
+            return cur.fetchall()
+    finally:
+        c.close()
+
+
 @app.route("/solicitar_pago", methods=["GET", "POST"])
 def solicitar_pago():
     import re
@@ -2339,85 +2472,11 @@ def solicitar_pago():
             return 0.0
 
     employees = read_employees()
-    conceptos_indirectos = []
-    try:
-        remote_conn = mysql.connector.connect(
-            host="ad17solutions.dscloud.me",
-            connection_timeout=30,
-            port=3307,
-            user="IvanUriel",
-            password="iuOp20!!25",
-            database="AD17_Costos",
-            charset='utf8mb4'
-        )
-        cursor = remote_conn.cursor(dictionary=True)
-        cursor.execute("""SELECT regID as id, concepto
-                          FROM AD17_Costos.Conceptos_Indirectos
-                          WHERE habilitado = 1
-                          ORDER BY concepto ASC""")
-        conceptos_indirectos = cursor.fetchall()
-        cursor.close()
-        remote_conn.close()
-    except Exception as e:
-        print("Error al obtener conceptos indirectos:", e)
-        conceptos_indirectos = []
-
-    try:
-        remote_conn = mysql.connector.connect(
-            host="ad17solutions.dscloud.me",
-            connection_timeout=30,
-            port=3307,
-            user="IvanUriel",
-            password="iuOp20!!25",
-            database="AD17_Proveedores",
-            charset='utf8mb4'
-        )
-        cursor = remote_conn.cursor(dictionary=True)
-        query = """
-            SELECT
-                i.id AS id,
-                d.nombre AS nombre,
-                d.rfc AS rfc,
-                d.direccion AS direccion,
-                d.referencia AS referencia,
-                c.regID AS contID,
-                c.contacto AS contacto,
-                c.telefono AS telefono,
-                c.email AS email,
-                p.regID AS metID,
-                m.forma AS metodo,
-                p.banco AS banco,
-                p.beneficiario AS beneficiario,
-                p.clabe AS clabe
-            FROM AD17_Proveedores.ID AS i
-            LEFT JOIN (
-                SELECT * FROM AD17_Proveedores.Datos
-                WHERE regID IN (
-                    SELECT max(regID) FROM AD17_Proveedores.Datos GROUP BY provID
-                )
-            ) AS d ON d.provID LIKE i.id
-            LEFT JOIN (
-                SELECT * FROM AD17_Proveedores.Contactos
-                WHERE regID IN (
-                    SELECT max(regID) FROM AD17_Proveedores.Contactos GROUP BY provID
-                )
-            ) AS c ON c.provID LIKE i.id
-            LEFT JOIN (
-                SELECT * FROM AD17_Proveedores.MetodosDePago
-                WHERE regID IN (
-                    SELECT max(regID) FROM AD17_Proveedores.MetodosDePago GROUP BY provID
-                )
-            ) AS p ON p.provID LIKE i.id
-            LEFT JOIN AD17_Proveedores.Metodos AS m on m.regID LIKE p.metodo
-            ORDER BY d.nombre ASC;
-        """
-        cursor.execute(query)
-        proveedores = cursor.fetchall()
-        cursor.close()
-        remote_conn.close()
-    except Exception as e:
-        print("Error al obtener proveedores:", e)
-        proveedores = []
+    # Datos del NAS servidos desde caché tolerante a fallas (ver _datos_remotos_cached):
+    # si el NAS está lento o caído, se usa la última copia buena en lugar de
+    # esperar 30s por consulta y dejar el formulario vacío.
+    conceptos_indirectos = _datos_remotos_cached("conceptos_indirectos", _fetch_conceptos_indirectos)
+    proveedores = _datos_remotos_cached("proveedores", _fetch_proveedores_nas)
 
     if request.method == "POST":
         # -------- campos base --------
