@@ -10,6 +10,8 @@ Uso:
     python tareas.py recordatorios  Recordatorios de pagos recurrentes
     python tareas.py alertas        Alertas de cambios de estado a creadores
     python tareas.py todo           Todas las anteriores (default si no pasas argumento)
+    python tareas.py limpiar        Reporta filas duplicadas viejas en Pagos remoto (no borra)
+    python tareas.py limpiar --confirmar   Las borra (correr después de un sync)
 
 Configuración sugerida en la pestaña Tasks de PythonAnywhere:
     Hourly  -> /home/IvanOlvera25/appRequis/venv/bin/python /home/IvanOlvera25/appRequis/tareas.py todo
@@ -30,7 +32,13 @@ def main():
         sync_all_data,
         check_recurring_payment_reminders,
         monitor_state_changes_and_notify,
+        limpiar_pagos_remotos_huerfanos,
     )
+
+    if modo == "limpiar":
+        limpiar_pagos_remotos_huerfanos(confirmar="--confirmar" in sys.argv)
+        print(f"[tareas] Fin {datetime.now()}")
+        return
 
     if modo in ("sync", "todo"):
         try:

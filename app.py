@@ -102,7 +102,9 @@ def verify_and_fix_remote_tables():
                     'fecha_liquidado': "DATETIME DEFAULT NULL",
                     'fecha_ultimo_cambio': "DATETIME DEFAULT NULL",
                     'historial_estados': "TEXT DEFAULT '[]'",
-                    'categoria_administrativa': "VARCHAR(255) NOT NULL DEFAULT ''"
+                    'categoria_administrativa': "VARCHAR(255) NOT NULL DEFAULT ''",
+                    # id de la solicitud en SQLite: llave real de sincronización (fp NO es único)
+                    'solicitud_id': "INT DEFAULT NULL"
                 }
 
                 # Agregar columnas faltantes
@@ -126,6 +128,11 @@ def verify_and_fix_remote_tables():
                     if index_name not in existing_indexes:
                         print(f"Creando índice: {index_name}")
                         cursor.execute(f"CREATE INDEX {index_name} ON Pagos ({column})")
+
+                # Índice único sobre solicitud_id (permite múltiples NULL de filas viejas)
+                if 'uq_solicitud_id' not in existing_indexes:
+                    print("Creando índice único: uq_solicitud_id")
+                    cursor.execute("CREATE UNIQUE INDEX uq_solicitud_id ON Pagos (solicitud_id)")
 
                 # Ampliar columna clabe si es VARCHAR(20)
                 try:
@@ -165,6 +172,9 @@ def verify_and_fix_remote_tables():
                         porcentaje_anticipo DECIMAL(5,2) NOT NULL DEFAULT 0.0,
                         monto_restante DECIMAL(15,2) NOT NULL DEFAULT 0.0,
                         fecha_sincronizacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        categoria_administrativa VARCHAR(255) NOT NULL DEFAULT '',
+                        solicitud_id INT DEFAULT NULL,
+                        UNIQUE INDEX uq_solicitud_id (solicitud_id),
                         INDEX idx_fp (fp),
                         INDEX idx_fecha (fecha),
                         INDEX idx_estado (estado),
@@ -315,10 +325,39 @@ def sync_solicitudes_to_remote():
         print(f"Solicitudes a sincronizar: {len(local_solicitudes)}")
 
         with remote_conn.cursor() as cursor:
-            # Obtener FPs existentes en la base remota
-            cursor.execute("SELECT fp FROM Pagos")
-            fps_existentes = {row['fp'] for row in cursor.fetchall()}
-            print(f"FPs existentes en remoto: {len(fps_existentes)}")
+            # La llave de sincronización es solicitudes.id -> Pagos.solicitud_id.
+            # Antes se usaba fp, pero fp lo captura el usuario y se repite (FP0000, 0000, ...):
+            # cada corrida insertaba duplicados y el UPDATE ... WHERE fp pisaba todas las
+            # filas con el mismo fp con los datos de la última solicitud.
+
+            # Vincular filas viejas (sin solicitud_id) solo cuando el fp es único en ambos
+            # lados, así conservan su regID. Las filas con fp repetido quedan huérfanas
+            # (ver limpiar_pagos_remotos_huerfanos).
+            fp_local_count = {}
+            fp_local_id = {}
+            for s in local_solicitudes:
+                fp_local_count[s['fp']] = fp_local_count.get(s['fp'], 0) + 1
+                fp_local_id[s['fp']] = s['id']
+
+            cursor.execute("""
+                SELECT fp, COUNT(*) AS total, SUM(solicitud_id IS NULL) AS sin_id
+                FROM Pagos GROUP BY fp
+            """)
+            vinculados = 0
+            for row in cursor.fetchall():
+                fp = row['fp']
+                if row['total'] == 1 and row['sin_id'] == 1 and fp_local_count.get(fp) == 1:
+                    cursor.execute(
+                        "UPDATE Pagos SET solicitud_id = %s WHERE fp = %s AND solicitud_id IS NULL",
+                        (fp_local_id[fp], fp)
+                    )
+                    vinculados += 1
+            if vinculados:
+                print(f"Filas remotas vinculadas a su solicitud por fp único: {vinculados}")
+
+            cursor.execute("SELECT solicitud_id FROM Pagos WHERE solicitud_id IS NOT NULL")
+            ids_existentes = {row['solicitud_id'] for row in cursor.fetchall()}
+            print(f"Solicitudes ya presentes en remoto: {len(ids_existentes)}")
 
             # Insertar o actualizar registros
             nuevos = 0
@@ -329,25 +368,25 @@ def sync_solicitudes_to_remote():
                 try:
                     data = dict(solicitud)
 
-                    if data['fp'] in fps_existentes:
+                    if data['id'] in ids_existentes:
                         # Actualizar registro existente
                         cursor.execute("""
                             UPDATE Pagos SET
-                                nombre = %s, destinatario = %s, correo = %s, departamento = %s,
+                                fp = %s, nombre = %s, destinatario = %s, correo = %s, departamento = %s,
                                 tipo_solicitud = %s, tipo_pago = %s, descripcion = %s,
                                 datos_deposito = %s, banco = %s, clabe = %s, beneficiario = %s, monto = %s,
                                 estado = %s, fecha = %s, fecha_limite = %s,
                                 archivo_adjunto = %s, anticipo = %s, porcentaje_anticipo = %s,
                                 monto_restante = %s, categoria_administrativa = %s, fecha_sincronizacion = NOW()
-                            WHERE fp = %s
+                            WHERE solicitud_id = %s
                         """, (
-                            data['nombre'], data.get('destinatario', ''), data['correo'], data['departamento'],
+                            data['fp'], data['nombre'], data.get('destinatario', ''), data['correo'], data['departamento'],
                             data['tipo_solicitud'], data['tipo_pago'], data['descripcion'],
                             data['datos_deposito'], data['banco'], data['clabe'], data.get('beneficiario', ''), data['monto'],
                             data['estado'], data['fecha'], data['fecha_limite'],
                             data.get('archivo_adjunto', ''), data.get('anticipo', 'No'),
                             data.get('porcentaje_anticipo', 0.0), data.get('monto_restante', 0.0),
-                            data.get('categoria_administrativa', ''), data['fp']
+                            data.get('categoria_administrativa', ''), data['id']
                         ))
                         actualizados += 1
                     else:
@@ -357,8 +396,9 @@ def sync_solicitudes_to_remote():
                                 fp, nombre, destinatario, correo, departamento, tipo_solicitud,
                                 tipo_pago, descripcion, datos_deposito, banco, clabe, beneficiario, monto,
                                 estado, fecha, fecha_limite, archivo_adjunto, anticipo,
-                                porcentaje_anticipo, monto_restante, categoria_administrativa, fecha_sincronizacion
-                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                                porcentaje_anticipo, monto_restante, categoria_administrativa, solicitud_id,
+                                fecha_sincronizacion
+                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                         """, (
                             data['fp'], data['nombre'], data.get('destinatario', ''), data['correo'],
                             data['departamento'], data['tipo_solicitud'], data['tipo_pago'],
@@ -366,12 +406,13 @@ def sync_solicitudes_to_remote():
                             data['clabe'], data.get('beneficiario', ''), data['monto'], data['estado'], data['fecha'],
                             data['fecha_limite'], data.get('archivo_adjunto', ''), data.get('anticipo', 'No'),
                             data.get('porcentaje_anticipo', 0.0), data.get('monto_restante', 0.0),
-                            data.get('categoria_administrativa', '')
+                            data.get('categoria_administrativa', ''), data['id']
                         ))
+                        ids_existentes.add(data['id'])
                         nuevos += 1
 
                 except Exception as e:
-                    print(f"Error procesando solicitud FP {data.get('fp', 'unknown')}: {e}")
+                    print(f"Error procesando solicitud id={data.get('id')} FP {data.get('fp', 'unknown')}: {e}")
                     errores += 1
                     continue
 
@@ -389,6 +430,45 @@ def sync_solicitudes_to_remote():
     finally:
         local_conn.close()
         remote_conn.close()
+
+
+def limpiar_pagos_remotos_huerfanos(confirmar=False):
+    """
+    Borra de Pagos (remoto) las filas sin solicitud_id: son las copias duplicadas/pisadas
+    que generó la sincronización vieja por fp. Ejecutar DESPUÉS de una sincronización
+    nueva (que ya vinculó o reinsertó cada solicitud con su solicitud_id).
+    Sin confirmar=True solo reporta cuántas filas se borrarían.
+    """
+    remote_conn = get_remote_db_connection()
+    if not remote_conn:
+        print("Error: No se pudo conectar a la base de datos remota")
+        return False
+    try:
+        with remote_conn.cursor() as cursor:
+            cursor.execute("SELECT COUNT(*) AS n FROM Pagos WHERE solicitud_id IS NULL")
+            huerfanas = cursor.fetchone()['n']
+            cursor.execute("""
+                SELECT fp, COUNT(*) AS n FROM Pagos WHERE solicitud_id IS NULL
+                GROUP BY fp ORDER BY n DESC LIMIT 10
+            """)
+            print(f"Filas huérfanas (sin solicitud_id): {huerfanas}")
+            for row in cursor.fetchall():
+                print(f"  fp={row['fp']!r}: {row['n']}")
+            if not confirmar:
+                print("Modo prueba: no se borró nada. Usa confirmar=True para borrar.")
+                return True
+            cursor.execute("DELETE FROM Pagos WHERE solicitud_id IS NULL")
+            print(f"Filas borradas: {cursor.rowcount}")
+        remote_conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error limpiando filas huérfanas: {e}")
+        remote_conn.rollback()
+        return False
+    finally:
+        remote_conn.close()
+
+
 def sync_creditos_to_remote():
     """
     Sincroniza créditos, pagos de créditos e historial de montos a la base remota
