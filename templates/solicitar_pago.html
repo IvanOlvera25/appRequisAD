@@ -1563,9 +1563,58 @@
       }
     }
 
+    // Avisar si ya existe una solicitud casi igual (captura repetida)
+    if (!duplicadosRevisados) {
+      revisarDuplicados();
+      return false;
+    }
+
     // Mostrar loading overlay y deshabilitar botón para prevenir duplicados
     showLoadingOverlay();
     return true;
+  }
+
+  // ========== AVISO DE POSIBLES DUPLICADOS ==========
+  var duplicadosRevisados = false;
+
+  function reenviarFormulario() {
+    duplicadosRevisados = true;
+    const form = document.getElementById('solicitar_pago_form');
+    if (form.requestSubmit) {
+      form.requestSubmit();
+    } else if (prepareDestinatario()) {
+      form.submit();
+    }
+  }
+
+  function revisarDuplicados() {
+    const sel = document.getElementById('selected_nombre').value;
+    const nombre = sel === 'otro' ? document.getElementById('nombre_otro').value : sel;
+    const params = new URLSearchParams({
+      nombre: (nombre || '').trim(),
+      destinatario: document.getElementById('destinatario_hidden').value.trim(),
+      monto: document.getElementById('monto').value
+    });
+    fetch('{{ url_for("posibles_duplicados") }}?' + params.toString())
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .catch(function () { return []; })  // si falla la consulta no se bloquea el envío
+      .then(function (similares) {
+        if (similares.length) {
+          const fmt = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+          const lista = similares.map(function (s) {
+            return '• ' + (s.fecha || '').slice(0, 10) + ' — FP ' + s.fp + ' — ' + fmt.format(s.monto) +
+                   ' — ' + (s.tipo_pago || '') + ' (' + s.estado + ')';
+          }).join('\n');
+          const ok = confirm(
+            '⚠️ Ya existe una solicitud muy parecida (mismo solicitante, destinatario y monto):\n\n' +
+            lista +
+            '\n\nSi quieres corregir esa solicitud, usa "Editar" en lugar de capturarla de nuevo.' +
+            '\n\n¿Enviar de todos modos?'
+          );
+          if (!ok) return;
+        }
+        reenviarFormulario();
+      });
   }
 
   // ========== LOADING OVERLAY FUNCTIONS ==========

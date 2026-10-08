@@ -2705,6 +2705,13 @@ def solicitar_pago():
 
             descripcion += "\nDetalle de Viáticos: " + json.dumps(detalle_personas, ensure_ascii=False)
 
+        # -------- quién la captura --------
+        # El formulario es público: si hay sesión se guarda el usuario; siempre se
+        # guarda la IP de origen para poder rastrear capturas repetidas.
+        creado_por = _normalize_username(session.get("username")) if session.get("admin_logged_in") else ""
+        ip_origen = request.headers.get("X-Real-IP") or (request.headers.getlist("X-Forwarded-For") or [request.remote_addr])[0] or ""
+        ip_origen = ip_origen.split(",")[0].strip()
+
         # -------- INSERT --------
         conn = get_db_connection()
         conn.execute("""
@@ -2714,15 +2721,15 @@ def solicitar_pago():
              archivo_factura, archivo_recibo, archivo_orden_compra,
              anticipo, porcentaje_anticipo, monto_restante, es_programada, tiene_comision,
              porcentaje_comision, monto_comision, monto_sin_comision, tipo_anticipo, monto_anticipo,
-             categoria_administrativa)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             categoria_administrativa, creado_por, ip_origen)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             fp, nombre, destinatario, correo, departamento, tipo_solicitud, tipo_pago, descripcion,
             datos_deposito, banco, clabe, beneficiario, referencia, monto, estado, fecha, fecha_limite, archivo_adjunto,
             archivo_factura, archivo_recibo, archivo_orden_compra,
             anticipo_val, porcentaje_anticipo, monto_restante, es_programada_val, tiene_comision,
             porcentaje_comision, monto_comision, monto_sin_comision, tipo_anticipo, monto_anticipo,
-            categoria_administrativa
+            categoria_administrativa, creado_por, ip_origen
         ))
         conn.commit()
         conn.close()
@@ -2770,6 +2777,42 @@ def solicitar_pago():
                            employees=employees,
                            proveedores=proveedores,
                            conceptos_indirectos=conceptos_indirectos)
+
+@app.route("/solicitudes/posibles_duplicados")
+def posibles_duplicados():
+    """
+    Solicitudes recientes (90 días) del mismo solicitante y destinatario con un
+    monto casi igual (±$1). El formulario la consulta antes de enviar para avisar
+    de capturas repetidas. Devuelve sólo datos mínimos (el formulario es público).
+    """
+    import re
+    nombre = (request.args.get("nombre") or "").strip()
+    destinatario = (request.args.get("destinatario") or "").strip()
+    try:
+        monto = float(re.sub(r"[^\d.\-]", "", request.args.get("monto") or ""))
+    except ValueError:
+        monto = 0.0
+    if not nombre or not destinatario or monto <= 0:
+        return jsonify([])
+
+    desde = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
+    conn = get_db_connection()
+    try:
+        rows = conn.execute("""
+            SELECT fp, fecha, monto, tipo_pago, estado
+              FROM solicitudes
+             WHERE LOWER(TRIM(nombre)) = LOWER(?)
+               AND LOWER(TRIM(destinatario)) = LOWER(?)
+               AND fecha >= ?
+               AND estado <> 'Declinada'
+               AND (ABS(monto - ?) <= 1 OR ABS(monto_sin_comision - ?) <= 1)
+             ORDER BY fecha DESC
+             LIMIT 5
+        """, (nombre, destinatario, desde, monto, monto)).fetchall()
+    finally:
+        conn.close()
+    return jsonify([dict(r) for r in rows])
+
 
 # === ENDPOINTS PARA SINCRONIZACIÓN MANUAL ===
 @app.route("/admin/sync_now")
@@ -8519,6 +8562,8 @@ def ensure_alerts_columns():
             alter_statements.append("ALTER TABLE solicitudes ADD COLUMN ultimo_estado_alertado TEXT")
         if "alertar_creador" not in cols:
             alter_statements.append("ALTER TABLE solicitudes ADD COLUMN alertar_creador INTEGER NOT NULL DEFAULT 1")
+        if "ip_origen" not in cols:
+            alter_statements.append("ALTER TABLE solicitudes ADD COLUMN ip_origen TEXT NOT NULL DEFAULT ''")
         for stmt in alter_statements:
             conn.execute(stmt)
         if alter_statements:
@@ -8577,32 +8622,9 @@ def _post_hooks(resp):
                     # Guardamos el username real de quien inició sesión
                     session["username"] = _normalize_username(g._posted_username)
 
-        # 2) Estampar 'creado_por' cuando un admin/coordinador envía /solicitar_pago
-        if request.path == "/solicitar_pago" and request.method == "POST":
-            # Sólo si hay admin/coordinador logueado
-            if session.get("admin_logged_in") and session.get("role") in ("admin", "coordinador"):
-                creador = _normalize_username(session.get("username") or session.get("role"))
-                # Intentamos identificar el FP posteado para marcar correctamente
-                fp_form = (request.form.get("fp") or "").strip()
-                conn = get_db_connection()
-                try:
-                    if fp_form:
-                        # Marca por FP
-                        conn.execute("""
-                            UPDATE solicitudes
-                               SET creado_por = CASE WHEN creado_por IS NULL OR creado_por = '' THEN ? ELSE creado_por END
-                             WHERE fp = ?
-                        """, (creador, fp_form))
-                    else:
-                        # Caso de respaldo: marca el registro más reciente del creador/correo actual por fecha
-                        conn.execute("""
-                            UPDATE solicitudes
-                               SET creado_por = CASE WHEN creado_por IS NULL OR creado_por = '' THEN ? ELSE creado_por END
-                             WHERE id = (SELECT id FROM solicitudes ORDER BY id DESC LIMIT 1)
-                        """, (creador,))
-                    conn.commit()
-                finally:
-                    conn.close()
+        # 2) 'creado_por' ya se guarda en el INSERT de /solicitar_pago. Antes se
+        #    estampaba aquí con UPDATE ... WHERE fp = ?, que marcaba todas las
+        #    solicitudes con el mismo fp (FP0000 se repite cientos de veces).
     except Exception as e:
         print(f"[alerts after_request] {e}")
     return resp

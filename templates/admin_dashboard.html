@@ -342,6 +342,9 @@
                     <p><strong>Correo(s):</strong> {{ solicitud.correo }}</p>
                     <p><strong>Departamento:</strong> {{ solicitud.departamento }}</p>
                     <p><strong>Fecha de Solicitud:</strong> {{ solicitud.fecha }}</p>
+                    {% if solicitud.creado_por or solicitud.ip_origen %}
+                      <p><strong>Capturada por:</strong> {{ solicitud.creado_por or 'Formulario público' }}{% if solicitud.ip_origen %} <span style="color:#9ca3af">(IP {{ solicitud.ip_origen }})</span>{% endif %}</p>
+                    {% endif %}
                     {% if solicitud.fecha_limite %}
                       <p><strong>Fecha Límite:</strong> {{ solicitud.fecha_limite }}</p>
                     {% endif %}
