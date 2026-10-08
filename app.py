@@ -32,9 +32,11 @@ from comisiones import comisiones_bp
 
 
 # === CONFIGURACIÓN DE BASE DE DATOS REMOTA ===
-def get_remote_db_connection():
+def get_remote_db_connection(timeout=120):
     """
-    Conecta a la base de datos MySQL remota
+    Conecta a la base de datos MySQL remota.
+    timeout = segundos de espera por consulta; los procesos por lotes (sync,
+    ALTER TABLE, limpieza) usan uno largo porque Pagos puede ser muy grande.
     """
     try:
         connection = pymysql.connect(
@@ -46,25 +48,55 @@ def get_remote_db_connection():
             charset='utf8mb4',
             cursorclass=pymysql.cursors.DictCursor,
             connect_timeout=10,
-            read_timeout=120,
-            write_timeout=120
+            read_timeout=timeout,
+            write_timeout=timeout
         )
         return connection
     except Exception as e:
         print(f"Error conectando a base de datos remota: {e}")
         return None
 
+# Espera por consulta para sync/ALTER/limpieza (segundos)
+REMOTE_BATCH_TIMEOUT = 1800
+
+
+def _ddl_remoto(cursor, sql, descripcion):
+    """
+    Ejecuta un ALTER/CREATE INDEX tolerando que ya se haya aplicado (p. ej. un
+    ALTER anterior que siguió corriendo en el servidor tras perder la conexión).
+    Si la tabla está bloqueada por otra sesión, falla en 60 s con un mensaje claro
+    en lugar de quedarse esperando.
+    """
+    import pymysql.err
+    try:
+        cursor.execute(sql)
+    except pymysql.err.MySQLError as e:
+        code = e.args[0] if e.args else None
+        if code in (1060, 1061):  # columna / índice duplicado: ya estaba aplicado
+            print(f"{descripcion}: ya existía, se omite")
+            return
+        if code == 1205:
+            raise RuntimeError(
+                f"{descripcion}: la tabla Pagos está bloqueada por otra sesión "
+                "(¿DBeaver u otra consulta abierta?). Ciérrala y vuelve a correr el sync."
+            ) from e
+        raise
+
+
 def verify_and_fix_remote_tables():
     """
     Verifica y corrige la estructura de las tablas remotas
     """
-    connection = get_remote_db_connection()
+    connection = get_remote_db_connection(timeout=REMOTE_BATCH_TIMEOUT)
     if not connection:
         print("No se pudo conectar a la base de datos remota")
         return False
 
     try:
         with connection.cursor() as cursor:
+            # No esperar indefinidamente un bloqueo de metadatos de otra sesión
+            cursor.execute("SET SESSION lock_wait_timeout = 60")
+
             # Verificar si la tabla Pagos existe y su estructura
             cursor.execute("SHOW TABLES LIKE 'Pagos'")
             table_exists = cursor.fetchone()
@@ -111,7 +143,8 @@ def verify_and_fix_remote_tables():
                 for column, definition in required_columns.items():
                     if column not in columns:
                         print(f"Agregando columna faltante: {column}")
-                        cursor.execute(f"ALTER TABLE Pagos ADD COLUMN {column} {definition}")
+                        _ddl_remoto(cursor, f"ALTER TABLE Pagos ADD COLUMN {column} {definition}",
+                                    f"Columna {column}")
 
                 # Verificar si necesitamos agregar índices
                 cursor.execute("SHOW INDEX FROM Pagos")
@@ -132,7 +165,8 @@ def verify_and_fix_remote_tables():
                 # Índice único sobre solicitud_id (permite múltiples NULL de filas viejas)
                 if 'uq_solicitud_id' not in existing_indexes:
                     print("Creando índice único: uq_solicitud_id")
-                    cursor.execute("CREATE UNIQUE INDEX uq_solicitud_id ON Pagos (solicitud_id)")
+                    _ddl_remoto(cursor, "CREATE UNIQUE INDEX uq_solicitud_id ON Pagos (solicitud_id)",
+                                "Índice uq_solicitud_id")
 
                 # Ampliar columna clabe si es VARCHAR(20)
                 try:
@@ -297,7 +331,7 @@ def sync_solicitudes_to_remote():
 
     # Conectar a bases de datos
     local_conn = get_db_connection()
-    remote_conn = get_remote_db_connection()
+    remote_conn = get_remote_db_connection(timeout=REMOTE_BATCH_TIMEOUT)
 
     if not remote_conn:
         print("Error: No se pudo conectar a la base de datos remota")
@@ -439,7 +473,7 @@ def limpiar_pagos_remotos_huerfanos(confirmar=False):
     nueva (que ya vinculó o reinsertó cada solicitud con su solicitud_id).
     Sin confirmar=True solo reporta cuántas filas se borrarían.
     """
-    remote_conn = get_remote_db_connection()
+    remote_conn = get_remote_db_connection(timeout=REMOTE_BATCH_TIMEOUT)
     if not remote_conn:
         print("Error: No se pudo conectar a la base de datos remota")
         return False
@@ -457,9 +491,15 @@ def limpiar_pagos_remotos_huerfanos(confirmar=False):
             if not confirmar:
                 print("Modo prueba: no se borró nada. Usa confirmar=True para borrar.")
                 return True
-            cursor.execute("DELETE FROM Pagos WHERE solicitud_id IS NULL")
-            print(f"Filas borradas: {cursor.rowcount}")
-        remote_conn.commit()
+            borradas = 0
+            while True:
+                cursor.execute("DELETE FROM Pagos WHERE solicitud_id IS NULL LIMIT 5000")
+                remote_conn.commit()
+                if cursor.rowcount == 0:
+                    break
+                borradas += cursor.rowcount
+                print(f"  ... {borradas} borradas")
+            print(f"Filas borradas: {borradas}")
         return True
     except Exception as e:
         print(f"Error limpiando filas huérfanas: {e}")
@@ -476,7 +516,7 @@ def sync_creditos_to_remote():
     print("Iniciando sincronización de créditos...")
 
     local_conn = get_db_connection()
-    remote_conn = get_remote_db_connection()
+    remote_conn = get_remote_db_connection(timeout=REMOTE_BATCH_TIMEOUT)
 
     if not remote_conn:
         print("Error: No se pudo conectar a la base de datos remota")
