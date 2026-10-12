@@ -179,6 +179,25 @@ def verify_and_fix_remote_tables():
                 except Exception as e:
                     print(f"Error verificando/ampliando columna clabe: {e}")
 
+                # fp admite varios folios ("10052/10123/...") y fecha_limite puede ir
+                # vacía cuando la capturada es imposible (ej. 42025-04-15)
+                try:
+                    cursor.execute("""
+                        SELECT COLUMN_NAME, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE
+                          FROM INFORMATION_SCHEMA.COLUMNS
+                         WHERE TABLE_NAME='Pagos' AND TABLE_SCHEMA=DATABASE()
+                           AND COLUMN_NAME IN ('fp', 'fecha_limite')
+                    """)
+                    info = {r['COLUMN_NAME']: r for r in cursor.fetchall()}
+                    if info.get('fp') and (info['fp']['CHARACTER_MAXIMUM_LENGTH'] or 0) < 255:
+                        print("Ampliando columna fp a VARCHAR(255)...")
+                        _ddl_remoto(cursor, "ALTER TABLE Pagos MODIFY COLUMN fp VARCHAR(255) NOT NULL", "Columna fp")
+                    if info.get('fecha_limite') and info['fecha_limite']['IS_NULLABLE'] == 'NO':
+                        print("Permitiendo NULL en fecha_limite...")
+                        _ddl_remoto(cursor, "ALTER TABLE Pagos MODIFY COLUMN fecha_limite DATE NULL", "Columna fecha_limite")
+                except Exception as e:
+                    print(f"Error ajustando columnas fp/fecha_limite: {e}")
+
             else:
                 # La tabla no existe, crearla completamente
                 print("Creando tabla Pagos desde cero...")
@@ -323,6 +342,23 @@ def init_remote_tables():
     """
     return verify_and_fix_remote_tables()
 
+def _fecha_limite_valida(data):
+    """
+    fecha_limite tal cual si es una fecha real (YYYY-MM-DD, año 1900-2100);
+    None si la captura es imposible (ej. '42025-04-15'), para no perder la fila.
+    """
+    valor = (data.get('fecha_limite') or '').strip()
+    try:
+        fecha = datetime.strptime(valor[:10], "%Y-%m-%d")
+        if 1900 <= fecha.year <= 2100 and len(valor.split()[0]) == 10:
+            return valor
+    except ValueError:
+        pass
+    if valor:
+        print(f"Aviso: solicitud id={data.get('id')} tiene fecha_limite inválida '{valor}'; se sube vacía")
+    return None
+
+
 def sync_solicitudes_to_remote():
     """
     Sincroniza todas las solicitudes de SQLite a MySQL
@@ -401,6 +437,7 @@ def sync_solicitudes_to_remote():
             for solicitud in local_solicitudes:
                 try:
                     data = dict(solicitud)
+                    data['fecha_limite'] = _fecha_limite_valida(data)
 
                     if data['id'] in ids_existentes:
                         # Actualizar registro existente
