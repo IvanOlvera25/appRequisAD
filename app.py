@@ -838,14 +838,11 @@ def _build_filters(estado_filtro: str, busqueda: str, criterio: str):
     where_sql = ("WHERE " + " AND ".join(where)) if where else ""
     return where_sql, params
 
-def query_solicitudes_paginated(page=1, page_size=PAGE_SIZE_DEFAULT, estado_filtro="", busqueda="", criterio="todos"):
+def _panel_where(estado_filtro="", busqueda="", criterio="todos"):
     """
-    Consulta paginada de solicitudes con filtros, búsqueda y contadores por estado.
-    Incluye soporte para los 3 nuevos tipos de archivos.
+    WHERE de los filtros del panel admin (estado + búsqueda por criterio).
+    Lo usan el panel y la exportación a Excel para que traigan lo mismo.
     """
-    conn = get_db_connection()
-
-    # --- Condiciones WHERE ---
     where_clauses = []
     params = []
 
@@ -884,6 +881,16 @@ def query_solicitudes_paginated(page=1, page_size=PAGE_SIZE_DEFAULT, estado_filt
     where_sql = ""
     if where_clauses:
         where_sql = "WHERE " + " AND ".join(where_clauses)
+    return where_sql, params
+
+
+def query_solicitudes_paginated(page=1, page_size=PAGE_SIZE_DEFAULT, estado_filtro="", busqueda="", criterio="todos"):
+    """
+    Consulta paginada de solicitudes con filtros, búsqueda y contadores por estado.
+    Incluye soporte para los 3 nuevos tipos de archivos.
+    """
+    conn = get_db_connection()
+    where_sql, params = _panel_where(estado_filtro, busqueda, criterio)
 
     # --- Contadores por estado ---
     counts_query = f"""
@@ -3604,26 +3611,121 @@ def eliminar_solicitud(solicitud_id):
 
 @app.route("/exportar_solicitudes")
 def exportar_solicitudes():
+    """
+    Exporta a Excel TODAS las solicitudes que coinciden con los filtros del panel
+    (estado, búsqueda y criterio), sin paginación ni límite de fechas. Sin
+    filtros exporta todo. Ej.: criterio_busqueda=destinatario&busqueda=ACME.
+    """
     if not session.get("admin_logged_in"):
         return redirect(url_for("admin_login"))
+
+    estado_filtro = (request.args.get("estado") or "").strip()
+    busqueda = (request.args.get("busqueda") or "").strip()
+    criterio = (request.args.get("criterio_busqueda") or "todos").strip().lower()
+    where_sql, params = _panel_where(estado_filtro, busqueda, criterio)
+
     conn = get_db_connection()
-    solicitudes_db = conn.execute("SELECT * FROM solicitudes").fetchall()
+    rows = conn.execute(f"SELECT * FROM solicitudes {where_sql} ORDER BY fecha DESC", params).fetchall()
     conn.close()
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["FP", "Nombre", "Destinatario", "Correo", "Departamento", "Tipo Solicitud", "Tipo Pago", "Descripción",
-                     "Datos de Depósito", "Banco", "CLABE", "Monto", "Anticipo", "Porcentaje Anticipo", "Monto Restante", "Estado", "Fecha", "Fecha Límite"])
-    for sol in solicitudes_db:
-        writer.writerow([
-            sol["fp"], sol["nombre"], sol["destinatario"], sol["correo"], sol["departamento"], sol["tipo_solicitud"],
-            sol["tipo_pago"], sol["descripcion"], sol["datos_deposito"], sol["banco"], sol["clabe"],
-            sol["monto"], sol["anticipo"], sol["porcentaje_anticipo"], sol["monto_restante"], sol["estado"], sol["fecha"], sol["fecha_limite"]
-        ])
+
+    # (encabezado, columna, tipo) — tipo: t=texto, m=moneda, n=número, f=fecha
+    columnas = [
+        ("FP", "fp", "t"), ("Fecha solicitud", "fecha", "f"), ("Solicitante", "nombre", "t"),
+        ("Departamento", "departamento", "t"), ("Destinatario", "destinatario", "t"),
+        ("Beneficiario", "beneficiario", "t"), ("Tipo solicitud", "tipo_solicitud", "t"),
+        ("Categoría", "categoria_administrativa", "t"), ("Tipo pago", "tipo_pago", "t"),
+        ("Descripción", "descripcion", "t"), ("Banco", "banco", "t"), ("CLABE", "clabe", "t"),
+        ("Referencia", "referencia", "t"), ("Monto", "monto", "m"),
+        ("Monto sin comisión", "monto_sin_comision", "m"), ("Comisión", "monto_comision", "m"),
+        ("Anticipo", "anticipo", "t"), ("% anticipo", "porcentaje_anticipo", "n"),
+        ("Monto anticipo", "monto_anticipo", "m"), ("Monto restante", "monto_restante", "m"),
+        ("Estado", "estado", "t"), ("Fecha límite", "fecha_limite", "f"),
+        ("Fecha aprobado", "fecha_aprobado", "f"), ("Fecha liquidado", "fecha_liquidado", "f"),
+        ("Correo", "correo", "t"),
+    ]
+
+    def _fecha(valor):
+        valor = (valor or "").strip() if isinstance(valor, str) else valor
+        if not valor:
+            return None
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(str(valor)[:19], fmt)
+            except ValueError:
+                continue
+        return None
+
+    import re
+    import xlsxwriter
+    output = io.BytesIO()
+    wb = xlsxwriter.Workbook(output, {"in_memory": True})
+    ws = wb.add_worksheet("Solicitudes")
+    f_titulo = wb.add_format({"bold": True, "font_size": 13})
+    f_sub = wb.add_format({"italic": True, "font_color": "#555555"})
+    f_head = wb.add_format({"bold": True, "bg_color": "#1F3864", "font_color": "#FFFFFF", "border": 1, "text_wrap": True, "valign": "vcenter"})
+    f_money = wb.add_format({"num_format": "$#,##0.00"})
+    f_num = wb.add_format({"num_format": "0.00"})
+    f_date = wb.add_format({"num_format": "yyyy-mm-dd"})
+    f_total_lbl = wb.add_format({"bold": True, "top": 1})
+    f_total = wb.add_format({"bold": True, "top": 1, "num_format": "$#,##0.00"})
+
+    filtros = []
+    if busqueda:
+        filtros.append(f"{criterio.capitalize() if criterio != 'todos' else 'Búsqueda'}: {busqueda}")
+    filtros.append(f"Estado: {estado_filtro or 'Todos'}")
+    ws.write_string(0, 0, "Concentrado de solicitudes de pago", f_titulo)
+    ws.write_string(1, 0, f"{' · '.join(filtros)} · {len(rows)} registros · generado {datetime.now():%Y-%m-%d %H:%M}", f_sub)
+
+    fila_head = 3
+    for c, (titulo, _, _) in enumerate(columnas):
+        ws.write_string(fila_head, c, titulo, f_head)
+
+    for r, row in enumerate(rows, start=fila_head + 1):
+        data = dict(row)
+        for c, (_, campo, tipo) in enumerate(columnas):
+            valor = data.get(campo)
+            if tipo in ("m", "n"):
+                try:
+                    ws.write_number(r, c, float(valor or 0), f_money if tipo == "m" else f_num)
+                except (TypeError, ValueError):
+                    ws.write_string(r, c, str(valor))
+            elif tipo == "f":
+                dt = _fecha(valor)
+                if dt:
+                    ws.write_datetime(r, c, dt, f_date)
+                elif valor:
+                    ws.write_string(r, c, str(valor))  # fecha mal capturada: se deja tal cual
+            elif valor not in (None, ""):
+                # write_string: evita que un texto que empiece con "=" se tome como fórmula
+                ws.write_string(r, c, str(valor))
+
+    # Totales de las columnas de dinero
+    fila_total = fila_head + 1 + len(rows)
+    ws.write_string(fila_total, 0, "TOTAL", f_total_lbl)
+    if rows:
+        from xlsxwriter.utility import xl_rowcol_to_cell
+        for c, (_, _, tipo) in enumerate(columnas):
+            if tipo == "m":
+                ini = xl_rowcol_to_cell(fila_head + 1, c)
+                fin = xl_rowcol_to_cell(fila_total - 1, c)
+                total = sum(float(dict(x).get(columnas[c][1]) or 0) for x in rows)
+                ws.write_formula(fila_total, c, f"=SUBTOTAL(9,{ini}:{fin})", f_total, total)
+
+    anchos = {"t": 18, "m": 14, "n": 10, "f": 12}
+    for c, (titulo, campo, tipo) in enumerate(columnas):
+        ws.set_column(c, c, 45 if campo == "descripcion" else anchos[tipo])
+    ws.set_row(fila_head, 30)
+    ws.freeze_panes(fila_head + 1, 0)
+    ws.autofilter(fila_head, 0, max(fila_head, fila_total - 1), len(columnas) - 1)
+    wb.close()
     output.seek(0)
-    return send_file(io.BytesIO(output.getvalue().encode("utf-8")),
-                     mimetype="text/csv",
+
+    sufijo = re.sub(r"[^A-Za-z0-9]+", "_", busqueda).strip("_")[:40] if busqueda else "todas"
+    nombre_archivo = f"solicitudes_{sufijo}_{datetime.now():%Y%m%d}.xlsx"
+    return send_file(output,
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                      as_attachment=True,
-                     attachment_filename="solicitudes.csv")
+                     download_name=nombre_archivo)
 
 
 

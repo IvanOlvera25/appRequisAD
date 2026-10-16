@@ -59,7 +59,7 @@
               <div class="nav-dropdown-menu">
                 <a class="{{ 'active' if request.endpoint == 'estadisticas' }}" href="{{ url_for('estadisticas') }}"><i class="fa-solid fa-chart-pie"></i> Estadísticas</a>
                 <a class="{{ 'active' if request.endpoint == 'calendario' }}" href="{{ url_for('calendario') }}"><i class="fa-solid fa-calendar-days"></i> Calendario</a>
-                <a href="{{ url_for('exportar_solicitudes') }}"><i class="fa-solid fa-file-csv"></i> Exportar CSV</a>
+                <a href="{{ url_for('exportar_solicitudes') }}"><i class="fa-solid fa-file-excel"></i> Exportar todo (Excel)</a>
               </div>
             </div>
 
@@ -74,7 +74,7 @@
               </div>
             </div>
           {% else %}
-            <a class="nav-link" href="{{ url_for('exportar_solicitudes') }}"><i class="fa-solid fa-file-csv"></i> Exportar CSV</a>
+            <a class="nav-link" href="{{ url_for('exportar_solicitudes') }}"><i class="fa-solid fa-file-excel"></i> Exportar todo (Excel)</a>
           {% endif %}
 
           <div class="nav-dropdown nav-user">

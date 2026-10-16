@@ -191,6 +191,11 @@
  <!-- Barra de acciones -->
 <div style="margin-bottom:.5rem; display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
   <a href="{{ url_for('ver_historial') }}" class="btn btn-primary">Ver Historial</a>
+  {# Exporta TODO lo que coincide con el filtro actual (sin paginar ni límite de fechas) #}
+  <a href="{{ url_for('exportar_solicitudes', estado=estado_filtro, busqueda=busqueda, criterio_busqueda=criterio_busqueda) }}"
+     class="btn btn-success" title="Descarga en Excel todos los resultados del filtro actual">
+    📥 Exportar resultados a Excel ({{ total_count or 0 }})
+  </a>
   <button type="button" class="btn btn-success" onclick="mostrarModalReporteConsolidado()">
     📊 Generar Reporte Consolidado
   </button>
