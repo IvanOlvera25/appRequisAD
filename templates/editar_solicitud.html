@@ -1,439 +1,225 @@
 {% extends "layout.html" %}
 {% block title %}Editar Solicitud{% endblock %}
 
-{% block content %}
+{% block extra_css %}
 <style>
-  .form-container {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 1.5rem;
-  }
+  /* ---------- Encabezado ---------- */
+  .ed-wrap { max-width: 1240px; margin: 0 auto; }
+  .ed-head { margin-bottom: 1.25rem; }
+  .ed-head h1 { font-size: clamp(1.4rem, 2.6vw, 1.85rem); margin: .1rem 0 .5rem; }
+  .ed-meta { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin: 0; }
+  .ed-meta .chip { font-variant-numeric: tabular-nums; font-size: .78rem; padding: .25rem .65rem; }
+  .ed-meta .chip i { opacity: .8; }
 
-  .form-header {
-    background: linear-gradient(135deg, var(--primary-color) 0%, #e06d17 100%);
-    color: var(--text-color);
-    padding: 2rem;
-    border-radius: 12px;
-    margin-bottom: 2rem;
-    text-align: center;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    animation: fadeIn 0.5s ease-out;
-  }
+  /* ---------- Layout ---------- */
+  .ed-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 1.5rem; align-items: start; }
+  .ed-main { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+  @media (max-width: 1080px) { .ed-grid { grid-template-columns: minmax(0, 1fr); gap: 1rem; } }
 
-  .form-header h2 {
-    margin: 0;
-    font-size: 2rem;
-    font-weight: 300;
-  }
-
-  .form-header p {
-    margin: 0.5rem 0 0 0;
-    opacity: 0.9;
-    font-size: 1rem;
-  }
-
+  /* ---------- Secciones ---------- */
   .form-section {
-    background: var(--header-bg);
-    border-radius: 12px;
-    padding: 2rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-    border: 1px solid var(--border-color);
-    animation: fadeIn 0.5s ease-out;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+    padding: 1.25rem clamp(1rem, 2.5vw, 1.5rem) .5rem; min-width: 0;
+    transition: border-color .25s var(--ease), box-shadow .25s var(--ease);
+  }
+  .form-section:focus-within { border-color: color-mix(in srgb, var(--brand) 45%, var(--border)); box-shadow: var(--shadow-md); }
+  .section-title { display: flex; align-items: center; gap: .85rem; margin-bottom: 1.1rem; }
+  .section-title h2 { margin: 0; font-size: 1.05rem; }
+  .section-title p { margin: .1rem 0 0; font-size: .84rem; color: var(--text-2); }
+  .ed-step {
+    width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0; display: grid; place-items: center;
+    font-weight: 800; font-size: .9rem; color: var(--brand); background: var(--brand-50); border: 1px solid var(--brand-100);
   }
 
-  .section-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-color);
-    margin-bottom: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 2px solid var(--border-color);
-  }
+  /* Campos: mismo espaciado si el JS cambia el grupo a display:block */
+  .ed-grid .form-group { gap: 0; margin-bottom: 1rem; }
+  .ed-grid .form-group > label { margin-bottom: .4rem; }
+  .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1rem; }
+  @media (max-width: 680px) { .form-grid { grid-template-columns: minmax(0, 1fr); } }
 
-  .form-grid {
-    display: grid;
-    gap: 1.5rem;
-  }
-
-  .form-grid-2 {
-    grid-template-columns: 1fr;
-  }
-
-  @media (min-width: 768px) {
-    .form-grid-2 {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .form-group label {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--text-color);
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  .required {
-    color: var(--error-color);
-  }
-
-  .form-group input,
-  .form-group select,
-  .form-group textarea {
-    background-color: var(--input-bg);
-    color: var(--text-color);
-    padding: 0.75rem;
-    border: 2px solid var(--border-color);
-    border-radius: 8px;
-    font-size: 0.875rem;
-    transition: all 0.2s ease;
-  }
-
-  .form-group input:focus,
-  .form-group select:focus,
-  .form-group textarea:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(243, 124, 34, 0.1);
-  }
-
-  .checkbox-group {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem;
-    background: var(--input-bg);
-    border-radius: 8px;
-    border: 2px solid var(--border-color);
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .checkbox-group:hover {
-    background: var(--header-bg);
-    border-color: var(--primary-color);
-  }
-
-  .checkbox-group input[type="checkbox"] {
-    width: 20px;
-    height: 20px;
-    accent-color: var(--primary-color);
-    cursor: pointer;
-  }
-
-  .dynamic-section {
-    background: var(--input-bg);
-    border: 2px dashed var(--border-color);
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-top: 1rem;
-  }
-
-  .dynamic-section.active {
-    background: var(--header-bg);
-    border-color: var(--primary-color);
-  }
-
-  .btn {
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    justify-content: center;
-  }
-
-  .btn-primary {
-    background: var(--primary-color);
-    color: var(--text-color);
-  }
-
-  .btn-primary:hover {
-    background: #e06d17;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(243, 124, 34, 0.4);
-  }
-
-  .btn-secondary {
-    background: #6b7280;
-    color: var(--text-color);
-  }
-
-  .btn-secondary:hover {
-    background: #4b5563;
-  }
-
-  .submit-section {
-    background: linear-gradient(135deg, var(--input-bg) 0%, var(--header-bg) 100%);
-    padding: 2rem;
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .submit-btn {
-    font-size: 1rem;
-    padding: 1rem 2rem;
-    background: linear-gradient(135deg, var(--primary-color) 0%, #e06d17 100%);
-    box-shadow: 0 4px 20px rgba(243, 124, 34, 0.3);
-  }
-
-  .submit-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(243, 124, 34, 0.4);
-  }
-
-  /* Estilos para archivos adjuntos */
-  .archivos-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
-  }
-
-  .archivo-item {
-    background: var(--input-bg);
-    border: 2px solid var(--border-color);
-    border-radius: 8px;
-    padding: 1rem;
-    transition: all 0.2s ease;
-  }
-
-  .archivo-item:hover {
-    border-color: var(--primary-color);
-    background: var(--header-bg);
-  }
-
-  .archivo-item-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
-    font-weight: 600;
-    color: var(--text-color);
-  }
-
-  .archivo-item-header .emoji {
-    font-size: 1.25rem;
-  }
-
-  .file-input-wrapper {
-    position: relative;
-  }
-
-  .file-input-wrapper input[type="file"] {
-    display: none;
-  }
-
-  .file-input-label {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.75rem;
-    background: var(--header-bg);
-    border: 2px dashed var(--border-color);
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 0.875rem;
-    color: var(--text-color);
-  }
-
-  .file-input-label:hover {
-    border-color: var(--primary-color);
-    background: var(--input-bg);
-  }
-
-  .file-display {
-    margin-top: 0.5rem;
-    font-size: 0.75rem;
-    color: var(--success-color);
-    display: none;
-  }
-
-  .file-display.active {
-    display: block;
-  }
-
-  .archivo-actual {
-    margin-top: 0.75rem;
-    padding: 0.75rem;
-    background: var(--header-bg);
-    border-radius: 6px;
-    border: 1px solid var(--success-color);
-  }
-
-  .archivo-actual-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--success-color);
-    margin-bottom: 0.5rem;
-  }
-
-  .archivo-actual-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    color: var(--primary-color);
-    text-decoration: none;
-    font-size: 0.875rem;
-    transition: all 0.2s ease;
-  }
-
-  .archivo-actual-link:hover {
-    color: #e06d17;
-    text-decoration: underline;
-  }
-
-  .info-tooltip {
-    position: relative;
-    display: inline-block;
-    cursor: help;
-  }
-
+  .info-tooltip { position: relative; display: inline-flex; align-items: center; cursor: help; color: var(--text-3); font-size: .85rem; }
+  .info-tooltip:hover { color: var(--brand); }
   .info-tooltip .tooltip-text {
-    visibility: hidden;
-    width: 200px;
-    background-color: var(--header-bg);
-    color: var(--text-color);
-    text-align: center;
-    border-radius: 6px;
-    padding: 0.5rem;
-    position: absolute;
-    z-index: 1;
-    bottom: 125%;
-    left: 50%;
-    margin-left: -100px;
-    opacity: 0;
-    transition: opacity 0.3s;
-    font-size: 0.75rem;
-    border: 1px solid var(--border-color);
+    visibility: hidden; opacity: 0; position: absolute; z-index: 5; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+    width: 220px; padding: .5rem .65rem; border-radius: 9px; font-size: .76rem; font-weight: 500; line-height: 1.35; text-align: center;
+    background: var(--text); color: var(--bg); box-shadow: var(--shadow-md); transition: opacity .2s var(--ease);
   }
+  .info-tooltip:hover .tooltip-text { visibility: visible; opacity: 1; }
 
-  .info-tooltip:hover .tooltip-text {
-    visibility: visible;
-    opacity: 1;
+  /* ---------- Monto ---------- */
+  .money-input { position: relative; }
+  .money-input .cur { position: absolute; left: .95rem; top: 50%; transform: translateY(-50%); font-weight: 700; color: var(--text-2); font-size: 1.15rem; pointer-events: none; }
+  .money-input .suf { position: absolute; right: .9rem; top: 50%; transform: translateY(-50%); font-size: .75rem; font-weight: 700; color: var(--text-3); pointer-events: none; }
+  .money-input input { padding-left: 2.1rem; padding-right: 3.4rem; min-height: 54px; font-size: 1.35rem; font-weight: 750; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+  #label-monto-tipo { font-weight: 600; }
+  .calc-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .6rem; margin-top: .6rem; }
+  .calc-item { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: .55rem .75rem; min-width: 0; }
+  .calc-item > span { display: block; font-size: .72rem; font-weight: 650; color: var(--text-2); text-transform: uppercase; letter-spacing: .05em; }
+  .calc-item strong { font-size: 1rem; font-variant-numeric: tabular-nums; }
+  .calc-item.c-brand strong { color: var(--brand); }
+  .calc-item.c-ok strong { color: var(--success); }
+  .calc-pct { color: var(--text-3); text-transform: none; letter-spacing: 0; }
+
+  /* Interruptor de anticipo (el checkbox real, con apariencia de switch) */
+  .checkbox-group {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 56px;
+    padding: .8rem 1rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2);
+    cursor: pointer; transition: border-color .2s var(--ease), background .2s var(--ease);
   }
-
-  .correo-row {
-    background: var(--header-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 1rem;
-    margin: 0.5rem 0;
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
+  .checkbox-group:hover { border-color: var(--border-strong); }
+  .checkbox-group:has(input:checked) { border-color: color-mix(in srgb, var(--brand) 40%, var(--border)); background: var(--brand-50); }
+  .checkbox-group label { flex: 1; cursor: pointer; margin: 0 !important; display: block; }
+  .checkbox-group label strong { display: flex; align-items: center; gap: .45rem; font-size: .92rem; font-weight: 650; }
+  .checkbox-group label strong i { color: var(--brand); }
+  .checkbox-group label small { display: block; color: var(--text-2); font-weight: 500; margin-top: .1rem; }
+  .checkbox-group input[type="checkbox"] {
+    order: 2; flex-shrink: 0; appearance: none; -webkit-appearance: none; position: relative; margin: 0;
+    width: 46px; height: 26px; border-radius: 999px; border: 0; background: var(--border-strong);
+    box-shadow: none; pointer-events: none; transition: background .2s var(--ease);
   }
-
-  .correo-row input,
-  .correo-row select {
-    margin: 0;
+  .checkbox-group input[type="checkbox"]::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .3); transition: transform .25s var(--ease);
   }
+  .checkbox-group input[type="checkbox"]:checked { background: var(--brand); }
+  .checkbox-group input[type="checkbox"]:checked::after { transform: translateX(20px); }
+  .checkbox-group input[type="checkbox"]:focus-visible { box-shadow: var(--focus-ring); }
 
+  .dynamic-section { background: var(--surface-2); border: 1px dashed var(--border-strong); border-radius: 12px; padding: 1rem 1rem .25rem; margin-bottom: 1rem; animation: fadeIn .25s var(--ease); }
+  .dynamic-section .calc-box { margin: 0 0 1rem; }
+
+  /* ---------- Correos ---------- */
+  #correos-container { display: flex; flex-direction: column; gap: .5rem; }
+  .correo-row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; animation: fadeIn .2s var(--ease); }
+  .correo-row .correo-select { flex: 1 1 240px; width: auto; min-width: 0; }
+  .correo-row .correo-otro { flex: 1 1 220px; width: auto; min-width: 0; }
+  .correo-row .btn.btn-primary.correo-add {
+    --b-bg: var(--surface); --b-fg: var(--text); --b-bd: var(--border); --b-bg-h: var(--surface-hover);
+    box-shadow: var(--shadow-xs); min-height: 42px; flex-shrink: 0;
+  }
   .remove-btn {
-    background: var(--error-color);
-    color: var(--text-color);
-    border: none;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
+    width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; display: inline-grid; place-items: center;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text-2); cursor: pointer;
+    transition: color .15s var(--ease), border-color .15s var(--ease), background .15s var(--ease);
+  }
+  .remove-btn:hover { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--border)); background: color-mix(in srgb, var(--danger) 6%, var(--surface)); }
+  @media (max-width: 680px) {
+    .correo-row { flex-wrap: wrap; }
+    .correo-row .correo-select { flex: 1 1 0; }
+    .correo-row .correo-add, .correo-row .remove-btn { order: 1; }
+    .correo-row .correo-otro { order: 2; flex: 1 1 100%; }
   }
 
-  .remove-btn:hover {
-    background: #c82333;
-    transform: scale(1.1);
+  /* ---------- Archivos ---------- */
+  .archivos-label span { color: var(--text-3); font-weight: 500; }
+  .archivos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: .75rem; margin-bottom: 1rem; }
+  @media (max-width: 680px) { .archivos-grid { grid-template-columns: minmax(0, 1fr); } }
+  .archivos-grid .archivo-item {
+    display: flex; flex-direction: column; gap: .65rem; margin: 0; padding: .9rem; min-width: 0;
+    border-radius: 14px; border: 1px solid var(--border); background: var(--surface-2);
+    transition: border-color .2s var(--ease), background .2s var(--ease);
   }
+  .archivos-grid .archivo-item:hover { border-color: var(--border-strong); }
+  .archivos-grid .archivo-item:has(.file-display.active) { border-color: color-mix(in srgb, var(--success) 50%, var(--border)); background: color-mix(in srgb, var(--success) 6%, var(--surface)); }
+  .archivo-item-header { display: flex; align-items: center; gap: .6rem; font-weight: 700; font-size: .9rem; color: var(--text); }
+  .ai-ico { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; color: var(--brand); background: var(--surface); border: 1px solid var(--border); font-size: .95rem; }
+  .archivo-actual { padding: .55rem .65rem; border-radius: 10px; background: var(--surface); border: 1px solid color-mix(in srgb, var(--success) 30%, var(--border)); min-width: 0; }
+  .archivo-actual-header { display: flex; align-items: center; gap: .35rem; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--success); margin-bottom: .2rem; }
+  .archivo-actual-link { display: flex; align-items: center; gap: .4rem; min-height: 28px; font-size: .84rem; font-weight: 600; color: var(--brand); min-width: 0; }
+  .archivo-actual-link span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .archivo-actual-link:hover { color: var(--brand-600); text-decoration: underline; }
+  @media (max-width: 760px) { .archivo-actual-link { min-height: 40px; } }
+  .file-input-wrapper { margin-top: auto; }
+  .file-input-wrapper input[type="file"] { display: none; }
+  .archivos-grid .archivo-item label.file-input-label {
+    display: flex; align-items: center; justify-content: center; gap: .5rem; min-height: 44px; padding: .6rem .75rem; margin: 0;
+    border-radius: 10px; border: 1.5px dashed var(--border-strong); background: var(--surface); color: var(--text);
+    font-size: .86rem; font-weight: 600; cursor: pointer; text-align: center;
+    transition: border-color .2s var(--ease), color .2s var(--ease), background .2s var(--ease);
+  }
+  .archivos-grid .archivo-item label.file-input-label i { color: var(--brand); }
+  .archivos-grid .archivo-item label.file-input-label:hover { border-color: var(--brand); background: var(--brand-50); color: var(--brand); }
+  .file-display { display: none; margin-top: .45rem; font-size: .78rem; font-weight: 650; color: var(--success); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-display.active { display: block; }
 
-  @media (max-width: 767px) {
-    .form-container {
-      padding: 0.5rem;
-    }
+  /* ---------- Resumen (escritorio) ---------- */
+  .ed-aside { position: sticky; top: calc(var(--nav-h) + 16px); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); overflow: hidden; }
+  .sum-head { padding: 1rem 1.15rem; background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 14%, var(--surface)), var(--surface)); border-bottom: 1px solid var(--border); }
+  .sum-head h3 { margin: 0; font-size: .95rem; display: flex; align-items: center; gap: .5rem; }
+  .sum-head h3 i { color: var(--brand); }
+  .sum-total { margin-top: .6rem; }
+  .sum-total span { font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-2); }
+  .sum-total strong { display: block; font-size: 1.75rem; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .sum-total small { color: var(--text-2); font-size: .8rem; }
+  .sum-list { list-style: none; margin: 0; padding: .6rem 1.15rem; }
+  .sum-list li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .45rem 0; border-bottom: 1px dashed var(--border); font-size: .84rem; }
+  .sum-list li:last-child { border-bottom: 0; }
+  .sum-list li > span { color: var(--text-2); flex-shrink: 0; }
+  .sum-list li > b { font-weight: 600; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .sum-foot { display: flex; flex-direction: column; gap: .5rem; padding: 1rem 1.15rem 1.15rem; border-top: 1px solid var(--border); background: var(--surface-2); }
+  .sum-foot p { font-size: .76rem; color: var(--text-3); margin: .2rem 0 0; text-align: center; }
+  .submit-btn { min-height: 50px; font-size: 1rem; border-radius: 13px; }
+  @media (max-width: 1080px) { .ed-aside { display: none; } }
 
-    .form-section {
-      padding: 1.5rem;
-    }
-
-    .form-grid-2 {
-      grid-template-columns: 1fr;
-    }
-
-    .archivos-grid {
-      grid-template-columns: 1fr;
-    }
-
+  /* ---------- Barra de acciones fija (celular / tablet) ---------- */
+  .submit-section { display: none; }
+  @media (max-width: 1080px) {
     .submit-section {
-      flex-direction: column;
+      display: flex; align-items: center; justify-content: flex-end; gap: .6rem; position: sticky; bottom: 0; z-index: 50;
+      margin: 0 calc(-1 * clamp(1rem, 2.4vw, 2rem)); padding: .75rem clamp(1rem, 2.4vw, 2rem);
+      background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid var(--border);
     }
+    .submit-section .btn { min-height: 46px; }
+    .submit-section .submit-btn { flex: 0 1 260px; }
+    .ed-head .page-actions { display: none; }
   }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  @media (min-width: 761px) and (max-width: 1080px) { .submit-section { padding-right: 96px; } }
+  @media (max-width: 760px) {
+    body.has-bottom-nav .submit-section { bottom: calc(64px + env(safe-area-inset-bottom)); padding-bottom: 1.4rem; }
+    .submit-section .btn { flex: 1 1 0; }
+    .submit-section .submit-btn { flex: 1.6 1 0; }
   }
 </style>
+{% endblock %}
 
-<div class="form-container">
-  <div class="form-header">
-    <h2>✏️ Editar Solicitud de Pago</h2>
-    <p>ID: {{ solicitud.id }} | FP: {{ solicitud.fp }}</p>
+{% block content %}
+{% set slug = (solicitud.estado or '')|lower|replace(' ', '-') %}
+<div class="ed-wrap">
+  <div class="ed-head page-head reveal">
+    <div>
+      <div class="eyebrow"><i class="fa-solid fa-pen-to-square"></i> Solicitudes de pago</div>
+      <h1>Editar solicitud de pago</h1>
+      <p class="ed-meta">
+        <span class="chip"><i class="fa-solid fa-hashtag"></i> ID: {{ solicitud.id }}</span>
+        <span class="chip chip-brand"><i class="fa-solid fa-folder"></i> FP: {{ solicitud.fp }}</span>
+        <span class="status-pill" data-c="{{ slug }}">{{ solicitud.estado }}</span>
+      </p>
+    </div>
+    <div class="page-actions">
+      <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Volver al panel</a>
+    </div>
   </div>
 
-  <form method="POST" enctype="multipart/form-data">
+  <form method="POST" enctype="multipart/form-data" class="ed-grid">
+    <div class="ed-main">
     <!-- Sección 1: Información del Solicitante -->
-    <div class="form-section">
+    <section class="form-section reveal reveal-1">
       <div class="section-title">
-        👤 Información del Solicitante
+        <span class="ed-step">1</span>
+        <div><h2>Información del solicitante</h2><p>Quién solicita y folio del proyecto</p></div>
       </div>
 
-      <div class="form-grid form-grid-2">
+      <div class="form-grid">
         <div class="form-group">
           <label for="nombre">
-            Nombre del Solicitante <span class="required">*</span>
+            Nombre del solicitante <span class="required">*</span>
           </label>
           <input type="text" name="nombre" id="nombre" value="{{ solicitud.nombre }}" required>
         </div>
 
         <div class="form-group">
           <label for="fp">
-            Folio de Proyecto (FP) <span class="required">*</span>
+            Folio de proyecto (FP) <span class="required">*</span>
           </label>
           <input type="text" name="fp" id="fp" value="{{ solicitud.fp }}" required>
         </div>
@@ -445,77 +231,77 @@
         </label>
         <input type="text" name="departamento" id="departamento" value="{{ solicitud.departamento }}" required>
       </div>
-    </div>
+    </section>
 
     <!-- Sección 2: Destinatario y Tipo de Pago -->
-    <div class="form-section">
+    <section class="form-section reveal reveal-2">
       <div class="section-title">
-        🏢 Información del Destinatario
+        <span class="ed-step">2</span>
+        <div><h2>Información del destinatario</h2><p>A quién se le paga y su cuenta bancaria</p></div>
       </div>
 
       <div class="form-group">
         <label for="destinatario">
-          Destinatario (A quién se le pagará) <span class="required">*</span>
+          Destinatario (a quién se le pagará) <span class="required">*</span>
         </label>
         <input type="text" name="destinatario" id="destinatario" value="{{ solicitud.destinatario }}" required>
       </div>
 
-      <div class="form-grid form-grid-2">
+      <div class="form-grid">
         <div class="form-group">
           <label for="beneficiario">
-            Beneficiario de la Cuenta <span class="required">*</span>
+            Beneficiario de la cuenta <span class="required">*</span>
           </label>
           <input type="text" name="beneficiario" id="beneficiario" value="{{ solicitud.beneficiario or '' }}" required>
         </div>
 
         <div class="form-group">
           <label for="banco">
-            Banco (Cuenta destino) <span class="required">*</span>
+            Banco (cuenta destino) <span class="required">*</span>
           </label>
           <input type="text" name="banco" id="banco" value="{{ solicitud.banco }}" required>
         </div>
 
         <div class="form-group">
           <label for="clabe">
-            CLABE (Cuenta destino) <span class="required">*</span>
+            CLABE (cuenta destino) <span class="required">*</span>
           </label>
           <input type="text" name="clabe" id="clabe" value="{{ solicitud.clabe }}" required maxlength="18">
         </div>
-      </div>
 
-      <div class="form-group">
-        <label for="referencia">
-          Referencia del Proveedor
-        </label>
-        <input type="text" name="referencia" id="referencia" value="{{ solicitud.referencia or '' }}">
+        <div class="form-group">
+          <label for="referencia">
+            Referencia del proveedor
+          </label>
+          <input type="text" name="referencia" id="referencia" value="{{ solicitud.referencia or '' }}">
+        </div>
       </div>
-    </div>
+    </section>
 
     <!-- Sección 3: Detalles de la Solicitud -->
-    <div class="form-section">
+    <section class="form-section reveal reveal-3">
       <div class="section-title">
-        📋 Detalles de la Solicitud
+        <span class="ed-step">3</span>
+        <div><h2>Detalles de la solicitud</h2><p>Tipo, método de pago, estado y fecha límite</p></div>
       </div>
 
-      <div class="form-grid form-grid-2">
+      <div class="form-grid">
         <div class="form-group">
           <label for="tipo_solicitud">
-            Tipo de Solicitud <span class="required">*</span>
+            Tipo de solicitud <span class="required">*</span>
           </label>
           <select name="tipo_solicitud" id="tipo_solicitud" required onchange="toggleCategoriaAdministrativa()">
-            <option value="Viáticos" {% if solicitud.tipo_solicitud=="Viáticos" %}selected{% endif %}>💼 Viáticos
-            </option>
-            <option value="Compras" {% if solicitud.tipo_solicitud=="Compras" %}selected{% endif %}>🛒 Compras</option>
-            <option value="Administrativos" {% if solicitud.tipo_solicitud=="Administrativos" %}selected{% endif %}>📄
-              Administrativos</option>
-            <option value="Otro" {% if solicitud.tipo_solicitud=="Otro" %}selected{% endif %}>📂 Otro</option>
+            <option value="Viáticos" {% if solicitud.tipo_solicitud=="Viáticos" %}selected{% endif %}>Viáticos</option>
+            <option value="Compras" {% if solicitud.tipo_solicitud=="Compras" %}selected{% endif %}>Compras</option>
+            <option value="Administrativos" {% if solicitud.tipo_solicitud=="Administrativos" %}selected{% endif %}>Administrativos</option>
+            <option value="Otro" {% if solicitud.tipo_solicitud=="Otro" %}selected{% endif %}>Otro</option>
           </select>
         </div>
 
         <div class="form-group" id="categoria-administrativa-container"
           style="display: {% if solicitud.tipo_solicitud == 'Administrativos' %}block{% else %}none{% endif %};">
           <label for="categoria_administrativa">
-            Categoría Administrativa <span class="required">*</span>
+            Categoría administrativa <span class="required">*</span>
           </label>
           <select name="categoria_administrativa" id="categoria_administrativa">
             <option value="">--Seleccione una categoría--</option>
@@ -528,24 +314,21 @@
 
         <div class="form-group">
           <label for="tipo_pago">
-            Tipo de Pago <span class="required">*</span>
+            Tipo de pago <span class="required">*</span>
           </label>
           <select name="tipo_pago" id="tipo_pago" required onchange="calcularComision()">
-            <option value="BBVA Sin factura" {% if solicitud.tipo_pago=="BBVA Sin factura" %}selected{% endif %}>🏦 BBVA
-              Sin factura</option>
-            <option value="BBVA Con factura" {% if solicitud.tipo_pago=="BBVA Con factura" %}selected{% endif %}>🏦 BBVA
-              Con factura</option>
-            <option value="Santander" {% if solicitud.tipo_pago=="Santander" %}selected{% endif %}>🏦 Santander</option>
-            <option value="HSBC" {% if solicitud.tipo_pago=="HSBC" %}selected{% endif %}>🏦 HSBC</option>
-            <option value="TDC Corp" {% if solicitud.tipo_pago=="TDC Corp" %}selected{% endif %}>💳 TDC Corp</option>
-            <option value="TDC personal" {% if solicitud.tipo_pago=="TDC personal" %}selected{% endif %}>💳 TDC personal
-            </option>
-            <option value="Efectivo" {% if solicitud.tipo_pago=="Efectivo" %}selected{% endif %}>💵 Efectivo</option>
+            <option value="BBVA Sin factura" {% if solicitud.tipo_pago=="BBVA Sin factura" %}selected{% endif %}>BBVA Sin factura</option>
+            <option value="BBVA Con factura" {% if solicitud.tipo_pago=="BBVA Con factura" %}selected{% endif %}>BBVA Con factura</option>
+            <option value="Santander" {% if solicitud.tipo_pago=="Santander" %}selected{% endif %}>Santander</option>
+            <option value="HSBC" {% if solicitud.tipo_pago=="HSBC" %}selected{% endif %}>HSBC</option>
+            <option value="TDC Corp" {% if solicitud.tipo_pago=="TDC Corp" %}selected{% endif %}>TDC Corp</option>
+            <option value="TDC personal" {% if solicitud.tipo_pago=="TDC personal" %}selected{% endif %}>TDC personal</option>
+            <option value="Efectivo" {% if solicitud.tipo_pago=="Efectivo" %}selected{% endif %}>Efectivo</option>
           </select>
         </div>
       </div>
 
-      <div class="form-grid form-grid-2">
+      <div class="form-grid">
         <div class="form-group">
           <label for="estado">
             Estado <span class="required">*</span>
@@ -567,49 +350,49 @@
 
         <div class="form-group">
           <label for="fecha_limite">
-            Fecha Límite de Pago <span class="required">*</span>
+            Fecha límite de pago <span class="required">*</span>
           </label>
           <input type="date" name="fecha_limite" id="fecha_limite" value="{{ solicitud.fecha_limite }}" required>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Sección 4: Información Financiera y Contacto -->
-    <div class="form-section">
+    <!-- Sección 4: Información Financiera -->
+    <section class="form-section reveal reveal-4">
       <div class="section-title">
-        💰 Información Financiera y Contacto
+        <span class="ed-step">4</span>
+        <div><h2>Monto y anticipo</h2><p>Cuánto se pagará y si habrá anticipo</p></div>
       </div>
 
-      <div class="form-grid form-grid-2">
-        <div class="form-group">
-          <label for="monto">
-            Monto <span class="required">*</span>
-            <span id="label-monto-tipo">(sin comisión)</span>
-          </label>
+      <div class="form-group">
+        <label for="monto">
+          Monto <span class="required">*</span>
+          <span id="label-monto-tipo" class="chip">(sin comisión)</span>
+        </label>
+        <div class="money-input">
+          <span class="cur">$</span>
           <input type="text" name="monto" id="monto"
             value="{{ '{:,.2f}'.format(solicitud.monto_sin_comision if solicitud.monto_sin_comision else (solicitud.monto if solicitud.monto else 0)) }}"
-            oninput="formatMonto(this); calcularComision();" required>
-          <div id="info-comision"
-            style="display: {% if solicitud.tiene_comision == 1 %}block{% else %}none{% endif %}; margin-top: 0.5rem; padding: 0.75rem; background: var(--input-bg); border-radius: 6px; border: 1px solid var(--border-color);">
-            <div style="font-size: 0.875rem; color: var(--text-color);">
-              <div>💡 Comisión BBVA (6%): <span id="monto-comision"
-                  style="font-weight: 600; color: var(--primary-color);">${{ '{:,.2f}'.format(solicitud.monto_comision
-                  if solicitud.monto_comision else 0) }}</span></div>
-              <div style="margin-top: 0.25rem;">💰 Total con comisión: <span id="monto-total"
-                  style="font-weight: 600; color: var(--success-color);">${{
-                  '{:,.2f}'.format(solicitud.monto if solicitud.monto else 0) }}</span></div>
-            </div>
+            oninput="formatMonto(this); calcularComision();" required inputmode="decimal" autocomplete="off">
+          <span class="suf">MXN</span>
+        </div>
+        <div id="info-comision"
+          style="display: {% if solicitud.tiene_comision == 1 %}block{% else %}none{% endif %};">
+          <div class="calc-box">
+            <div class="calc-item c-brand"><span>Comisión BBVA (6%)</span><strong id="monto-comision">${{ '{:,.2f}'.format(solicitud.monto_comision if solicitud.monto_comision else 0) }}</strong></div>
+            <div class="calc-item c-ok"><span>Total con comisión</span><strong id="monto-total">${{ '{:,.2f}'.format(solicitud.monto if solicitud.monto else 0) }}</strong></div>
           </div>
         </div>
+      </div>
 
-        <div class="form-group">
-          <div class="checkbox-group" onclick="toggleCheckbox('anticipo')">
-            <input type="checkbox" name="anticipo" id="anticipo" {% if solicitud.anticipo and
-              solicitud.anticipo|lower=='si' %}checked{% endif %} onchange="toggleAnticipoField(this)">
-            <label for="anticipo" style="cursor: pointer; font-weight: 500;">
-              💳 Se dará anticipo para este pago
-            </label>
-          </div>
+      <div class="form-group">
+        <div class="checkbox-group" onclick="toggleCheckbox('anticipo')">
+          <input type="checkbox" name="anticipo" id="anticipo" {% if solicitud.anticipo and
+            solicitud.anticipo|lower=='si' %}checked{% endif %} onchange="toggleAnticipoField(this)">
+          <label for="anticipo">
+            <strong><i class="fa-solid fa-hand-holding-dollar"></i> Se dará anticipo para este pago</strong>
+            <small>Paga una parte ahora y el resto después</small>
+          </label>
         </div>
       </div>
 
@@ -617,10 +400,10 @@
       <div id="anticipo-container"
         style="display:{% if solicitud.anticipo and solicitud.anticipo|lower == 'si' %}block{% else %}none{% endif %};"
         class="dynamic-section active">
-        <div class="form-grid form-grid-2">
+        <div class="form-grid">
           <div class="form-group">
             <label for="tipo_anticipo">
-              Tipo de Anticipo <span class="required">*</span>
+              Tipo de anticipo <span class="required">*</span>
             </label>
             <select name="tipo_anticipo" id="tipo_anticipo" onchange="toggleTipoAnticipo()">
               <option value="porcentaje" {% if solicitud.tipo_anticipo=='porcentaje' or not solicitud.tipo_anticipo
@@ -633,7 +416,7 @@
           <div class="form-group" id="anticipo-porcentaje-group"
             style="display: {% if solicitud.tipo_anticipo == 'cantidad' %}none{% else %}block{% endif %};">
             <label for="porcentaje_anticipo">
-              Porcentaje de Anticipo (%) <span class="required">*</span>
+              Porcentaje de anticipo (%) <span class="required">*</span>
             </label>
             <input type="number" name="porcentaje_anticipo" id="porcentaje_anticipo" min="0" max="100" step="0.01"
               value="{{ solicitud.porcentaje_anticipo if solicitud.porcentaje_anticipo else 0 }}"
@@ -643,38 +426,38 @@
           <div class="form-group" id="anticipo-cantidad-group"
             style="display: {% if solicitud.tipo_anticipo == 'cantidad' %}block{% else %}none{% endif %};">
             <label for="monto_anticipo">
-              Monto de Anticipo ($) <span class="required">*</span>
+              Monto de anticipo ($) <span class="required">*</span>
             </label>
             <input type="text" name="monto_anticipo" id="monto_anticipo"
               value="{{ '{:,.2f}'.format(solicitud.monto_anticipo if solicitud.monto_anticipo else 0) }}"
-              oninput="formatMonto(this); calcularAnticipoCantidad()">
+              oninput="formatMonto(this); calcularAnticipoCantidad()" inputmode="decimal" autocomplete="off">
           </div>
         </div>
 
-        <div
-          style="margin-top: 1rem; padding: 1rem; background: var(--input-bg); border-radius: 6px; border: 1px solid var(--border-color);">
-          <div style="font-size: 0.875rem; color: var(--text-color);">
-            <div>💵 Anticipo: <span id="display-anticipo" style="font-weight: 600; color: var(--primary-color);">${{
-                '{:,.2f}'.format(solicitud.monto_anticipo if solicitud.monto_anticipo else 0) }}</span> <span
-                id="display-anticipo-porcentaje" style="color: #6b7280;">({{
-                '{:.2f}'.format(solicitud.porcentaje_anticipo if solicitud.porcentaje_anticipo else 0) }}%)</span></div>
-            <div style="margin-top: 0.25rem;">💰 Monto restante: <span id="display-restante"
-                style="font-weight: 600; color: var(--success-color);">${{ '{:,.2f}'.format(solicitud.monto_restante if
-                solicitud.monto_restante else 0) }}</span></div>
-          </div>
+        <div class="calc-box">
+          <div class="calc-item c-brand"><span>Anticipo <span id="display-anticipo-porcentaje" class="calc-pct">({{ '{:.2f}'.format(solicitud.porcentaje_anticipo if solicitud.porcentaje_anticipo else 0) }}%)</span></span><strong id="display-anticipo">${{ '{:,.2f}'.format(solicitud.monto_anticipo if solicitud.monto_anticipo else 0) }}</strong></div>
+          <div class="calc-item c-ok"><span>Monto restante</span><strong id="display-restante">${{ '{:,.2f}'.format(solicitud.monto_restante if solicitud.monto_restante else 0) }}</strong></div>
         </div>
+      </div>
+    </section>
+
+    <!-- Sección 5: Contacto (correos de notificación) -->
+    <section class="form-section reveal reveal-5">
+      <div class="section-title">
+        <span class="ed-step">5</span>
+        <div><h2>Notificaciones</h2><p>Correos que recibirán los avisos de esta solicitud</p></div>
       </div>
 
       <!-- Correos -->
       <div class="form-group">
         <label for="correo-dropdown">
-          Correos Electrónicos de Notificación <span class="required">*</span>
+          Correos electrónicos de notificación <span class="required">*</span>
         </label>
         <div id="correos-container">
           {% set correos_list = solicitud.correo.split(',') if solicitud.correo else [] %}
           {% for correo in correos_list %}
           <div class="correo-row">
-            <select class="correo-select" required>
+            <select class="correo-select" required aria-label="Correo">
               <option value="">--Seleccione un correo--</option>
               <option value="dagarcia@ad17solutions.com" {% if correo.strip()=='dagarcia@ad17solutions.com' %}selected{%
                 endif %}>dagarcia@ad17solutions.com</option>
@@ -695,16 +478,15 @@
               style="display:{% if correo.strip() not in ['dagarcia@ad17solutions.com', 'marivero@ad17solutions.com', 'vmejia@ad17solutions.com', 'gadelarosa@ad17solutions.com', 'datoledano@ad17solutions.com'] %}block{% else %}none{% endif %};">
             <input type="hidden" name="correo" class="correo-hidden" value="{{ correo.strip() }}">
             {% if loop.first %}
-            <button type="button" onclick="agregarCorreo()" class="btn btn-primary"
-              style="padding: 0.5rem 1rem; font-size: 0.875rem;">➕ Agregar</button>
+            <button type="button" onclick="agregarCorreo()" class="btn btn-primary correo-add"><i class="fa-solid fa-plus"></i> Agregar</button>
             {% else %}
-            <button type="button" onclick="removerCorreo(this)" class="remove-btn">✕</button>
+            <button type="button" onclick="removerCorreo(this)" class="remove-btn" aria-label="Quitar correo" title="Quitar correo"><i class="fa-solid fa-xmark"></i></button>
             {% endif %}
           </div>
           {% endfor %}
           {% if correos_list|length == 0 %}
           <div class="correo-row">
-            <select class="correo-select" required>
+            <select class="correo-select" required aria-label="Correo">
               <option value="">--Seleccione un correo--</option>
               <option value="dagarcia@ad17solutions.com">dagarcia@ad17solutions.com</option>
               <option value="marivero@ad17solutions.com">marivero@ad17solutions.com</option>
@@ -715,24 +497,24 @@
             </select>
             <input type="email" class="correo-otro" placeholder="correo@empresa.com" style="display:none;">
             <input type="hidden" name="correo" class="correo-hidden">
-            <button type="button" onclick="agregarCorreo()" class="btn btn-primary"
-              style="padding: 0.5rem 1rem; font-size: 0.875rem;">➕ Agregar</button>
+            <button type="button" onclick="agregarCorreo()" class="btn btn-primary correo-add"><i class="fa-solid fa-plus"></i> Agregar</button>
           </div>
           {% endif %}
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Sección 5: Descripción y Archivos -->
-    <div class="form-section">
+    <!-- Sección 6: Descripción y Archivos -->
+    <section class="form-section reveal reveal-6">
       <div class="section-title">
-        📝 Información Adicional
+        <span class="ed-step">6</span>
+        <div><h2>Información adicional</h2><p>Descripción, datos de depósito y archivos</p></div>
       </div>
 
       <div class="form-group">
         <label for="descripcion">
-          Descripción del Pago
-          <div class="info-tooltip">ℹ️
+          Descripción del pago
+          <div class="info-tooltip"><i class="fa-solid fa-circle-info"></i>
             <span class="tooltip-text">Describa brevemente el concepto del pago</span>
           </div>
         </label>
@@ -743,7 +525,7 @@
 
       <div class="form-group">
         <label for="datos_deposito">
-          Datos de Depósito
+          Datos de depósito
         </label>
         <textarea name="datos_deposito" id="datos_deposito" rows="3"
           placeholder="Información adicional sobre el depósito">{{ solicitud.datos_deposito or '' }}</textarea>
@@ -751,32 +533,31 @@
 
       <!-- ARCHIVOS ADJUNTOS (3 tipos + legacy) -->
       <div class="form-group">
-        <label>Archivos Adjuntos <span style="color: #6b7280; font-weight: 400;">(PDF, PNG, JPG, ZIP,
-            RAR)</span></label>
+        <label class="archivos-label">Archivos adjuntos <span>(PDF, PNG, JPG, ZIP, RAR)</span></label>
 
         <div class="archivos-grid">
           <!-- Factura -->
           <div class="archivo-item">
             <div class="archivo-item-header">
-              <span class="emoji">🧾</span>
+              <span class="ai-ico"><i class="fa-solid fa-file-invoice"></i></span>
               <span>Factura</span>
             </div>
             {% if solicitud.archivo_factura %}
             <div class="archivo-actual">
               <div class="archivo-actual-header">
-                ✅ Archivo actual:
+                <i class="fa-solid fa-circle-check"></i> Archivo actual
               </div>
               <a href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_factura) }}" target="_blank"
-                class="archivo-actual-link">
-                📥 {{ solicitud.archivo_factura }}
+                class="archivo-actual-link" title="{{ solicitud.archivo_factura }}">
+                <i class="fa-solid fa-download"></i> <span>{{ solicitud.archivo_factura }}</span>
               </a>
             </div>
             {% endif %}
-            <div class="file-input-wrapper" style="margin-top: 0.75rem;">
+            <div class="file-input-wrapper">
               <input type="file" name="factura_file" id="factura_file" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar"
                 onchange="updateFileDisplay('factura_file', 'file-display-factura')">
               <label for="factura_file" class="file-input-label">
-                📎 {% if solicitud.archivo_factura %}Cambiar{% else %}Seleccionar{% endif %} Factura
+                <i class="fa-solid fa-arrow-up-from-bracket"></i> {% if solicitud.archivo_factura %}Cambiar{% else %}Seleccionar{% endif %} factura
               </label>
               <div id="file-display-factura" class="file-display"></div>
             </div>
@@ -785,25 +566,25 @@
           <!-- Recibo -->
           <div class="archivo-item">
             <div class="archivo-item-header">
-              <span class="emoji">🧾</span>
+              <span class="ai-ico"><i class="fa-solid fa-receipt"></i></span>
               <span>Recibo</span>
             </div>
             {% if solicitud.archivo_recibo %}
             <div class="archivo-actual">
               <div class="archivo-actual-header">
-                ✅ Archivo actual:
+                <i class="fa-solid fa-circle-check"></i> Archivo actual
               </div>
               <a href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_recibo) }}" target="_blank"
-                class="archivo-actual-link">
-                📥 {{ solicitud.archivo_recibo }}
+                class="archivo-actual-link" title="{{ solicitud.archivo_recibo }}">
+                <i class="fa-solid fa-download"></i> <span>{{ solicitud.archivo_recibo }}</span>
               </a>
             </div>
             {% endif %}
-            <div class="file-input-wrapper" style="margin-top: 0.75rem;">
+            <div class="file-input-wrapper">
               <input type="file" name="recibo_file" id="recibo_file" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar"
                 onchange="updateFileDisplay('recibo_file', 'file-display-recibo')">
               <label for="recibo_file" class="file-input-label">
-                📎 {% if solicitud.archivo_recibo %}Cambiar{% else %}Seleccionar{% endif %} Recibo
+                <i class="fa-solid fa-arrow-up-from-bracket"></i> {% if solicitud.archivo_recibo %}Cambiar{% else %}Seleccionar{% endif %} recibo
               </label>
               <div id="file-display-recibo" class="file-display"></div>
             </div>
@@ -812,25 +593,25 @@
           <!-- Orden de Compra -->
           <div class="archivo-item">
             <div class="archivo-item-header">
-              <span class="emoji">📋</span>
-              <span>Orden de Compra</span>
+              <span class="ai-ico"><i class="fa-solid fa-file-contract"></i></span>
+              <span>Orden de compra</span>
             </div>
             {% if solicitud.archivo_orden_compra %}
             <div class="archivo-actual">
               <div class="archivo-actual-header">
-                ✅ Archivo actual:
+                <i class="fa-solid fa-circle-check"></i> Archivo actual
               </div>
               <a href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_orden_compra) }}" target="_blank"
-                class="archivo-actual-link">
-                📥 {{ solicitud.archivo_orden_compra }}
+                class="archivo-actual-link" title="{{ solicitud.archivo_orden_compra }}">
+                <i class="fa-solid fa-download"></i> <span>{{ solicitud.archivo_orden_compra }}</span>
               </a>
             </div>
             {% endif %}
-            <div class="file-input-wrapper" style="margin-top: 0.75rem;">
+            <div class="file-input-wrapper">
               <input type="file" name="orden_compra_file" id="orden_compra_file" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar"
                 onchange="updateFileDisplay('orden_compra_file', 'file-display-orden')">
               <label for="orden_compra_file" class="file-input-label">
-                📎 {% if solicitud.archivo_orden_compra %}Cambiar{% else %}Seleccionar{% endif %} Orden
+                <i class="fa-solid fa-arrow-up-from-bracket"></i> {% if solicitud.archivo_orden_compra %}Cambiar{% else %}Seleccionar{% endif %} orden
               </label>
               <div id="file-display-orden" class="file-display"></div>
             </div>
@@ -840,23 +621,23 @@
           {% if solicitud.archivo_adjunto %}
           <div class="archivo-item">
             <div class="archivo-item-header">
-              <span class="emoji">📎</span>
-              <span>Otro Adjunto</span>
+              <span class="ai-ico"><i class="fa-solid fa-paperclip"></i></span>
+              <span>Otro adjunto</span>
             </div>
             <div class="archivo-actual">
               <div class="archivo-actual-header">
-                ✅ Archivo actual:
+                <i class="fa-solid fa-circle-check"></i> Archivo actual
               </div>
               <a href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_adjunto) }}" target="_blank"
-                class="archivo-actual-link">
-                📥 {{ solicitud.archivo_adjunto }}
+                class="archivo-actual-link" title="{{ solicitud.archivo_adjunto }}">
+                <i class="fa-solid fa-download"></i> <span>{{ solicitud.archivo_adjunto }}</span>
               </a>
             </div>
-            <div class="file-input-wrapper" style="margin-top: 0.75rem;">
+            <div class="file-input-wrapper">
               <input type="file" name="adjunto_file" id="adjunto_file" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar"
                 onchange="updateFileDisplay('adjunto_file', 'file-display-adjunto')">
               <label for="adjunto_file" class="file-input-label">
-                📎 Cambiar Archivo
+                <i class="fa-solid fa-arrow-up-from-bracket"></i> Cambiar archivo
               </label>
               <div id="file-display-adjunto" class="file-display"></div>
             </div>
@@ -864,16 +645,43 @@
           {% endif %}
         </div>
       </div>
+    </section>
     </div>
 
-    <!-- Sección de Envío -->
+    <!-- Resumen del registro guardado (escritorio) -->
+    <aside class="ed-aside reveal reveal-2" aria-label="Registro actual">
+      <div class="sum-head">
+        <h3><i class="fa-solid fa-receipt"></i> Registro actual</h3>
+        <div class="sum-total">
+          <span>Monto registrado</span>
+          <strong>${{ '{:,.2f}'.format(solicitud.monto if solicitud.monto else 0) }}</strong>
+          {% if solicitud.tiene_comision == 1 %}<small>Incluye comisión BBVA</small>{% endif %}
+        </div>
+      </div>
+      <ul class="sum-list">
+        <li><span>Estado</span><b><span class="status-pill" data-c="{{ slug }}">{{ solicitud.estado }}</span></b></li>
+        <li><span>FP</span><b>{{ solicitud.fp }}</b></li>
+        <li><span>Solicitante</span><b title="{{ solicitud.nombre }}">{{ solicitud.nombre }}</b></li>
+        <li><span>Destinatario</span><b title="{{ solicitud.destinatario }}">{{ solicitud.destinatario }}</b></li>
+        <li><span>Método</span><b>{{ solicitud.tipo_pago or '—' }}</b></li>
+        <li><span>Solicitada</span><b>{{ solicitud.fecha|fecha_corta if solicitud.fecha else '—' }}</b></li>
+        <li><span>Fecha límite</span><b>{{ solicitud.fecha_limite|fecha_corta if solicitud.fecha_limite else '—' }}</b></li>
+      </ul>
+      <div class="sum-foot">
+        <button type="submit" class="btn btn-primary submit-btn"><i class="fa-solid fa-floppy-disk"></i> Guardar cambios</button>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-ghost"><i class="fa-solid fa-xmark"></i> Cancelar</a>
+        <p>Estos son los datos guardados antes de editar.</p>
+      </div>
+    </aside>
+
+    <!-- Sección de Envío (barra fija en celular / tablet) -->
     <div class="submit-section">
-      <button type="submit" class="btn submit-btn">
-        💾 Guardar Cambios
-      </button>
-      <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary" style="padding: 1rem 2rem; font-size: 1rem;">
-        ❌ Cancelar
+      <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+        <i class="fa-solid fa-xmark"></i> Cancelar
       </a>
+      <button type="submit" class="btn btn-primary submit-btn">
+        <i class="fa-solid fa-floppy-disk"></i> Guardar cambios
+      </button>
     </div>
   </form>
 </div>
@@ -1078,7 +886,7 @@
     <select class="correo-select" required>${CORREO_OPTIONS_HTML}</select>
     <input type="email" class="correo-otro" placeholder="correo@empresa.com" style="display:none;">
     <input type="hidden" name="correo" class="correo-hidden">
-    <button type="button" onclick="removerCorreo(this)" class="remove-btn">✕</button>
+    <button type="button" onclick="removerCorreo(this)" class="remove-btn" aria-label="Quitar correo" title="Quitar correo"><i class="fa-solid fa-xmark"></i></button>
   `;
     cont.appendChild(div);
     initCorreoRow(div, false);
@@ -1093,7 +901,7 @@
     const input = document.getElementById(inputId);
     const display = document.getElementById(displayId);
     if (input.files[0]) {
-      display.innerHTML = `✅ Nuevo: ${input.files[0].name}`;
+      display.innerHTML = `<i class="fa-solid fa-circle-check"></i> Nuevo: ${input.files[0].name}`;
       display.classList.add('active');
     } else {
       display.innerHTML = '';

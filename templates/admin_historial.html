@@ -1,18 +1,166 @@
 {% extends "layout.html" %}
 {% block title %}Historial de Pagos{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ---------- Filtros ---------- */
+  .hist-filters { padding: .9rem; margin-bottom: 1rem; }
+  .hist-filters .filter-form { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; margin: 0; }
+  .hist-filters .filter-form .form-group { margin: 0; flex: 0 0 auto; }
+  .hist-filters .fg-search { flex: 1 1 320px !important; position: relative; }
+  .hist-filters .fg-search > i { position: absolute; left: .9rem; top: 50%; transform: translateY(-50%); color: var(--text-3); pointer-events: none; }
+  .hist-filters .fg-search input { padding-left: 2.5rem; }
+  .hist-filters .fg-criterio { flex: 0 0 190px !important; }
+  .hist-filters .fg-submit { display: flex; flex-direction: row; gap: .5rem; }
+  .hist-filters .result-note { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; font-size: .84rem; color: var(--text-2); }
+  .fchip { display: inline-flex; align-items: center; gap: .35rem; padding: .28rem .35rem .28rem .7rem; border-radius: 999px; background: var(--brand-50); color: var(--brand); font-size: .78rem; font-weight: 650; border: 1px solid var(--brand-100); max-width: 100%; }
+  .fchip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fchip a { position: relative; color: inherit; width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%; display: inline-grid; place-items: center; font-size: .72rem; }
+  .fchip a::after { content: ""; position: absolute; inset: -9px; }
+  .fchip a:hover { background: var(--brand-100); }
+
+  /* ---------- Listado ---------- */
+  .hist-card { padding: 0; overflow: clip; }
+  .list-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem 1rem; padding: .85rem 1.1rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .list-head h2 { margin: 0; font-size: 1rem; display: flex; align-items: center; gap: .5rem; }
+  .list-head h2 i { color: var(--brand); }
+  .list-head .meta { color: var(--text-2); font-size: .84rem; }
+  .list-head .meta strong { color: var(--text); font-variant-numeric: tabular-nums; }
+  .list-hint { display: inline-flex; align-items: center; gap: .4rem; font-size: .78rem; color: var(--text-3); }
+
+  .tabla-solicitudes { font-size: .875rem; }
+  .tabla-solicitudes > thead th { position: sticky; top: var(--nav-h); z-index: 2; }
+  .tabla-solicitudes td { padding: .75rem .85rem; }
+  .tabla-solicitudes .th-right, .tabla-solicitudes .col-monto { text-align: right; }
+  .tabla-solicitudes tr.summary-row { cursor: pointer; }
+  .tabla-solicitudes tr.summary-row:has(+ tr.details-row[style*="table-row"]) { background: var(--brand-50); }
+  .tabla-solicitudes tr.summary-row:has(+ tr.details-row[style*="table-row"]) .expand-ico { transform: rotate(90deg); color: var(--brand); }
+  .tabla-solicitudes tr.summary-row:has(+ tr.details-row[style*="table-row"]) td { border-bottom-color: transparent; }
+  .tabla-solicitudes tr.details-row:hover { background: transparent; }
+  .tabla-solicitudes tr.details-row > td { border-bottom: 1px solid var(--border); }
+
+  .sol-fp { font-weight: 750; font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: .45rem; white-space: nowrap; }
+  .sol-fp .fp-txt { overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+  .sol-fp .expand-ico { font-size: .68rem; color: var(--text-3); transition: transform .2s var(--ease), color .2s var(--ease); }
+  .sol-sub { font-size: .76rem; color: var(--text-2); margin-top: .1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+  .sol-name { font-weight: 600; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  td[data-cell="fp"] .sol-sub { max-width: 150px; }
+  td[data-cell="sol"] .sol-name, td[data-cell="sol"] .sol-sub { max-width: 210px; }
+  .sol-date { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .amount { font-weight: 750; font-variant-numeric: tabular-nums; font-size: .95rem; white-space: nowrap; }
+  .col-monto .badge-anticipo { margin-top: .25rem; }
+  .tabla-solicitudes td[data-cell="acc"] { width: 1%; white-space: nowrap; }
+  .row-actions { display: flex; align-items: center; justify-content: flex-end; gap: .35rem; }
+  .row-actions .inline-form { margin: 0; display: inline-flex; }
+  .row-actions .lbl { display: none; }
+
+  /* Detalle */
+  .det-grid { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: .9rem; }
+  @media (max-width: 1180px) { .det-grid { grid-template-columns: 1fr 1fr; } }
+  .det-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: .9rem 1rem; min-width: 0; }
+  .det-card h4 { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-2); margin: 0 0 .7rem; display: flex; align-items: center; gap: .45rem; }
+  .det-card h4 i { color: var(--brand); }
+  .det-wide { margin-top: .9rem; }
+  .kv { display: grid; grid-template-columns: minmax(96px, auto) minmax(0, 1fr); gap: .4rem .85rem; margin: 0; font-size: .85rem; }
+  .kv dt { color: var(--text-2); }
+  .kv dd { margin: 0; font-weight: 560; word-break: break-word; overflow-wrap: anywhere; }
+  .kv dd.big { font-size: 1rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .det-text { font-size: .88rem; white-space: pre-wrap; word-break: break-word; margin: 0 0 .5rem; color: var(--text); }
+  .det-label { font-size: .78rem; font-weight: 700; color: var(--text-2); margin: .75rem 0 .4rem; }
+  .detalle-viaticos { width: 100%; margin: 0; font-size: .84rem; }
+  .detalle-viaticos th { position: static; }
+  .detalle-viaticos td { padding: .55rem .85rem; }
+  .files { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .file-chip { display: inline-flex; align-items: center; gap: .5rem; min-height: 40px; padding: .5rem .8rem; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); font-size: .84rem; font-weight: 600; color: var(--text); transition: border-color .15s var(--ease), color .15s var(--ease), transform .15s var(--ease); max-width: 100%; }
+  .file-chip i { color: var(--brand); }
+  .file-chip:hover { border-color: var(--brand); color: var(--brand); transform: translateY(-1px); }
+  .sin-archivos { font-size: .84rem; color: var(--text-3); font-style: italic; margin: 0; }
+
+  /* Encabezado fijo al hacer scroll en escritorio amplio; en anchos medios, scroll horizontal dentro de la tarjeta */
+  @media (min-width: 1360px) { .hist-wrap { overflow: visible; } }
+  @media (max-width: 1359px) {
+    .tabla-solicitudes > thead th { position: static; }
+    .tabla-solicitudes > tbody > tr.summary-row > td, .tabla-solicitudes > thead th { padding-left: .6rem; padding-right: .6rem; }
+    td[data-cell="sol"] .sol-name, td[data-cell="sol"] .sol-sub { max-width: 140px; }
+    td[data-cell="dest"] .sol-name { max-width: 150px; }
+  }
+
+  .list-foot { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; padding: .85rem 1.1rem; border-top: 1px solid var(--border); background: var(--surface-2); font-size: .84rem; color: var(--text-2); }
+
+  /* ---------- Tablet / celular: filas → tarjetas ---------- */
+  @media (max-width: 1080px) {
+    .tabla-solicitudes > thead { display: none; }
+    .tabla-solicitudes, .tabla-solicitudes > tbody { display: block; }
+    .tabla-solicitudes tr.summary-row {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas: "fp estado" "dest dest" "sol monto" "fecha monto" "acc acc";
+      gap: .3rem .75rem; padding: .95rem 1rem; border-bottom: 1px solid var(--border);
+    }
+    .tabla-solicitudes tr.summary-row td { padding: 0; border: 0; min-width: 0; }
+    .tabla-solicitudes td[data-cell="fp"] { grid-area: fp; }
+    .tabla-solicitudes td[data-cell="estado"] { grid-area: estado; justify-self: end; align-self: start; }
+    .tabla-solicitudes td[data-cell="dest"] { grid-area: dest; }
+    .tabla-solicitudes td[data-cell="sol"] { grid-area: sol; }
+    .tabla-solicitudes td[data-cell="fecha"] { grid-area: fecha; font-size: .8rem; color: var(--text-2); }
+    .tabla-solicitudes td[data-cell="fecha"] .sol-sub { display: inline; margin-left: .25rem; }
+    .tabla-solicitudes td[data-cell="monto"] { grid-area: monto; align-self: end; }
+    .tabla-solicitudes td[data-cell="acc"] { grid-area: acc; width: auto; white-space: normal; margin-top: .55rem; padding-top: .65rem; border-top: 1px dashed var(--border); }
+    .tabla-solicitudes tr.summary-row:has(+ tr.details-row[style*="table-row"]) { border-bottom-color: transparent; }
+    .row-actions { justify-content: stretch; gap: .5rem; }
+    .row-actions > .btn, .row-actions .inline-form { flex: 1 1 0; }
+    .row-actions .btn { width: 100%; min-height: 40px; }
+    .row-actions .lbl { display: inline; }
+    .sol-sub, .sol-name, td[data-cell] .sol-sub, td[data-cell] .sol-name, .sol-fp .fp-txt { max-width: none !important; }
+    .sol-name { white-space: normal; }
+    .dest-cell .sol-name { font-size: .92rem; }
+    .amount { font-size: 1.05rem; }
+    .tabla-solicitudes tr.details-row[style*="table-row"] { display: block !important; border-bottom: 1px solid var(--border); }
+    .tabla-solicitudes tr.details-row > td { display: block; border: 0; }
+    .det-grid { grid-template-columns: minmax(0, 1fr); }
+    .details-content { padding: .9rem 1rem 1rem; }
+    .detalle-wrap { overflow-x: auto; }
+  }
+  @media (max-width: 640px) {
+    .hist-filters .fg-search { flex-basis: 100% !important; }
+    .hist-filters .fg-criterio { flex: 1 1 0 !important; min-width: 0; }
+    .hist-filters .fg-submit { flex: 0 0 auto; }
+    .page-head .page-actions { width: 100%; }
+    .page-head .page-actions .btn { flex: 1 1 0; }
+    .list-hint { display: none; }
+    .details-content { padding: .85rem .75rem 1rem; }
+    .det-card { padding: .85rem .9rem; }
+    .kv { grid-template-columns: minmax(0, 1fr); row-gap: 0; }
+    .kv dt { font-size: .74rem; margin-top: .6rem; }
+    .kv dt:first-child { margin-top: 0; }
+  }
+</style>
+{% endblock %}
+
+{% macro fpl(fp) -%}{{ fp if (fp|string|upper).startswith('FP') else 'FP ' ~ fp }}{%- endmacro %}
+{% macro money(v) -%}${{ "{:,.2f}".format((v or 0)|float) }}{%- endmacro %}
+
 {% block content %}
+{% set q = request.args.get('busqueda', '') %}
 <div class="dashboard-container">
-  <header class="dashboard-header">
-    <h1>Historial de Pagos</h1>
+  <header class="dashboard-header page-head reveal">
+    <div>
+      <div class="eyebrow"><i class="fa-solid fa-clock-rotate-left"></i> Análisis</div>
+      <h1>Historial de pagos</h1>
+      <p class="subtitle">Todas las solicitudes registradas, de la más reciente a la más antigua.</p>
+    </div>
+    <div class="page-actions">
+      <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Volver al panel</a>
+    </div>
   </header>
 
   <!-- Sección de búsqueda -->
-  <div class="card filter-card">
+  <div class="card filter-card hist-filters reveal reveal-1">
     <form method="GET" action="{{ url_for('ver_historial') }}" class="filter-form">
-      <div class="form-group">
-        <input type="text" name="busqueda" placeholder="Buscar por FP, Monto o Nombre" value="{{ request.args.get('busqueda', '') }}">
+      <div class="form-group fg-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" name="busqueda" placeholder="Buscar por FP, Monto o Nombre" value="{{ request.args.get('busqueda', '') }}" aria-label="Buscar" enterkeyhint="search" autocomplete="off">
       </div>
-      <div class="form-group">
+      <div class="form-group fg-criterio">
         <label for="criterio" class="visually-hidden">Buscar por:</label>
         <select name="criterio" id="criterio">
           <option value="fp" {% if request.args.get('criterio') == 'fp' %}selected{% endif %}>FP</option>
@@ -21,104 +169,190 @@
           <option value="todos" {% if request.args.get('criterio', 'todos') == 'todos' %}selected{% endif %}>Todos</option>
         </select>
       </div>
-      <div class="form-group">
-        <button type="submit" class="btn btn-secondary">Buscar</button>
+      <div class="form-group fg-submit">
+        <button type="submit" class="btn btn-dark"><i class="fa-solid fa-magnifying-glass"></i> Buscar</button>
       </div>
     </form>
+    {% if q %}
+      <div class="result-note">
+        <span class="fchip"><span>“{{ q }}”{% if request.args.get('criterio', 'todos') != 'todos' %} en {{ request.args.get('criterio') }}{% endif %}</span><a href="{{ url_for('ver_historial') }}" aria-label="Quitar búsqueda" title="Quitar búsqueda"><i class="fa-solid fa-xmark"></i></a></span>
+        <span>{{ total_count }} resultado{{ '' if total_count == 1 else 's' }}</span>
+      </div>
+    {% endif %}
   </div>
 
   <!-- Tabla con filas colapsables -->
-  <div class="card table-card">
+  <div class="card table-card hist-card">
+    <div class="list-head">
+      <h2><i class="fa-solid fa-list-ul"></i> Solicitudes <span class="badge">{{ total_count }}</span></h2>
+      <span class="list-hint"><i class="fa-regular fa-hand-pointer"></i> Toca una fila para ver el detalle</span>
+    </div>
+
+    {% if solicitudes %}
+    <div class="table-wrap hist-wrap">
     <table class="tabla-solicitudes">
       <thead>
         <tr>
           <th>FP</th>
           <th>Fecha</th>
           <th>Nombre</th>
+          <th>Destinatario</th>
+          <th class="th-right">Monto</th>
           <th>Estado</th>
-          <th>Acciones</th>
+          <th class="th-right">Acciones</th>
         </tr>
       </thead>
       <tbody>
         {% for solicitud in solicitudes %}
+        {% set slug = (solicitud.estado or '')|lower|replace(' ', '-') %}
         <!-- Fila de resumen -->
         <tr class="summary-row" onclick="toggleDetails('details-{{ solicitud.id }}')">
-          <td>{{ solicitud.fp }}</td>
-          <td>{{ solicitud.fecha }}</td>
-          <td>{{ solicitud.nombre }}</td>
-          <td>{{ solicitud.estado }}</td>
-          <td>
-            <a href="{{ url_for('editar_solicitud', solicitud_id=solicitud.id) }}" class="btn btn-info">Editar</a>
-            <form action="{{ url_for('eliminar_solicitud', solicitud_id=solicitud.id) }}" method="post" style="display:inline-block;">
-              <button type="submit" class="btn btn-danger" onclick="return confirm('¿Estás seguro de eliminar esta solicitud?');">Eliminar</button>
-            </form>
+          <td data-cell="fp">
+            <div class="sol-fp"><i class="fa-solid fa-chevron-right expand-ico"></i><span class="fp-txt" title="{{ solicitud.fp }}">{{ fpl(solicitud.fp) }}</span></div>
+            <div class="sol-sub">{{ solicitud.tipo_solicitud or '' }}</div>
+          </td>
+          <td data-cell="fecha">
+            <span class="sol-date">{{ solicitud.fecha|fecha_corta }}</span>
+            <div class="sol-sub">{{ (solicitud.fecha or '')[11:16] }}</div>
+          </td>
+          <td data-cell="sol">
+            <div class="sol-name" title="{{ solicitud.nombre }}">{{ solicitud.nombre }}</div>
+            <div class="sol-sub">{{ solicitud.departamento or '' }}</div>
+          </td>
+          <td data-cell="dest" class="dest-cell">
+            <div class="sol-name" title="{{ solicitud.destinatario or '' }}">{{ solicitud.destinatario or '—' }}</div>
+          </td>
+          <td data-cell="monto" class="col-monto">
+            <div class="amount">{{ money(solicitud.monto) }}</div>
+            {% if solicitud.anticipo == "Si" %}<span class="badge-anticipo"><i class="fa-solid fa-circle-half-stroke"></i> Anticipo</span>{% endif %}
+          </td>
+          <td data-cell="estado">
+            <span class="status-pill" data-c="{{ slug }}">{{ solicitud.estado }}</span>
+          </td>
+          <td data-cell="acc">
+            <div class="row-actions">
+              <a href="{{ url_for('editar_solicitud', solicitud_id=solicitud.id) }}" class="btn btn-secondary btn-sm btn-icon" title="Editar" aria-label="Editar"><i class="fa-solid fa-pen"></i><span class="lbl">Editar</span></a>
+              <form action="{{ url_for('eliminar_solicitud', solicitud_id=solicitud.id) }}" method="post" class="inline-form">
+                <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Eliminar" aria-label="Eliminar" onclick="return confirm('¿Estás seguro de eliminar esta solicitud?');"><i class="fa-solid fa-trash-can"></i><span class="lbl">Eliminar</span></button>
+              </form>
+            </div>
           </td>
         </tr>
         <!-- Fila de detalles colapsable -->
         <tr id="details-{{ solicitud.id }}" class="details-row" style="display:none;">
-          <td colspan="5">
+          <td colspan="7">
             <div class="details-content">
-              <p><strong>Correo:</strong> {{ solicitud.correo }}</p>
-              <p><strong>Departamento:</strong> {{ solicitud.departamento }}</p>
-              <p><strong>Tipo Solicitud:</strong> {{ solicitud.tipo_solicitud }}</p>
-              <p><strong>Tipo Pago:</strong> {{ solicitud.tipo_pago }}</p>
-              {% if solicitud.tipo_solicitud == "Viáticos" and "Detalle de Viáticos:" in solicitud.descripcion %}
-                {% set parts = solicitud.descripcion.split("Detalle de Viáticos:") %}
-                {% set descripcion_principal = parts[0]|trim %}
-                <p><strong>Descripción:</strong> {{ descripcion_principal }}</p>
-                <p><strong>Detalle de Viáticos:</strong></p>
-                {% set detalle_json = parts[1]|trim %}
-                {% set detalle_data = detalle_json|fromjson %}
-                <table class="detalle-viaticos">
-                  <thead>
-                    <tr>
-                      <th>Nombre</th>
-                      <th>Monto</th>
-                      <th>CLABE</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for persona in detalle_data %}
-                    <tr>
-                      <td>{{ persona.nombre }}</td>
-                      <td>${{ "{:,.2f}".format(persona.monto|float) }}</td>
-                      <td>{{ persona.clabe }}</td>
-                    </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              {% else %}
-                <p><strong>Descripción:</strong> {{ solicitud.descripcion }}</p>
-              {% endif %}
-              <p><strong>Datos de Depósito:</strong> {{ solicitud.datos_deposito }}</p>
-              <p><strong>Banco:</strong> {{ solicitud.banco }}</p>
-              <p><strong>CLABE:</strong> {{ solicitud.clabe }}</p>
-              <p><strong>Monto:</strong> ${{ "{:,.2f}".format(solicitud.monto) }}</p>
-              {% if solicitud.anticipo == "Si" %}
-                <p>
-                  <strong>Anticipo:</strong> Sí - {{ solicitud.porcentaje_anticipo }}%<br>
-                  <strong>Monto Restante:</strong> ${{ "{:,.2f}".format(solicitud.monto_restante) }}
-                </p>
-              {% endif %}
-              <p>
-                <strong>Archivo Adjunto:</strong>
-                {% if solicitud.archivo_adjunto %}
-                  <a href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_adjunto) }}" target="_blank">Descargar Archivo</a>
+              <div class="det-grid">
+                <div class="det-card">
+                  <h4><i class="fa-solid fa-building-columns"></i> Datos para el pago</h4>
+                  <dl class="kv">
+                    <dt>Monto</dt><dd class="big">${{ "{:,.2f}".format(solicitud.monto) }}</dd>
+                    {% if solicitud.anticipo == "Si" %}
+                      <dt>Anticipo</dt><dd>Sí - {{ solicitud.porcentaje_anticipo }}%</dd>
+                      <dt>Monto restante</dt><dd>${{ "{:,.2f}".format(solicitud.monto_restante) }}</dd>
+                    {% endif %}
+                    <dt>Banco</dt><dd>{{ solicitud.banco or '—' }}</dd>
+                    <dt>CLABE</dt><dd class="tabular">{{ solicitud.clabe or '—' }}</dd>
+                    <dt>Datos de depósito</dt><dd>{{ solicitud.datos_deposito or '—' }}</dd>
+                  </dl>
+                </div>
+
+                <div class="det-card">
+                  <h4><i class="fa-solid fa-circle-info"></i> Información general</h4>
+                  <dl class="kv">
+                    <dt>Correo</dt><dd>{{ solicitud.correo or '—' }}</dd>
+                    <dt>Departamento</dt><dd>{{ solicitud.departamento or '—' }}</dd>
+                    <dt>Tipo solicitud</dt><dd>{{ solicitud.tipo_solicitud or '—' }}</dd>
+                    <dt>Tipo pago</dt><dd>{{ solicitud.tipo_pago or '—' }}</dd>
+                  </dl>
+                </div>
+
+                <div class="det-card">
+                  <h4><i class="fa-solid fa-paperclip"></i> Archivo adjunto</h4>
+                  {% if solicitud.archivo_factura or solicitud.archivo_recibo or solicitud.archivo_orden_compra or solicitud.archivo_adjunto %}
+                    <div class="files">
+                      {% if solicitud.archivo_factura %}<a class="file-chip" href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_factura) }}" target="_blank"><i class="fa-solid fa-file-invoice"></i> Factura</a>{% endif %}
+                      {% if solicitud.archivo_recibo %}<a class="file-chip" href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_recibo) }}" target="_blank"><i class="fa-solid fa-receipt"></i> Recibo</a>{% endif %}
+                      {% if solicitud.archivo_orden_compra %}<a class="file-chip" href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_orden_compra) }}" target="_blank"><i class="fa-solid fa-file-contract"></i> Orden de compra</a>{% endif %}
+                      {% if solicitud.archivo_adjunto %}<a class="file-chip" href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_adjunto) }}" target="_blank"><i class="fa-solid fa-download"></i> Descargar Archivo</a>{% endif %}
+                    </div>
+                  {% else %}
+                    <p class="sin-archivos">No adjunto</p>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="det-card det-wide">
+                <h4><i class="fa-solid fa-align-left"></i> Descripción</h4>
+                {% if solicitud.tipo_solicitud == "Viáticos" and "Detalle de Viáticos:" in solicitud.descripcion %}
+                  {% set parts = solicitud.descripcion.split("Detalle de Viáticos:") %}
+                  {% set descripcion_principal = parts[0]|trim %}
+                  <p class="det-text">{{ descripcion_principal }}</p>
+                  <p class="det-label">Detalle de Viáticos</p>
+                  {% set detalle_json = parts[1]|trim %}
+                  {% set detalle_data = detalle_json|fromjson %}
+                  <div class="detalle-wrap">
+                    <table class="detalle-viaticos">
+                      <thead>
+                        <tr>
+                          <th>Nombre</th>
+                          <th>Monto</th>
+                          <th>CLABE</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for persona in detalle_data %}
+                        <tr>
+                          <td>{{ persona.nombre }}</td>
+                          <td class="tabular">${{ "{:,.2f}".format(persona.monto|float) }}</td>
+                          <td class="tabular">{{ persona.clabe }}</td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
                 {% else %}
-                  No adjunto
+                  <p class="det-text">{{ solicitud.descripcion or 'Sin descripción' }}</p>
                 {% endif %}
-              </p>
+              </div>
             </div>
           </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
-  </div>
+    </div>
+    {% else %}
+      <div class="empty-state">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <p><strong>No se encontraron solicitudes.</strong></p>
+        {% if q %}<a class="btn btn-secondary btn-sm" href="{{ url_for('ver_historial') }}">Quitar búsqueda</a>{% endif %}
+      </div>
+    {% endif %}
 
-  <!-- Botón para volver al Panel -->
-  <div class="card" style="text-align:center;">
-    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">Volver al Panel</a>
+    <!-- Paginación -->
+    {% if total_count %}
+    <div class="pager">
+      <span class="pager-info">{{ (page - 1) * page_size + 1 }}–{{ (page - 1) * page_size + solicitudes|length }} de <strong>{{ total_count }}</strong> · Página {{ page }} de {{ total_pages }}</span>
+      <div class="pager-pages">
+        <a class="pg {{ 'disabled' if page <= 1 }}" href="{{ panel_url('ver_historial', p=1) }}" aria-label="Primera página"><i class="fa-solid fa-angles-left"></i></a>
+        <a class="pg {{ 'disabled' if page <= 1 }}" href="{{ panel_url('ver_historial', p=(page - 1 if page > 1 else 1)) }}" aria-label="Anterior"><i class="fa-solid fa-angle-left"></i></a>
+        {% for pnum in range([1, page - 2]|max, [total_pages, page + 2]|min + 1) %}
+          <a class="pg {{ 'active' if pnum == page }}" href="{{ panel_url('ver_historial', p=pnum) }}">{{ pnum }}</a>
+        {% endfor %}
+        <a class="pg {{ 'disabled' if page >= total_pages }}" href="{{ panel_url('ver_historial', p=(page + 1 if page < total_pages else total_pages)) }}" aria-label="Siguiente"><i class="fa-solid fa-angle-right"></i></a>
+        <a class="pg {{ 'disabled' if page >= total_pages }}" href="{{ panel_url('ver_historial', p=total_pages) }}" aria-label="Última página"><i class="fa-solid fa-angles-right"></i></a>
+      </div>
+      <select aria-label="Resultados por página" onchange="location.href=this.value">
+        {% for n in [25, 50, 100, 200] %}
+          <option value="{{ panel_url('ver_historial', page_size=n, p=None) }}" {% if page_size == n %}selected{% endif %}>{{ n }} por página</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    <div class="list-foot">
+      <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary"><i class="fa-solid fa-gauge-high"></i> Volver al Panel</a>
+    </div>
   </div>
 </div>
 

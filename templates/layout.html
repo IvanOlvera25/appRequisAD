@@ -1,149 +1,219 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
   <meta charset="UTF-8">
-  <!-- Responsive -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Mi App Flask{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>{% block title %}Portal de pagos{% endblock %} · AD17</title>
 
-  <!-- CSS base -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  <!-- CSS específico del panel/admin -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='admin_styles.css') }}">
+  <!-- Tema antes de pintar (evita parpadeo): preferencia guardada o la del sistema -->
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('ui-theme'); } catch (e) {}
+      if (t !== 'light' && t !== 'dark') {
+        t = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+  <meta name="theme-color" content="#f4f6fa" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0a0f1c" media="(prefers-color-scheme: dark)">
 
-  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ui.css') }}">
 
-  <!-- Iconos -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-  <!-- CSS extra por página -->
   {% block extra_css %}{% endblock %}
 </head>
-<body>
-  <header>
-    <nav class="navbar">
-      <div class="navbar-logo">
-        <h1>AD17 Solutions</h1>
-      </div>
-      <button class="menu-toggle" aria-label="Toggle Navigation">&#9776;</button>
-      <div class="navbar-links">
-        <a class="nav-link {{ 'active' if request.endpoint == 'solicitar_pago' }}" href="{{ url_for('solicitar_pago') }}">
-          <i class="fa-solid fa-file-invoice-dollar"></i> Solicitar Pago
-        </a>
-        {% if session.get('admin_logged_in') %}
-          <a class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard' }}" href="{{ url_for('admin_dashboard') }}">
-            <i class="fa-solid fa-table-columns"></i> Panel
+{% set logged = session.get('admin_logged_in') %}
+{% set is_admin = logged and session.get('role') == 'admin' %}
+{% set ep = request.endpoint or '' %}
+{% set uname = session.get('username') or 'Usuario' %}
+<body class="{{ 'has-bottom-nav' if logged }} page-{{ ep|replace('.', '-') }}">
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <button type="button" class="icon-btn menu-toggle" data-drawer-open aria-label="Abrir menú">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+
+      <a class="brand" href="{{ url_for('admin_dashboard') if logged else url_for('solicitar_pago') }}">
+        <span class="brand-mark">AD17</span>
+        <span class="brand-text">AD17 Solutions<small>Portal de pagos</small></span>
+      </a>
+
+      <nav class="nav-main" aria-label="Principal">
+        {% if logged %}
+          <a class="nav-link {{ 'active' if ep == 'admin_dashboard' }}" href="{{ url_for('admin_dashboard') }}">
+            <i class="fa-solid fa-gauge-high"></i> Panel
           </a>
+        {% endif %}
+        <a class="nav-link {{ 'active' if ep == 'solicitar_pago' }}" href="{{ url_for('solicitar_pago') }}">
+          <i class="fa-solid fa-file-circle-plus"></i> Nueva solicitud
+        </a>
 
-          {% if session.get('role') == 'admin' %}
-            {% set fin_activo = request.endpoint in ('creditos_dashboard', 'pagos_recurrentes') or (request.endpoint or '').startswith('comisiones.') %}
-            <div class="nav-dropdown {{ 'child-active' if fin_activo }}">
-              <button type="button" class="nav-link nav-dropdown-toggle">
-                <i class="fa-solid fa-coins"></i> Finanzas <i class="fa-solid fa-chevron-down nav-caret"></i>
-              </button>
-              <div class="nav-dropdown-menu">
-                <a class="{{ 'active' if request.endpoint == 'creditos_dashboard' }}" href="{{ url_for('creditos_dashboard') }}"><i class="fa-solid fa-hand-holding-dollar"></i> Créditos</a>
-                <a class="{{ 'active' if request.endpoint == 'pagos_recurrentes' }}" href="{{ url_for('pagos_recurrentes') }}"><i class="fa-solid fa-rotate"></i> Pagos recurrentes</a>
-                <a class="{{ 'active' if (request.endpoint or '').startswith('comisiones.') }}" href="{{ url_for('comisiones.comisiones') }}"><i class="fa-solid fa-percent"></i> Comisiones</a>
-              </div>
-            </div>
-
-            {% set ana_activo = request.endpoint in ('estadisticas', 'calendario') %}
-            <div class="nav-dropdown {{ 'child-active' if ana_activo }}">
-              <button type="button" class="nav-link nav-dropdown-toggle">
-                <i class="fa-solid fa-chart-line"></i> Análisis <i class="fa-solid fa-chevron-down nav-caret"></i>
-              </button>
-              <div class="nav-dropdown-menu">
-                <a class="{{ 'active' if request.endpoint == 'estadisticas' }}" href="{{ url_for('estadisticas') }}"><i class="fa-solid fa-chart-pie"></i> Estadísticas</a>
-                <a class="{{ 'active' if request.endpoint == 'calendario' }}" href="{{ url_for('calendario') }}"><i class="fa-solid fa-calendar-days"></i> Calendario</a>
-                <a href="{{ url_for('exportar_solicitudes') }}"><i class="fa-solid fa-file-excel"></i> Exportar todo (Excel)</a>
-              </div>
-            </div>
-
-            {% set adm_activo = request.endpoint in ('proveedores_dashboard', 'admin_usuarios') %}
-            <div class="nav-dropdown {{ 'child-active' if adm_activo }}">
-              <button type="button" class="nav-link nav-dropdown-toggle">
-                <i class="fa-solid fa-gear"></i> Administración <i class="fa-solid fa-chevron-down nav-caret"></i>
-              </button>
-              <div class="nav-dropdown-menu">
-                <a class="{{ 'active' if request.endpoint == 'proveedores_dashboard' }}" href="{{ url_for('proveedores_dashboard') }}"><i class="fa-solid fa-truck-field"></i> Proveedores</a>
-                <a class="{{ 'active' if request.endpoint == 'admin_usuarios' }}" href="{{ url_for('admin_usuarios') }}"><i class="fa-solid fa-users-gear"></i> Usuarios</a>
-              </div>
-            </div>
-          {% else %}
-            <a class="nav-link" href="{{ url_for('exportar_solicitudes') }}"><i class="fa-solid fa-file-excel"></i> Exportar todo (Excel)</a>
-          {% endif %}
-
-          <div class="nav-dropdown nav-user">
+        {% if is_admin %}
+          {% set fin_activo = ep in ('creditos_dashboard', 'pagos_recurrentes') or ep.startswith('comisiones.') %}
+          <div class="nav-dropdown {{ 'child-active' if fin_activo }}">
             <button type="button" class="nav-link nav-dropdown-toggle">
-              <span class="nav-avatar"><i class="fa-solid fa-user"></i></span>
-              <span class="nav-username">{{ session.get('username') or 'Usuario' }}</span>
+              <i class="fa-solid fa-coins"></i> Finanzas <i class="fa-solid fa-chevron-down nav-caret"></i>
+            </button>
+            <div class="nav-dropdown-menu">
+              <a class="{{ 'active' if ep == 'creditos_dashboard' }}" href="{{ url_for('creditos_dashboard') }}"><i class="fa-solid fa-hand-holding-dollar"></i> Créditos</a>
+              <a class="{{ 'active' if ep == 'pagos_recurrentes' }}" href="{{ url_for('pagos_recurrentes') }}"><i class="fa-solid fa-rotate"></i> Pagos recurrentes</a>
+              <a class="{{ 'active' if ep.startswith('comisiones.') }}" href="{{ url_for('comisiones.comisiones') }}"><i class="fa-solid fa-percent"></i> Comisiones</a>
+            </div>
+          </div>
+
+          {% set ana_activo = ep in ('estadisticas', 'calendario', 'ver_historial') %}
+          <div class="nav-dropdown {{ 'child-active' if ana_activo }}">
+            <button type="button" class="nav-link nav-dropdown-toggle">
+              <i class="fa-solid fa-chart-line"></i> Análisis <i class="fa-solid fa-chevron-down nav-caret"></i>
+            </button>
+            <div class="nav-dropdown-menu">
+              <a class="{{ 'active' if ep == 'estadisticas' }}" href="{{ url_for('estadisticas') }}"><i class="fa-solid fa-chart-pie"></i> Estadísticas</a>
+              <a class="{{ 'active' if ep == 'calendario' }}" href="{{ url_for('calendario') }}"><i class="fa-solid fa-calendar-days"></i> Calendario</a>
+              <a class="{{ 'active' if ep == 'ver_historial' }}" href="{{ url_for('ver_historial') }}"><i class="fa-solid fa-clock-rotate-left"></i> Historial</a>
+              <a href="{{ url_for('exportar_solicitudes') }}"><i class="fa-solid fa-file-excel"></i> Exportar todo (Excel)</a>
+            </div>
+          </div>
+
+          {% set adm_activo = ep in ('proveedores_dashboard', 'admin_usuarios') %}
+          <div class="nav-dropdown {{ 'child-active' if adm_activo }}">
+            <button type="button" class="nav-link nav-dropdown-toggle">
+              <i class="fa-solid fa-gear"></i> Administración <i class="fa-solid fa-chevron-down nav-caret"></i>
+            </button>
+            <div class="nav-dropdown-menu">
+              <a class="{{ 'active' if ep == 'proveedores_dashboard' }}" href="{{ url_for('proveedores_dashboard') }}"><i class="fa-solid fa-truck-field"></i> Proveedores</a>
+              <a class="{{ 'active' if ep == 'admin_usuarios' }}" href="{{ url_for('admin_usuarios') }}"><i class="fa-solid fa-users-gear"></i> Usuarios</a>
+            </div>
+          </div>
+        {% elif logged %}
+          <a class="nav-link {{ 'active' if ep == 'ver_historial' }}" href="{{ url_for('ver_historial') }}"><i class="fa-solid fa-clock-rotate-left"></i> Historial</a>
+          <a class="nav-link" href="{{ url_for('exportar_solicitudes') }}"><i class="fa-solid fa-file-excel"></i> Exportar (Excel)</a>
+        {% endif %}
+      </nav>
+
+      <div class="nav-right">
+        {% if is_admin %}
+          <button type="button" class="ai-trigger in-topbar" data-ai-open title="Asistente IA (Ctrl/⌘ + K)">
+            <i class="fa-solid fa-wand-magic-sparkles"></i><span class="ai-label">Asistente</span><kbd>⌘K</kbd>
+          </button>
+        {% endif %}
+
+        <button type="button" class="icon-btn theme-toggle" id="themeToggle" aria-label="Cambiar entre tema claro y oscuro" title="Tema claro / oscuro">
+          <i class="fa-solid fa-sun ico-sun"></i>
+          <i class="fa-solid fa-moon ico-moon"></i>
+        </button>
+
+        {% if logged %}
+          <div class="nav-dropdown nav-user">
+            <button type="button" class="nav-link nav-dropdown-toggle user-btn" aria-label="Menú de usuario">
+              <span class="avatar">{{ uname[:2] }}</span>
+              <span class="nav-username">{{ uname }}</span>
               <i class="fa-solid fa-chevron-down nav-caret"></i>
             </button>
             <div class="nav-dropdown-menu nav-dropdown-menu-right">
-              <span class="nav-rol">{{ 'Administrador' if session.get('role') == 'admin' else 'Coordinador' }}</span>
+              <div class="nav-user-card">
+                <span class="avatar">{{ uname[:2] }}</span>
+                <div><strong>{{ uname }}</strong><span>{{ 'Administrador' if is_admin else 'Coordinador' }}</span></div>
+              </div>
               <a class="nav-salir" href="{{ url_for('admin_logout') }}"><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</a>
             </div>
           </div>
         {% else %}
-          <a class="nav-link" href="{{ url_for('admin_login') }}"><i class="fa-solid fa-right-to-bracket"></i> Ingresar</a>
+          <a class="btn btn-secondary btn-sm" href="{{ url_for('admin_login') }}"><i class="fa-solid fa-right-to-bracket"></i> Ingresar</a>
         {% endif %}
       </div>
-    </nav>
+    </div>
   </header>
 
-  <main class="container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="flash-messages">
-          {% for category, message in messages %}
-            <div class="flash {{ category }}">{{ message }}</div>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
+  <!-- Menú lateral (móvil / tablet) -->
+  <div class="drawer-backdrop" data-drawer-close></div>
+  <aside class="drawer" aria-label="Menú">
+    <div class="drawer-head">
+      <span class="brand"><span class="brand-mark">AD17</span><span class="brand-text">AD17 Solutions<small>Portal de pagos</small></span></span>
+      <button type="button" class="icon-btn" data-drawer-close aria-label="Cerrar menú"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    {% if logged %}
+      <a class="{{ 'active' if ep == 'admin_dashboard' }}" href="{{ url_for('admin_dashboard') }}"><i class="fa-solid fa-gauge-high"></i> Panel de pagos</a>
+      <a href="{{ url_for('admin_dashboard') }}#por-vencer"><i class="fa-solid fa-hourglass-half"></i> Próximos a vencer</a>
+    {% endif %}
+    <a class="{{ 'active' if ep == 'solicitar_pago' }}" href="{{ url_for('solicitar_pago') }}"><i class="fa-solid fa-file-circle-plus"></i> Nueva solicitud</a>
+    {% if is_admin %}
+      <span class="nav-menu-label">Finanzas</span>
+      <a class="{{ 'active' if ep == 'creditos_dashboard' }}" href="{{ url_for('creditos_dashboard') }}"><i class="fa-solid fa-hand-holding-dollar"></i> Créditos</a>
+      <a class="{{ 'active' if ep == 'pagos_recurrentes' }}" href="{{ url_for('pagos_recurrentes') }}"><i class="fa-solid fa-rotate"></i> Pagos recurrentes</a>
+      <a class="{{ 'active' if ep.startswith('comisiones.') }}" href="{{ url_for('comisiones.comisiones') }}"><i class="fa-solid fa-percent"></i> Comisiones</a>
+      <span class="nav-menu-label">Análisis</span>
+      <a class="{{ 'active' if ep == 'estadisticas' }}" href="{{ url_for('estadisticas') }}"><i class="fa-solid fa-chart-pie"></i> Estadísticas</a>
+      <a class="{{ 'active' if ep == 'calendario' }}" href="{{ url_for('calendario') }}"><i class="fa-solid fa-calendar-days"></i> Calendario</a>
+      <a class="{{ 'active' if ep == 'ver_historial' }}" href="{{ url_for('ver_historial') }}"><i class="fa-solid fa-clock-rotate-left"></i> Historial</a>
+      <a href="{{ url_for('exportar_solicitudes') }}"><i class="fa-solid fa-file-excel"></i> Exportar todo (Excel)</a>
+      <span class="nav-menu-label">Administración</span>
+      <a class="{{ 'active' if ep == 'proveedores_dashboard' }}" href="{{ url_for('proveedores_dashboard') }}"><i class="fa-solid fa-truck-field"></i> Proveedores</a>
+      <a class="{{ 'active' if ep == 'admin_usuarios' }}" href="{{ url_for('admin_usuarios') }}"><i class="fa-solid fa-users-gear"></i> Usuarios</a>
+    {% elif logged %}
+      <a class="{{ 'active' if ep == 'ver_historial' }}" href="{{ url_for('ver_historial') }}"><i class="fa-solid fa-clock-rotate-left"></i> Historial</a>
+      <a href="{{ url_for('exportar_solicitudes') }}"><i class="fa-solid fa-file-excel"></i> Exportar (Excel)</a>
+    {% endif %}
+    <span class="nav-menu-label">Cuenta</span>
+    {% if logged %}
+      <a class="nav-salir" href="{{ url_for('admin_logout') }}"><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión ({{ uname }})</a>
+    {% else %}
+      <a href="{{ url_for('admin_login') }}"><i class="fa-solid fa-right-to-bracket"></i> Ingresar</a>
+    {% endif %}
+  </aside>
 
+  <!-- Avisos (flash) como toasts -->
+  <div class="toast-stack" id="toastStack" aria-live="polite">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        {% set cat = 'error' if category in ('error', 'danger') else ('success' if category == 'success' else ('warning' if category == 'warning' else 'info')) %}
+        <div class="toast {{ cat }}" role="status" data-autoclose="6500">
+          <span class="toast-ico"><i class="fa-solid {{ {'success':'fa-circle-check','error':'fa-circle-exclamation','warning':'fa-triangle-exclamation','info':'fa-circle-info'}[cat] }}"></i></span>
+          <div class="toast-body">{{ message }}</div>
+          <button type="button" class="toast-close" aria-label="Cerrar">&times;</button>
+          <span class="toast-progress" style="animation-duration:6.5s"></span>
+        </div>
+      {% endfor %}
+    {% endwith %}
+  </div>
+
+  <main class="app-main container">
     {% block content %}{% endblock %}
   </main>
 
-  <footer>
-    <p>Sistema de Solicitud de Pagos.</p>
+  <footer class="app-footer">
+    <p>AD17 Solutions · Sistema de solicitudes de pago</p>
   </footer>
 
-  <!-- Script del layout -->
-  <script>
-  (function () {
-    var toggleButton = document.querySelector('.menu-toggle');
-    var navbarLinks = document.querySelector('.navbar-links');
-    if (toggleButton && navbarLinks) {
-      toggleButton.addEventListener('click', function () {
-        navbarLinks.classList.toggle('active');
-      });
-    }
+  {% if logged %}
+    <!-- Barra inferior (celular) -->
+    <nav class="bottom-nav" aria-label="Accesos rápidos">
+      <a class="{{ 'active' if ep == 'admin_dashboard' }}" href="{{ url_for('admin_dashboard') }}"><i class="fa-solid fa-gauge-high"></i>Panel</a>
+      <a href="{{ url_for('admin_dashboard') }}#por-vencer"><i class="fa-solid fa-hourglass-half"></i>Por vencer</a>
+      <a class="bn-primary {{ 'active' if ep == 'solicitar_pago' }}" href="{{ url_for('solicitar_pago') }}"><i class="fa-solid fa-plus"></i>Nueva</a>
+      {% if is_admin %}
+        <button type="button" class="bn-ai" data-ai-open><i class="fa-solid fa-wand-magic-sparkles"></i>Asistente</button>
+      {% else %}
+        <a class="{{ 'active' if ep == 'ver_historial' }}" href="{{ url_for('ver_historial') }}"><i class="fa-solid fa-clock-rotate-left"></i>Historial</a>
+      {% endif %}
+      <button type="button" data-drawer-open><i class="fa-solid fa-bars"></i>Menú</button>
+    </nav>
+  {% endif %}
 
-    // Menús desplegables del navbar
-    var dropdowns = Array.prototype.slice.call(document.querySelectorAll('.nav-dropdown'));
-    dropdowns.forEach(function (dd) {
-      var toggle = dd.querySelector('.nav-dropdown-toggle');
-      if (!toggle) return;
-      toggle.addEventListener('click', function (e) {
-        e.stopPropagation();
-        var estabaAbierto = dd.classList.contains('open');
-        dropdowns.forEach(function (d) { d.classList.remove('open'); });
-        if (!estabaAbierto) dd.classList.add('open');
-      });
-    });
-    // Cerrar al hacer clic fuera
-    document.addEventListener('click', function () {
-      dropdowns.forEach(function (d) { d.classList.remove('open'); });
-    });
-  })();
-  </script>
+  {% if is_admin %}
+    {% include "partials/asistente.html" %}
+  {% endif %}
 
-  <!-- ÚNICO bloque de scripts por página -->
+  <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
+  {% if is_admin %}
+    <script src="{{ url_for('static', filename='js/asistente.js') }}" defer></script>
+  {% endif %}
+
   {% block scripts %}{% endblock %}
 </body>
 </html>

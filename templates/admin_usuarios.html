@@ -3,179 +3,257 @@
 
 {% block extra_css %}
 <style>
-  .usuarios-wrap { max-width: 1000px; margin: 0 auto; display: grid; gap: 1.25rem; }
-  .usuarios-card {
-    background: linear-gradient(180deg, #262626 0%, #212121 100%);
-    border: 1px solid var(--border-color);
-    border-radius: 14px;
-    padding: 1.25rem 1.5rem;
-    box-shadow: 0 10px 26px rgba(0,0,0,.35);
-  }
-  .usuarios-card h2 {
-    font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem;
-    display: flex; align-items: center; gap: .5rem;
-  }
-  .usuarios-card h2 i { color: var(--primary-color); }
+  .usuarios-wrap { max-width: 1240px; margin: 0 auto; min-width: 0; }
 
-  /* Formulario crear */
-  .form-crear { display: flex; flex-wrap: wrap; gap: .75rem; align-items: flex-end; }
-  .form-crear .campo { display: flex; flex-direction: column; gap: .3rem; }
-  .form-crear label { font-size: .75rem; color: #9ca3af; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
-  .form-crear input, .form-crear select {
-    background: var(--input-bg); color: var(--text-color);
-    border: 1px solid var(--border-color); border-radius: 8px;
-    padding: .5rem .7rem; font-size: .9rem; min-width: 200px; outline: none;
+  /* ---------- KPIs ---------- */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+  .kpi {
+    --c: var(--brand);
+    position: relative; overflow: hidden; display: flex; align-items: center; gap: .85rem;
+    padding: .95rem 1.1rem; border-radius: var(--radius-lg); background: var(--surface); color: var(--text);
+    border: 1px solid var(--border); box-shadow: var(--shadow-sm); min-width: 0;
   }
-  .form-crear input:focus, .form-crear select:focus { border-color: var(--primary-color); }
-  .btn-naranja {
-    background: var(--primary-color); color: #fff; border: none; border-radius: 8px;
-    padding: .55rem 1.1rem; font-weight: 700; cursor: pointer; font-size: .9rem;
+  .kpi::after {
+    content: ""; position: absolute; right: -40px; top: -40px; width: 120px; height: 120px; border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--c) 18%, transparent), transparent 70%); pointer-events: none;
   }
-  .btn-naranja:hover { background: #e06d17; }
+  .kpi-ico { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: grid; place-items: center; color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent); }
+  .kpi-label { display: block; font-size: .8rem; font-weight: 600; color: var(--text-2); }
+  .kpi-value { display: block; font-size: 1.5rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .kpi.k-total { --c: var(--brand); } .kpi.k-admin { --c: var(--st-aprobado-anticipo); }
+  .kpi.k-coord { --c: var(--info); } .kpi.k-off { --c: var(--danger); }
 
-  /* Tabla */
-  .tabla-usuarios { width: 100%; border-collapse: collapse; }
-  .tabla-usuarios th {
-    text-align: left; padding: .55rem .75rem; font-size: .75rem; color: #9ca3af;
-    text-transform: uppercase; letter-spacing: .04em;
-    border-bottom: 2px solid var(--border-color);
-    background: rgba(243,124,34,.06);
+  /* ---------- Distribución ---------- */
+  .usr-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 1.25rem; align-items: start; }
+  .usr-grid > .usr-create { grid-column: 2; grid-row: 1; position: sticky; top: calc(var(--nav-h) + 16px); }
+  .usr-grid > .usr-list { grid-column: 1; grid-row: 1; }
+  @media (max-width: 1199px) {
+    .usr-grid { grid-template-columns: minmax(0, 1fr); }
+    .usr-grid > .usr-create, .usr-grid > .usr-list { grid-column: auto; grid-row: auto; position: static; }
   }
-  .tabla-usuarios td { padding: .55rem .75rem; border-top: 1px solid rgba(68,68,68,.5); font-size: .88rem; vertical-align: middle; }
-  .tabla-usuarios tr.inactivo td { opacity: .45; }
 
-  .badge-rol, .badge-estado {
-    display: inline-block; padding: .15rem .6rem; border-radius: 999px;
-    font-size: .72rem; font-weight: 700; letter-spacing: .02em;
+  .usuarios-card { margin: 0; padding: 0; min-width: 0; }
+  .usuarios-card .uc-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .95rem 1.15rem; border-bottom: 1px solid var(--border); }
+  .usuarios-card h2 { margin: 0; font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: .55rem; }
+  .usuarios-card h2 i {
+    width: 32px; height: 32px; border-radius: 10px; display: inline-grid; place-items: center; font-size: .85rem;
+    color: var(--brand); background: var(--brand-50);
   }
-  .badge-rol.admin { background: rgba(243,124,34,.15); color: var(--primary-color); border: 1px solid rgba(243,124,34,.4); }
-  .badge-rol.coordinador { background: rgba(47,109,246,.15); color: #6d9bff; border: 1px solid rgba(47,109,246,.4); }
-  .badge-estado.on { background: rgba(40,167,69,.15); color: #4cd964; border: 1px solid rgba(40,167,69,.4); }
-  .badge-estado.off { background: rgba(220,53,69,.12); color: #ff7b86; border: 1px solid rgba(220,53,69,.35); }
+  .usuarios-card .uc-head .meta { font-size: .82rem; color: var(--text-2); }
+  .usuarios-card .uc-body { padding: 1.1rem 1.15rem; }
+  .hint {
+    display: flex; gap: .5rem; align-items: flex-start; font-size: .8rem; color: var(--text-2); line-height: 1.45;
+    margin: 0; padding: .75rem 1.15rem; background: var(--surface-2); border-top: 1px solid var(--border);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  }
+  .hint i { color: var(--info); margin-top: .15rem; }
+
+  /* ---------- Formulario crear ---------- */
+  .form-crear { display: grid; grid-template-columns: minmax(0, 1fr); gap: .85rem; }
+  .form-crear .campo { display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
+  .form-crear label { font-size: .82rem; font-weight: 600; color: var(--text); }
+  .form-crear .btn-naranja { width: 100%; margin-top: .25rem; }
+  @media (min-width: 641px) and (max-width: 1199px) {
+    .form-crear { grid-template-columns: repeat(3, minmax(0, 1fr)) auto; align-items: end; }
+    .form-crear .btn-naranja { width: auto; margin: 0; }
+  }
+
+  /* ---------- Tabla ---------- */
+  .tabla-usuarios { width: 100%; }
+  .tabla-usuarios th:first-child, .tabla-usuarios td:first-child { padding-left: 1.15rem; }
+  .tabla-usuarios th:last-child, .tabla-usuarios td:last-child { padding-right: 1.15rem; }
+  .tabla-usuarios td { padding-top: .7rem; padding-bottom: .7rem; }
+  .tabla-usuarios tbody tr:last-child td { border-bottom: 0; }
+  .tabla-usuarios tr.inactivo td:not(.c-acc) { opacity: .55; }
+  .tabla-usuarios tr.inactivo .u-avatar { filter: grayscale(1); }
+  .u-cell { display: flex; align-items: center; gap: .7rem; min-width: 0; }
+  .u-avatar { width: 34px; height: 34px; font-size: .74rem; }
+  .u-name { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; min-width: 0; }
+  .u-name strong { font-weight: 650; word-break: break-word; }
+  .u-you { font-size: .68rem; padding: .1rem .45rem; }
+  .c-date { color: var(--text-2); font-size: .82rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .badge-rol { gap: .4rem; }
+  .badge-rol.admin { background: color-mix(in srgb, var(--st-aprobado-anticipo) 12%, transparent); color: var(--st-aprobado-anticipo); }
+  .badge-rol.coordinador { background: color-mix(in srgb, var(--info) 12%, transparent); color: var(--info); }
+  .badge-estado.on { --c: var(--success); }
+  .badge-estado.off { --c: var(--danger); }
 
   /* Acciones por fila */
-  .acciones { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+  .tabla-usuarios td.c-acc { width: 1%; white-space: nowrap; }
+  .acciones { display: flex; gap: .4rem; align-items: center; justify-content: flex-end; flex-wrap: nowrap; }
+  .acciones form { margin: 0; }
   .acciones details { position: relative; }
-  .acciones summary {
-    list-style: none; cursor: pointer; user-select: none;
-    background: transparent; color: var(--text-color);
-    border: 1px solid var(--border-color); border-radius: 8px;
-    padding: .35rem .7rem; font-size: .8rem; font-weight: 600; display: inline-flex; align-items: center; gap: .35rem;
-  }
+  .acciones summary { list-style: none; }
   .acciones summary::-webkit-details-marker { display: none; }
-  .acciones summary:hover { border-color: var(--primary-color); color: var(--primary-color); }
-  .acciones details[open] summary { border-color: var(--primary-color); color: var(--primary-color); }
+  .acciones details[open] summary { color: var(--brand); border-color: var(--brand); background: var(--brand-50); }
   .form-pass {
     position: absolute; right: 0; top: calc(100% + 6px); z-index: 20;
-    background: #262626; border: 1px solid var(--border-color); border-radius: 10px;
-    padding: .75rem; display: flex; gap: .5rem; box-shadow: 0 12px 28px rgba(0,0,0,.5);
+    display: flex; gap: .5rem; align-items: center; padding: .65rem;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-lg);
+    animation: fadeIn .18s var(--ease);
   }
-  .form-pass input {
-    background: var(--input-bg); color: var(--text-color);
-    border: 1px solid var(--border-color); border-radius: 8px;
-    padding: .45rem .6rem; font-size: .85rem; width: 180px; outline: none;
-  }
-  .form-pass input:focus { border-color: var(--primary-color); }
-  .btn-mini {
-    border: none; border-radius: 8px; padding: .45rem .8rem;
-    font-size: .8rem; font-weight: 700; cursor: pointer;
-  }
-  .btn-mini.guardar { background: var(--primary-color); color: #fff; }
-  .btn-mini.guardar:hover { background: #e06d17; }
-  .btn-toggle {
-    background: transparent; border: 1px solid var(--border-color); color: #9ca3af;
-    border-radius: 8px; padding: .35rem .7rem; font-size: .8rem; font-weight: 600; cursor: pointer;
-  }
-  .btn-toggle:hover { border-color: #ff7b86; color: #ff7b86; }
-  .btn-toggle.reactivar:hover { border-color: #4cd964; color: #4cd964; }
+  .form-pass input { width: 200px; min-height: 38px; padding: .45rem .7rem; font-size: .86rem; }
+  .form-pass .btn { min-height: 38px; }
+  .btn.btn-toggle { --b-bg: color-mix(in srgb, var(--danger) 8%, var(--surface)); --b-fg: var(--danger); --b-bd: color-mix(in srgb, var(--danger) 28%, transparent); --b-bg-h: color-mix(in srgb, var(--danger) 14%, var(--surface)); box-shadow: none; }
+  .btn.btn-toggle.reactivar { --b-bg: color-mix(in srgb, var(--success) 9%, var(--surface)); --b-fg: var(--success); --b-bd: color-mix(in srgb, var(--success) 30%, transparent); --b-bg-h: color-mix(in srgb, var(--success) 15%, var(--surface)); }
 
-  .hint { font-size: .78rem; color: #9ca3af; margin-top: .6rem; }
+  /* ---------- Celular: filas → tarjetas ---------- */
+  @media (max-width: 1240px) { .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 760px) {
+    .kpi-grid { gap: .6rem; }
+    .kpi { padding: .75rem .8rem; gap: .6rem; }
+    .kpi-ico { width: 34px; height: 34px; border-radius: 10px; font-size: .85rem; }
+    .kpi-value { font-size: 1.25rem; }
+    .kpi-label { font-size: .74rem; }
 
-  @media (max-width: 768px) {
-    .form-crear input, .form-crear select { min-width: 0; width: 100%; }
-    .form-crear .campo { width: 100%; }
-    .tabla-usuarios-scroll { overflow-x: auto; }
-    .form-pass { position: static; margin-top: .5rem; }
+    .tabla-usuarios thead { display: none; }
+    .tabla-usuarios, .tabla-usuarios tbody { display: block; }
+    .tabla-usuarios tbody tr {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas: "user estado" "rol fecha" "acc acc";
+      gap: .55rem .75rem; padding: .95rem 1.15rem; border-bottom: 1px solid var(--border);
+    }
+    .tabla-usuarios tbody tr:last-child { border-bottom: 0; }
+    .tabla-usuarios tbody tr:hover { background: transparent; }
+    .tabla-usuarios tbody tr td { padding: 0 !important; border: 0; }
+    .tabla-usuarios td.c-user { grid-area: user; }
+    .tabla-usuarios td.c-rol { grid-area: rol; }
+    .tabla-usuarios td.c-estado { grid-area: estado; justify-self: end; align-self: center; }
+    .tabla-usuarios td.c-date { grid-area: fecha; justify-self: end; align-self: center; }
+    .tabla-usuarios td.c-date::before { content: "Creado "; color: var(--text-3); }
+    .tabla-usuarios td.c-acc { grid-area: acc; width: auto; white-space: normal; padding-top: .7rem !important; border-top: 1px dashed var(--border); }
+    .acciones { justify-content: stretch; flex-wrap: wrap; }
+    .acciones > details, .acciones > form { flex: 1 1 0; min-width: 0; }
+    .acciones details[open] { flex-basis: 100%; }
+    .acciones summary, .acciones .btn-toggle { width: 100%; min-height: 40px; }
+    .form-pass { position: static; margin-top: .5rem; box-shadow: none; background: var(--surface-2); }
+    .form-pass input { flex: 1; width: auto; min-width: 0; min-height: 42px; }
+    .form-pass .btn { min-height: 42px; }
   }
 </style>
 {% endblock %}
 
 {% block content %}
+{% set n_admin = usuarios|selectattr('rol', 'equalto', 'admin')|list|length %}
+{% set n_coord = usuarios|selectattr('rol', 'equalto', 'coordinador')|list|length %}
+{% set n_inact = usuarios|rejectattr('activo')|list|length %}
 <div class="usuarios-wrap">
 
-  <div class="usuarios-card">
-    <h2><i class="fa-solid fa-user-plus"></i> Crear nuevo usuario</h2>
-    <form class="form-crear" method="POST" action="{{ url_for('admin_usuarios_crear') }}" autocomplete="off">
-      <div class="campo">
-        <label for="nuevo-username">Usuario</label>
-        <input id="nuevo-username" name="username" type="text" required placeholder="ej. jlopez" autocomplete="off">
-      </div>
-      <div class="campo">
-        <label for="nuevo-password">Contraseña</label>
-        <input id="nuevo-password" name="password" type="password" required minlength="4" placeholder="mínimo 4 caracteres" autocomplete="new-password">
-      </div>
-      <div class="campo">
-        <label for="nuevo-rol">Rol</label>
-        <select id="nuevo-rol" name="rol" required>
-          <option value="coordinador">Coordinador</option>
-          <option value="admin">Administrador</option>
-        </select>
-      </div>
-      <button type="submit" class="btn-naranja"><i class="fa-solid fa-plus"></i> Crear usuario</button>
-    </form>
-    <p class="hint">El administrador tiene acceso completo (créditos, estadísticas, proveedores, usuarios). El coordinador solo ve el panel de solicitudes.</p>
+  <div class="page-head reveal">
+    <div>
+      <div class="eyebrow"><i class="fa-solid fa-gear"></i> Administración</div>
+      <h1>Usuarios del panel</h1>
+      <p class="subtitle">Crea cuentas, cambia contraseñas y controla quién puede entrar al panel.</p>
+    </div>
   </div>
 
-  <div class="usuarios-card">
-    <h2><i class="fa-solid fa-users-gear"></i> Usuarios del panel</h2>
-    <div class="tabla-usuarios-scroll">
-      <table class="tabla-usuarios">
-        <thead>
-          <tr>
-            <th>Usuario</th>
-            <th>Rol</th>
-            <th>Estado</th>
-            <th>Creado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for u in usuarios %}
-          <tr class="{{ 'inactivo' if not u.activo }}">
-            <td>
-              <strong>{{ u.username }}</strong>
-              {% if session.get('username') and session.get('username')|lower == u.username|lower %}
-                <span style="color:#9ca3af; font-size:.75rem;">(tú)</span>
-              {% endif %}
-            </td>
-            <td><span class="badge-rol {{ u.rol }}">{{ 'Administrador' if u.rol == 'admin' else 'Coordinador' }}</span></td>
-            <td><span class="badge-estado {{ 'on' if u.activo else 'off' }}">{{ 'Activo' if u.activo else 'Inactivo' }}</span></td>
-            <td style="color:#9ca3af; font-size:.8rem;">{{ (u.fecha_creacion or '')[:10] }}</td>
-            <td>
-              <div class="acciones">
-                <details>
-                  <summary><i class="fa-solid fa-key"></i> Contraseña</summary>
-                  <form class="form-pass" method="POST" action="{{ url_for('admin_usuarios_password', uid=u.id) }}" autocomplete="off">
-                    <input type="password" name="password" required minlength="4" placeholder="Nueva contraseña" autocomplete="new-password">
-                    <button type="submit" class="btn-mini guardar">Guardar</button>
-                  </form>
-                </details>
-                <form method="POST" action="{{ url_for('admin_usuarios_toggle', uid=u.id) }}"
-                      onsubmit="return confirm('¿Seguro que quieres {{ 'desactivar' if u.activo else 'reactivar' }} a {{ u.username }}?');">
-                  {% if u.activo %}
-                    <button type="submit" class="btn-toggle"><i class="fa-solid fa-user-slash"></i> Desactivar</button>
-                  {% else %}
-                    <button type="submit" class="btn-toggle reactivar"><i class="fa-solid fa-user-check"></i> Reactivar</button>
-                  {% endif %}
-                </form>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  <div class="kpi-grid">
+    <div class="kpi k-total reveal reveal-1">
+      <span class="kpi-ico"><i class="fa-solid fa-users"></i></span>
+      <div><span class="kpi-label">Usuarios</span><span class="kpi-value">{{ usuarios|length }}</span></div>
     </div>
-    <p class="hint"><i class="fa-solid fa-circle-info"></i> Los usuarios desactivados no pueden iniciar sesión, pero conservan su historial. No puedes desactivarte a ti mismo ni al único administrador activo.</p>
+    <div class="kpi k-admin reveal reveal-2">
+      <span class="kpi-ico"><i class="fa-solid fa-shield-halved"></i></span>
+      <div><span class="kpi-label">Administradores</span><span class="kpi-value">{{ n_admin }}</span></div>
+    </div>
+    <div class="kpi k-coord reveal reveal-3">
+      <span class="kpi-ico"><i class="fa-solid fa-user-tie"></i></span>
+      <div><span class="kpi-label">Coordinadores</span><span class="kpi-value">{{ n_coord }}</span></div>
+    </div>
+    <div class="kpi k-off reveal reveal-4">
+      <span class="kpi-ico"><i class="fa-solid fa-user-slash"></i></span>
+      <div><span class="kpi-label">Inactivos</span><span class="kpi-value">{{ n_inact }}</span></div>
+    </div>
+  </div>
+
+  <div class="usr-grid">
+    <div class="card usuarios-card usr-create reveal reveal-3">
+      <div class="uc-head">
+        <h2><i class="fa-solid fa-user-plus"></i> Crear nuevo usuario</h2>
+      </div>
+      <div class="uc-body">
+        <form class="form-crear" method="POST" action="{{ url_for('admin_usuarios_crear') }}" autocomplete="off">
+          <div class="campo">
+            <label for="nuevo-username">Usuario</label>
+            <input id="nuevo-username" name="username" type="text" required placeholder="ej. jlopez" autocomplete="off">
+          </div>
+          <div class="campo">
+            <label for="nuevo-password">Contraseña</label>
+            <input id="nuevo-password" name="password" type="password" required minlength="4" placeholder="mínimo 4 caracteres" autocomplete="new-password">
+          </div>
+          <div class="campo">
+            <label for="nuevo-rol">Rol</label>
+            <select id="nuevo-rol" name="rol" required>
+              <option value="coordinador">Coordinador</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary btn-naranja"><i class="fa-solid fa-plus"></i> Crear usuario</button>
+        </form>
+      </div>
+      <p class="hint"><i class="fa-solid fa-circle-info"></i><span>El administrador tiene acceso completo (créditos, estadísticas, proveedores, usuarios). El coordinador solo ve el panel de solicitudes.</span></p>
+    </div>
+
+    <div class="card usuarios-card usr-list reveal reveal-4">
+      <div class="uc-head">
+        <h2><i class="fa-solid fa-users-gear"></i> Usuarios del panel</h2>
+        <span class="meta">{{ usuarios|length }} cuenta{{ '' if (usuarios|length) == 1 else 's' }}</span>
+      </div>
+      <div class="tabla-usuarios-scroll">
+        <table class="tabla-usuarios">
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Rol</th>
+              <th>Estado</th>
+              <th>Creado</th>
+              <th style="text-align:right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in usuarios %}
+            <tr class="{{ 'inactivo' if not u.activo }}">
+              <td class="c-user">
+                <div class="u-cell">
+                  <span class="avatar u-avatar" aria-hidden="true">{{ (u.username or '')[:2] }}</span>
+                  <div class="u-name">
+                    <strong>{{ u.username }}</strong>
+                    {% if session.get('username') and session.get('username')|lower == u.username|lower %}
+                      <span class="chip chip-brand u-you">Tú</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td class="c-rol"><span class="chip badge-rol {{ u.rol }}"><i class="fa-solid {{ 'fa-shield-halved' if u.rol == 'admin' else 'fa-user-tie' }}"></i>{{ 'Administrador' if u.rol == 'admin' else 'Coordinador' }}</span></td>
+              <td class="c-estado"><span class="status-pill badge-estado {{ 'on' if u.activo else 'off' }}">{{ 'Activo' if u.activo else 'Inactivo' }}</span></td>
+              <td class="c-date">{{ (u.fecha_creacion or '')[:10] }}</td>
+              <td class="c-acc">
+                <div class="acciones">
+                  <details>
+                    <summary class="btn btn-secondary btn-sm"><i class="fa-solid fa-key"></i> Contraseña</summary>
+                    <form class="form-pass" method="POST" action="{{ url_for('admin_usuarios_password', uid=u.id) }}" autocomplete="off">
+                      <input type="password" name="password" required minlength="4" placeholder="Nueva contraseña" autocomplete="new-password" aria-label="Nueva contraseña para {{ u.username }}">
+                      <button type="submit" class="btn btn-primary btn-sm btn-mini guardar">Guardar</button>
+                    </form>
+                  </details>
+                  <form method="POST" action="{{ url_for('admin_usuarios_toggle', uid=u.id) }}"
+                        onsubmit="return confirm('¿Seguro que quieres {{ 'desactivar' if u.activo else 'reactivar' }} a {{ u.username }}?');">
+                    {% if u.activo %}
+                      <button type="submit" class="btn btn-sm btn-toggle"><i class="fa-solid fa-user-slash"></i> Desactivar</button>
+                    {% else %}
+                      <button type="submit" class="btn btn-sm btn-toggle reactivar"><i class="fa-solid fa-user-check"></i> Reactivar</button>
+                    {% endif %}
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="hint"><i class="fa-solid fa-circle-info"></i><span>Los usuarios desactivados no pueden iniciar sesión, pero conservan su historial. No puedes desactivarte a ti mismo ni al único administrador activo.</span></p>
+    </div>
   </div>
 
 </div>

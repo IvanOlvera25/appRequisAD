@@ -4,42 +4,50 @@
 
 {% block content %}
 <div class="detalle-container">
-    <div class="detalle-header">
-        <div class="titulo-estado">
-            <h1>{{ credito.nombre }}</h1>
-            <span class="etiqueta-estado estado-{{ credito.estado|lower }}">{{ credito.estado }}</span>
+    <div class="detalle-header page-head reveal">
+        <div class="head-main">
+            <div class="eyebrow"><i class="fa-solid fa-hand-holding-dollar"></i> Finanzas · Detalle de crédito</div>
+            <div class="titulo-estado">
+                <h1>{{ credito.nombre }}</h1>
+                <span class="etiqueta-estado estado-{{ credito.estado|lower }}">{{ credito.estado }}</span>
+            </div>
+            <p class="subtitle">Resumen del saldo, información financiera e historial de pagos</p>
         </div>
-        <div class="acciones">
-            <a href="{{ url_for('creditos_dashboard') }}" class="btn btn-secondary">Volver al Listado</a>
-            <a href="{{ url_for('editar_credito', credito_id=credito.id) }}" class="btn btn-info">Editar</a>
-            <a href="{{ url_for('nuevo_pago', credito_id=credito.id) }}" class="btn btn-primary">Registrar Pago</a>
+        <div class="acciones page-actions">
+            <a href="{{ url_for('creditos_dashboard') }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Volver al listado</a>
+            <a href="{{ url_for('editar_credito', credito_id=credito.id) }}" class="btn btn-secondary"><i class="fa-solid fa-pen"></i> Editar</a>
+            <a href="{{ url_for('nuevo_pago', credito_id=credito.id) }}" class="btn btn-primary"><i class="fa-solid fa-money-bill-wave"></i> Registrar pago</a>
         </div>
     </div>
 
     <!-- Tarjetas de resumen -->
-    <div class="tarjetas-resumen">
-        <div class="tarjeta">
-            <h3>Monto Total</h3>
-            <p class="monto">${{ "{:,.2f}".format(credito.monto_total) }}</p>
+    <div class="tarjetas-resumen kpi-grid">
+        <div class="tarjeta kpi k-total reveal reveal-1">
+            <div class="kpi-top"><span class="kpi-ico"><i class="fa-solid fa-sack-dollar"></i></span></div>
+            <h3 class="kpi-label">Monto total</h3>
+            <p class="monto kpi-value">${{ "{:,.2f}".format(credito.monto_total) }}</p>
         </div>
-        <div class="tarjeta">
-            <h3>Pagado</h3>
-            <p class="monto pagado">${{ "{:,.2f}".format(credito.monto_pagado) }}</p>
+        <div class="tarjeta kpi k-pag reveal reveal-2">
+            <div class="kpi-top"><span class="kpi-ico"><i class="fa-solid fa-circle-check"></i></span></div>
+            <h3 class="kpi-label">Pagado</h3>
+            <p class="monto pagado kpi-value">${{ "{:,.2f}".format(credito.monto_pagado) }}</p>
         </div>
-        <div class="tarjeta">
-            <h3>Pendiente</h3>
-            <p class="monto pendiente">${{ "{:,.2f}".format(credito.saldo_pendiente) }}</p>
+        <div class="tarjeta kpi k-pend reveal reveal-3">
+            <div class="kpi-top"><span class="kpi-ico"><i class="fa-solid fa-hourglass-half"></i></span></div>
+            <h3 class="kpi-label">Pendiente</h3>
+            <p class="monto pendiente kpi-value">${{ "{:,.2f}".format(credito.saldo_pendiente) }}</p>
         </div>
-        <div class="tarjeta">
-            <h3>Pago Mensual</h3>
-            <p class="monto">${{ "{:,.2f}".format(credito.pago_mensual) }}</p>
+        <div class="tarjeta kpi k-mes reveal reveal-4">
+            <div class="kpi-top"><span class="kpi-ico"><i class="fa-solid fa-calendar-check"></i></span></div>
+            <h3 class="kpi-label">Pago mensual</h3>
+            <p class="monto kpi-value">${{ "{:,.2f}".format(credito.pago_mensual) }}</p>
         </div>
     </div>
 
     <!-- Barra de progreso de pago -->
-    <div class="progreso-container">
+    <div class="progreso-container card reveal reveal-3">
         <div class="progreso-info">
-            <span>Progreso del Pago:</span>
+            <span><i class="fa-solid fa-chart-simple"></i> Progreso del pago</span>
             <span class="porcentaje">{{ credito.porcentaje_pagado|round }}%</span>
         </div>
         <div class="barra-progreso-grande">
@@ -50,9 +58,9 @@
     <!-- Detalles del crédito -->
     <div class="panel-grid">
         <!-- Información General -->
-        <div class="panel">
+        <div class="panel reveal reveal-4">
             <div class="panel-header">
-                <h2>📋 Información General</h2>
+                <h2><span class="ico"><i class="fa-solid fa-circle-info"></i></span> Información general</h2>
             </div>
             <div class="panel-body">
                 <div class="info-grid">
@@ -93,9 +101,9 @@
         </div>
 
         <!-- Información Financiera -->
-        <div class="panel">
+        <div class="panel reveal reveal-5">
             <div class="panel-header">
-                <h2>💰 Información Financiera</h2>
+                <h2><span class="ico"><i class="fa-solid fa-coins"></i></span> Información financiera</h2>
             </div>
             <div class="panel-body">
                 <div class="info-grid">
@@ -132,18 +140,18 @@
     {% if historial_monto %}
     <div class="panel historial-monto-panel">
         <div class="panel-header">
-            <h2>📊 Historial de Cambios de Monto</h2>
+            <h2><span class="ico"><i class="fa-solid fa-clock-rotate-left"></i></span> Historial de cambios de monto</h2>
             <span class="badge-info">{{ historial_monto|length }} cambio(s)</span>
         </div>
-        <div class="panel-body">
+        <div class="panel-body flush">
             <div class="tabla-responsive">
                 <table class="tabla-historial">
                     <thead>
                         <tr>
                             <th>Fecha</th>
-                            <th>Monto Anterior</th>
-                            <th>Monto Nuevo</th>
-                            <th>Diferencia</th>
+                            <th class="num">Monto Anterior</th>
+                            <th class="num">Monto Nuevo</th>
+                            <th class="num">Diferencia</th>
                             <th>Motivo</th>
                             <th>Usuario</th>
                         </tr>
@@ -151,18 +159,18 @@
                     <tbody>
                         {% for cambio in historial_monto %}
                         <tr>
-                            <td>{{ cambio.fecha_cambio }}</td>
-                            <td class="monto">${{ "{:,.2f}".format(cambio.monto_anterior) }}</td>
-                            <td class="monto">${{ "{:,.2f}".format(cambio.monto_nuevo) }}</td>
-                            <td class="monto diferencia {% if cambio.monto_nuevo > cambio.monto_anterior %}positivo{% else %}negativo{% endif %}">
+                            <td class="h-fecha">{{ cambio.fecha_cambio }}</td>
+                            <td class="monto h-ant" data-label="Anterior">${{ "{:,.2f}".format(cambio.monto_anterior) }}</td>
+                            <td class="monto h-nuevo" data-label="Nuevo">${{ "{:,.2f}".format(cambio.monto_nuevo) }}</td>
+                            <td class="monto diferencia h-dif {% if cambio.monto_nuevo > cambio.monto_anterior %}positivo{% else %}negativo{% endif %}">
                                 {% if cambio.monto_nuevo > cambio.monto_anterior %}
-                                    <span class="icono-up">▲</span> +${{ "{:,.2f}".format(cambio.monto_nuevo - cambio.monto_anterior) }}
+                                    <span class="icono-up"><i class="fa-solid fa-caret-up"></i></span> +${{ "{:,.2f}".format(cambio.monto_nuevo - cambio.monto_anterior) }}
                                 {% else %}
-                                    <span class="icono-down">▼</span> -${{ "{:,.2f}".format(cambio.monto_anterior - cambio.monto_nuevo) }}
+                                    <span class="icono-down"><i class="fa-solid fa-caret-down"></i></span> -${{ "{:,.2f}".format(cambio.monto_anterior - cambio.monto_nuevo) }}
                                 {% endif %}
                             </td>
-                            <td class="motivo">{{ cambio.motivo or '-' }}</td>
-                            <td>{{ cambio.usuario or '-' }}</td>
+                            <td class="motivo h-motivo" data-label="Motivo">{{ cambio.motivo or '-' }}</td>
+                            <td class="h-usuario" data-label="Usuario">{{ cambio.usuario or '-' }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -175,10 +183,10 @@
     <!-- Historial de Pagos -->
     <div class="panel pagos-panel">
         <div class="panel-header">
-            <h2>💳 Historial de Pagos</h2>
-            <a href="{{ url_for('nuevo_pago', credito_id=credito.id) }}" class="btn btn-primary btn-sm">+ Nuevo Pago</a>
+            <h2><span class="ico"><i class="fa-solid fa-receipt"></i></span> Historial de pagos</h2>
+            <a href="{{ url_for('nuevo_pago', credito_id=credito.id) }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Nuevo pago</a>
         </div>
-        <div class="panel-body">
+        <div class="panel-body flush">
             {% if pagos %}
             <div class="tabla-responsive">
                 <table class="tabla-pagos">
@@ -188,37 +196,39 @@
                             <th>Tipo</th>
                             <th>Referencia</th>
                             <th>Descripción</th>
-                            <th>Monto</th>
+                            <th class="num">Monto</th>
                             <th>Comprobante</th>
-                            <th>Acciones</th>
+                            <th class="num">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for pago in pagos %}
                         <tr>
-                            <td>{{ pago.fecha }}</td>
-                            <td>{{ pago.tipo_pago }}</td>
-                            <td>{{ pago.referencia or '-' }}</td>
-                            <td>{{ pago.descripcion or '-' }}</td>
-                            <td class="monto">${{ "{:,.2f}".format(pago.monto) }}</td>
-                            <td>
+                            <td class="p-fecha">{{ pago.fecha }}</td>
+                            <td class="p-tipo" data-label="Tipo">{{ pago.tipo_pago }}</td>
+                            <td class="p-ref" data-label="Referencia">{{ pago.referencia or '-' }}</td>
+                            <td class="p-desc" data-label="Descripción">{{ pago.descripcion or '-' }}</td>
+                            <td class="monto p-monto">${{ "{:,.2f}".format(pago.monto) }}</td>
+                            <td class="p-comp" data-label="Comprobante">
                                 {% if pago.comprobante %}
                                 <a href="{{ url_for('descargar_adjunto', filename=pago.comprobante) }}" class="comprobante-link" title="Descargar comprobante">
-                                    📄 Ver
+                                    <i class="fa-solid fa-file-arrow-down"></i> Ver
                                 </a>
                                 {% else %}
                                 <span class="no-comprobante">No disponible</span>
                                 {% endif %}
                             </td>
-                            <td class="acciones">
+                            <td class="acciones p-acc">
+                                <div class="row-actions">
                                 <a href="{{ url_for('editar_pago', pago_id=pago.id) }}" class="btn btn-info btn-sm" title="Editar pago">
-                                    Editar
+                                    <i class="fa-solid fa-pen"></i> Editar
                                 </a>
                                 <form method="POST" action="{{ url_for('eliminar_pago', pago_id=pago.id) }}" class="delete-form" onsubmit="return confirm('¿Estás seguro de eliminar este pago?');">
                                     <button type="submit" class="btn btn-danger btn-sm" title="Eliminar pago">
-                                        Eliminar
+                                        <i class="fa-solid fa-trash-can"></i> Eliminar
                                     </button>
                                 </form>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -227,15 +237,16 @@
                         <tr class="total-row">
                             <td colspan="4" class="total-label">Total Pagado:</td>
                             <td class="monto total-value">${{ "{:,.2f}".format(credito.monto_pagado) }}</td>
-                            <td colspan="2"></td>
+                            <td colspan="2" class="total-pad"></td>
                         </tr>
                     </tfoot>
                 </table>
             </div>
             {% else %}
             <div class="no-pagos">
+                <i class="fa-solid fa-receipt"></i>
                 <p>No hay pagos registrados para este crédito.</p>
-                <a href="{{ url_for('nuevo_pago', credito_id=credito.id) }}" class="btn btn-primary">Registrar el Primer Pago</a>
+                <a href="{{ url_for('nuevo_pago', credito_id=credito.id) }}" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Registrar el primer pago</a>
             </div>
             {% endif %}
         </div>
@@ -243,487 +254,171 @@
 
     <!-- Panel de Acciones Avanzadas -->
     <div class="acciones-avanzadas">
+        <div class="danger-text">
+            <strong><i class="fa-solid fa-triangle-exclamation"></i> Zona de riesgo</strong>
+            <p>Eliminar el crédito borra también todos sus pagos. Esta acción no se puede deshacer.</p>
+        </div>
         <form method="POST" action="{{ url_for('eliminar_credito', credito_id=credito.id) }}" onsubmit="return confirm('¿Estás seguro de eliminar este crédito y todos sus pagos asociados? Esta acción no se puede deshacer.');" class="form-eliminar">
-            <button type="submit" class="btn btn-danger">🗑️ Eliminar Crédito</button>
+            <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash-can"></i> Eliminar crédito</button>
         </form>
     </div>
 </div>
 
 <style>
-    .detalle-container {
-        background-color: var(--header-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        padding: 1.5rem;
-        margin-bottom: 2rem;
-        animation: fadeIn 0.5s ease-out;
-    }
-
-    .detalle-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .titulo-estado {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-
-    .detalle-header h1 {
-        margin: 0;
-        color: var(--primary-color);
-        font-size: 1.8rem;
-    }
-
-    .etiqueta-estado {
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 0.9rem;
-        font-weight: bold;
-        text-transform: uppercase;
-    }
-
-    .estado-activo {
-        background-color: rgba(40, 167, 69, 0.2);
-        color: var(--success-color);
-        border: 1px solid var(--success-color);
-    }
-
-    .estado-liquidado {
-        background-color: rgba(23, 162, 184, 0.2);
-        color: #17a2b8;
-        border: 1px solid #17a2b8;
-    }
-
-    .estado-suspendido {
-        background-color: rgba(220, 53, 69, 0.2);
-        color: var(--error-color);
-        border: 1px solid var(--error-color);
-    }
-
-    .acciones {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .btn-sm {
-        padding: 0.3rem 0.6rem;
-        font-size: 0.85rem;
-    }
-
-    /* Tarjetas de resumen */
-    .tarjetas-resumen {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        margin-bottom: 2rem;
-    }
-
-    .tarjeta {
-        background-color: var(--input-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        padding: 1.5rem;
-        text-align: center;
-        transition: all 0.3s ease;
-        animation: fadeIn 0.5s ease-out;
-    }
-
-    .tarjeta:hover {
-        transform: translateY(-2px);
-        border-color: var(--primary-color);
-    }
-
-    .tarjeta h3 {
-        margin: 0 0 1rem;
-        font-size: 1rem;
-        color: var(--text-color);
-        font-weight: bold;
-    }
-
-    .tarjeta .monto {
-        font-size: 1.5rem;
-        font-weight: bold;
-        margin: 0;
-        color: var(--primary-color);
-    }
-
-    .tarjeta .monto.pagado {
-        color: var(--success-color);
-    }
-
-    .tarjeta .monto.pendiente {
-        color: var(--error-color);
-    }
-
-    /* Barra de progreso */
-    .progreso-container {
-        margin-bottom: 2rem;
-        background-color: var(--input-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        padding: 1rem;
-    }
-
-    .progreso-info {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 0.5rem;
-        font-weight: bold;
-        color: var(--text-color);
-    }
-
-    .porcentaje {
-        color: var(--primary-color);
-        font-weight: bold;
-    }
-
-    .barra-progreso-grande {
-        width: 100%;
-        height: 20px;
-        background-color: var(--background);
-        border-radius: 10px;
-        overflow: hidden;
-        border: 1px solid var(--border-color);
-    }
-
-    .barra-progreso-grande .progreso {
-        height: 100%;
-        background: linear-gradient(90deg, var(--success-color), var(--primary-color));
-        border-radius: 10px;
-        transition: width 0.3s ease;
-    }
-
-    /* Paneles de información */
-    .panel-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-        gap: 1rem;
-        margin-bottom: 2rem;
-    }
-
-    .panel {
-        background-color: var(--input-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        overflow: hidden;
-        animation: fadeIn 0.5s ease-out;
-    }
-
-    .panel-header {
-        background-color: var(--header-bg);
-        color: var(--primary-color);
-        padding: 1rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .panel-header h2 {
-        margin: 0;
-        font-size: 1.2rem;
-        font-weight: bold;
-    }
-
-    .badge-info {
-        background-color: rgba(23, 162, 184, 0.2);
-        color: #17a2b8;
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-size: 0.8rem;
-        font-weight: 500;
-        border: 1px solid #17a2b8;
-    }
-
-    .panel-body {
-        padding: 1.5rem;
-    }
-
-    /* Grid de información */
-    .info-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-    }
-
-    .info-grupo {
-        margin-bottom: 1rem;
-    }
-
-    .info-grupo.full {
-        grid-column: 1 / -1;
-    }
-
-    .info-grupo label {
-        display: block;
-        font-weight: bold;
-        color: var(--primary-color);
-        margin-bottom: 0.5rem;
-        font-size: 0.9rem;
-    }
-
-    .info-grupo p {
-        margin: 0;
-        color: var(--text-color);
-        font-size: 1rem;
-        background-color: var(--background);
-        padding: 0.5rem;
-        border-radius: 4px;
-        border: 1px solid var(--border-color);
-    }
-
-    /* Estilos específicos para proveedor */
-    .proveedor-info {
-        display: flex;
-        align-items: center;
-        padding: 0.25rem 0.5rem !important;
-    }
-
-    .badge-proveedor {
-        display: inline-block;
-        background-color: rgba(243, 124, 34, 0.1);
-        color: var(--primary-color);
-        padding: 6px 12px;
-        border-radius: 15px;
-        font-size: 0.9rem;
-        font-weight: 500;
-        border: 1px solid rgba(243, 124, 34, 0.3);
-        margin: 0;
-    }
-
-    .sin-proveedor {
-        color: #bbb;
-        font-style: italic;
-        font-size: 0.9rem;
-        margin: 0;
-    }
-
-    /* Panel de historial de monto */
-    .historial-monto-panel {
-        grid-column: 1 / -1;
-        margin-bottom: 2rem;
-    }
-
-    /* Tabla de historial */
-    .tabla-historial {
-        width: 100%;
-        border-collapse: collapse;
-        background-color: var(--input-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        overflow: hidden;
-    }
-
-    .tabla-historial thead tr {
-        background-color: var(--header-bg);
-    }
-
-    .tabla-historial th,
-    .tabla-historial td {
-        text-align: left;
-        padding: 0.75rem;
-        border: 1px solid var(--border-color);
-        color: var(--text-color);
-    }
-
-    .tabla-historial th {
-        font-weight: bold;
-        color: var(--primary-color);
-    }
-
-    .tabla-historial tbody tr:hover {
-        background-color: rgba(243, 124, 34, 0.1);
-    }
-
-    .tabla-historial .monto {
-        text-align: right;
-        font-weight: 500;
-        font-family: 'Courier New', monospace;
-    }
-
-    .diferencia {
-        font-weight: bold;
-    }
-
-    .diferencia.positivo {
-        color: var(--success-color);
-    }
-
-    .diferencia.negativo {
-        color: var(--error-color);
-    }
-
-    .icono-up, .icono-down {
-        font-size: 0.8rem;
-        margin-right: 0.25rem;
-    }
-
-    .motivo {
-        max-width: 300px;
-        word-wrap: break-word;
-    }
-
-    /* Panel de pagos */
-    .pagos-panel {
-        grid-column: 1 / -1;
-        margin-bottom: 2rem;
-    }
-
-    /* Tabla de pagos */
-    .tabla-responsive {
-        overflow-x: auto;
-    }
-
-    .tabla-pagos {
-        width: 100%;
-        border-collapse: collapse;
-        background-color: var(--input-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        overflow: hidden;
-    }
-
-    .tabla-pagos thead tr {
-        background-color: var(--header-bg);
-    }
-
-    .tabla-pagos th,
-    .tabla-pagos td {
-        text-align: left;
-        padding: 0.75rem;
-        border: 1px solid var(--border-color);
-        color: var(--text-color);
-    }
-
-    .tabla-pagos th {
-        font-weight: bold;
-        color: var(--primary-color);
-    }
-
-    .tabla-pagos tbody tr:hover {
-        background-color: rgba(243, 124, 34, 0.1);
-    }
-
-    .tabla-pagos .monto {
-        text-align: right;
-        font-weight: 500;
-    }
-
-    .tabla-pagos .total-row {
-        background-color: var(--header-bg);
-        font-weight: bold;
-    }
-
-    .tabla-pagos .total-label {
-        text-align: right;
-        font-weight: bold;
-        color: var(--primary-color);
-    }
-
-    .tabla-pagos .total-value {
-        font-weight: bold;
-        color: var(--success-color);
-    }
-
-    .comprobante-link {
-        color: var(--primary-color);
-        text-decoration: none;
-        font-weight: 500;
-    }
-
-    .comprobante-link:hover {
-        text-decoration: underline;
-    }
-
-    .no-comprobante {
-        color: #bbb;
-        font-style: italic;
-        font-size: 0.9rem;
-    }
-
-    .no-pagos {
-        text-align: center;
-        padding: 2rem;
-        color: #bbb;
-    }
-
-    .no-pagos p {
-        margin-bottom: 1rem;
-        font-style: italic;
-    }
-
-    /* Acciones especiales */
-    .acciones .btn {
-        margin-right: 0.25rem;
-    }
-
-    .delete-form {
-        display: inline;
-    }
-
+    /* ---------- Encabezado ---------- */
+    .head-main { min-width: 0; }
+    .titulo-estado { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+    .titulo-estado h1 { overflow-wrap: anywhere; }
+
+    /* Estado del crédito */
+    .etiqueta-estado { text-transform: none; }
+    .etiqueta-estado.estado-activo { --c: var(--success); }
+    .etiqueta-estado.estado-liquidado { --c: var(--info); }
+    .etiqueta-estado.estado-suspendido { --c: var(--danger); }
+    .etiqueta-estado.estado-en { --c: var(--warning); }
+
+    /* ---------- KPIs ---------- */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+    .kpi {
+        --c: var(--brand);
+        position: relative; overflow: hidden; display: flex; flex-direction: column; gap: .3rem; min-width: 0;
+        padding: 1rem 1.1rem; border-radius: var(--radius-lg); background: var(--surface); color: var(--text);
+        border: 1px solid var(--border); box-shadow: var(--shadow-sm);
+        transition: transform .2s var(--ease), box-shadow .2s var(--ease), border-color .2s var(--ease);
+    }
+    .kpi::after {
+        content: ""; position: absolute; right: -40px; top: -40px; width: 130px; height: 130px; border-radius: 50%;
+        background: radial-gradient(circle, color-mix(in srgb, var(--c) 20%, transparent), transparent 70%); pointer-events: none;
+    }
+    .kpi:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: color-mix(in srgb, var(--c) 40%, var(--border)); }
+    .kpi-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .2rem; }
+    .kpi-ico { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent); }
+    .kpi .kpi-label { margin: 0; font-size: .8rem; font-weight: 600; color: var(--text-2); }
+    .kpi .kpi-value { margin: 0; font-size: 1.55rem; font-weight: 800; letter-spacing: -.025em; font-variant-numeric: tabular-nums; line-height: 1.15; color: var(--text); overflow-wrap: anywhere; }
+    .kpi .kpi-value.pagado { color: var(--success); }
+    .kpi .kpi-value.pendiente { color: var(--danger); }
+    .kpi.k-total { --c: var(--brand); } .kpi.k-pag { --c: var(--success); } .kpi.k-pend { --c: var(--danger); } .kpi.k-mes { --c: #7c3aed; }
+    html[data-theme="dark"] .kpi.k-mes { --c: #a78bfa; }
+    @media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 460px) { .kpi .kpi-value { font-size: 1.25rem; } .kpi { padding: .85rem .9rem; } }
+
+    /* ---------- Progreso ---------- */
+    .progreso-container { padding: 1rem 1.1rem; }
+    .progreso-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: .6rem; font-weight: 650; font-size: .9rem; color: var(--text); }
+    .progreso-info i { color: var(--brand); margin-right: .35rem; }
+    .progreso-info .porcentaje { font-size: 1.05rem; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+    .barra-progreso-grande { width: 100%; height: 12px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+    .barra-progreso-grande .progreso { height: 100%; max-width: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--brand), var(--success)); transition: width .4s var(--ease); }
+
+    /* ---------- Paneles ---------- */
+    .panel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+    @media (max-width: 900px) { .panel-grid { grid-template-columns: minmax(0, 1fr); } }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; min-width: 0; }
+    .panel-header { display: flex; justify-content: space-between; align-items: center; gap: .75rem; padding: .85rem 1.1rem; border-bottom: 1px solid var(--border); }
+    .panel-header h2 { margin: 0; font-size: 1rem; display: flex; align-items: center; gap: .55rem; }
+    .panel-header h2 .ico { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-size: .85rem; color: var(--brand); background: var(--brand-50); flex-shrink: 0; }
+    .panel-body { padding: 1.1rem; }
+    .panel-body.flush { padding: 0; }
+    .badge-info { display: inline-flex; align-items: center; padding: .2rem .6rem; border-radius: 999px; font-size: .76rem; font-weight: 650; white-space: nowrap; background: color-mix(in srgb, var(--info) 12%, transparent); color: var(--info); }
+
+    .info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1.25rem; }
+    .info-grupo { min-width: 0; }
+    .info-grupo.full { margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border); }
+    .info-grupo label { display: block; margin-bottom: .2rem; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); }
+    .info-grupo p { margin: 0; font-size: .95rem; font-weight: 600; color: var(--text); overflow-wrap: anywhere; white-space: pre-line; }
+    .info-grupo.full p { font-weight: 500; color: var(--text-2); }
+    .proveedor-info { display: flex; align-items: center; }
+    .badge-proveedor { display: inline-block; max-width: 100%; padding: .2rem .65rem; border-radius: 999px; font-size: .82rem; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: var(--brand-50); color: var(--brand); border: 1px solid var(--brand-100); }
+    .sin-proveedor { color: var(--text-3); font-style: italic; font-weight: 500; font-size: .88rem; }
+
+    .historial-monto-panel, .pagos-panel { margin-bottom: 1rem; }
+
+    /* ---------- Tablas ---------- */
+    .tabla-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .tabla-historial, .tabla-pagos { width: 100%; font-size: .87rem; }
+    .tabla-historial th:first-child, .tabla-historial td:first-child,
+    .tabla-pagos th:first-child, .tabla-pagos td:first-child { padding-left: 1.1rem; }
+    .tabla-historial th:last-child, .tabla-historial td:last-child,
+    .tabla-pagos th:last-child, .tabla-pagos td:last-child { padding-right: 1.1rem; }
+    .tabla-historial .num, .tabla-pagos .num, .tabla-historial .monto, .tabla-pagos .monto { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .tabla-historial td.monto, .tabla-pagos td.monto { font-weight: 650; }
+    .diferencia.positivo { color: var(--success); }
+    .diferencia.negativo { color: var(--danger); }
+    .icono-up, .icono-down { margin-right: .15rem; }
+    .motivo { max-width: 300px; overflow-wrap: anywhere; }
+    .p-desc { max-width: 280px; overflow-wrap: anywhere; color: var(--text-2); }
+
+    .tabla-pagos tfoot td { padding: .8rem .85rem; background: var(--surface-2); border-top: 1px solid var(--border); }
+    .tabla-pagos .total-label { text-align: right; font-weight: 700; color: var(--text-2); font-size: .82rem; text-transform: uppercase; letter-spacing: .05em; }
+    .tabla-pagos .total-value { font-weight: 800; font-size: 1rem; color: var(--success); }
+
+    .comprobante-link { display: inline-flex; align-items: center; gap: .4rem; padding: .35rem .65rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font-weight: 600; font-size: .82rem; white-space: nowrap; }
+    .comprobante-link i { color: var(--brand); }
+    .comprobante-link:hover { border-color: var(--brand); color: var(--brand); }
+    .no-comprobante { color: var(--text-3); font-style: italic; font-size: .84rem; }
+
+    .acciones.p-acc { width: 1%; white-space: nowrap; }
+    .row-actions { display: flex; gap: .35rem; align-items: center; justify-content: flex-end; }
+    .delete-form { display: inline-flex; margin: 0; }
+
+    .no-pagos { text-align: center; padding: 2.5rem 1rem; color: var(--text-2); }
+    .no-pagos i { display: block; font-size: 1.8rem; color: var(--text-3); margin-bottom: .6rem; }
+    .no-pagos p { margin-bottom: 1rem; }
+
+    /* ---------- Zona de riesgo ---------- */
     .acciones-avanzadas {
-        display: flex;
-        justify-content: flex-end;
-        margin-top: 2rem;
-        padding-top: 1rem;
-        border-top: 1px solid var(--border-color);
+        display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+        margin-top: 1.25rem; padding: 1rem 1.1rem; border-radius: var(--radius-lg);
+        border: 1px dashed color-mix(in srgb, var(--danger) 40%, var(--border));
+        background: color-mix(in srgb, var(--danger) 4%, var(--surface));
     }
+    .danger-text strong { display: flex; align-items: center; gap: .45rem; font-size: .92rem; color: var(--danger); }
+    .danger-text p { margin: .15rem 0 0; font-size: .84rem; color: var(--text-2); }
+    .form-eliminar { margin: 0; }
 
-    /* Responsive */
-    @media (max-width: 768px) {
-        .detalle-header, .titulo-estado {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-        }
+    /* ---------- Celular: filas → tarjetas ---------- */
+    @media (max-width: 760px) {
+        .page-head h1 { font-size: 1.35rem; }
+        .page-actions { width: 100%; }
+        .page-actions .btn { flex: 1 1 auto; }
+        .page-actions .btn-primary { flex-basis: 100%; order: -1; }
+        .info-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .85rem 1rem; }
 
-        .acciones {
-            margin-top: 1rem;
-            width: 100%;
-            justify-content: space-between;
+        .tabla-historial thead, .tabla-pagos thead { display: none; }
+        .tabla-historial, .tabla-historial tbody, .tabla-pagos, .tabla-pagos tbody, .tabla-pagos tfoot { display: block; }
+        .tabla-historial tbody tr, .tabla-pagos tbody tr {
+            display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .45rem .9rem;
+            padding: .9rem 1rem; border-bottom: 1px solid var(--border);
         }
+        .tabla-historial tbody td, .tabla-pagos tbody td,
+        .tabla-historial tbody td:first-child, .tabla-pagos tbody td:first-child,
+        .tabla-historial tbody td:last-child, .tabla-pagos tbody td:last-child { padding: 0; border: 0; min-width: 0; max-width: none; text-align: left; white-space: normal; }
+        .tabla-historial td[data-label]::before, .tabla-pagos td[data-label]::before {
+            content: attr(data-label); display: block; margin-bottom: .1rem;
+            font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3);
+        }
+        .tabla-historial tbody td.monto, .tabla-pagos tbody td.monto { text-align: left; }
+        /* Historial de monto */
+        .tabla-historial td.h-fecha { grid-column: 1; grid-row: 1; font-weight: 650; }
+        .tabla-historial tbody td.h-dif { grid-column: 2; grid-row: 1; text-align: right; }
+        .tabla-historial td.h-motivo { grid-column: 1 / -1; }
+        /* Pagos */
+        .tabla-pagos td.p-fecha { grid-column: 1; grid-row: 1; font-weight: 650; align-self: center; }
+        .tabla-pagos tbody td.p-monto { grid-column: 2; grid-row: 1; text-align: right; font-size: 1.05rem; }
+        .tabla-pagos td.p-desc { grid-column: 1 / -1; }
+        .tabla-pagos td.p-comp { grid-column: 1 / -1; }
+        .tabla-pagos tbody td.p-acc { grid-column: 1 / -1; width: auto; padding-top: .65rem; border-top: 1px dashed var(--border); }
+        .row-actions { justify-content: stretch; }
+        .row-actions > .btn, .row-actions > .delete-form { flex: 1 1 0; }
+        .row-actions .btn { width: 100%; min-height: 40px; }
+        .comprobante-link { min-height: 40px; }
+        .tabla-pagos tfoot tr { display: flex; justify-content: space-between; align-items: center; background: var(--surface-2); border-top: 1px solid var(--border); }
+        .tabla-pagos tfoot td { display: block; padding: .85rem 1rem; border: 0; background: transparent; }
+        .tabla-pagos tfoot td.total-pad { display: none; }
 
-        .panel-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .info-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .tabla-pagos, .tabla-historial {
-            font-size: 0.9rem;
-        }
-
-        .tabla-pagos th,
-        .tabla-pagos td,
-        .tabla-historial th,
-        .tabla-historial td {
-            padding: 0.5rem;
-        }
-
-        .acciones .btn {
-            display: block;
-            margin-bottom: 0.25rem;
-            text-align: center;
-        }
-    }
-
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        .acciones-avanzadas .form-eliminar, .acciones-avanzadas .btn { width: 100%; }
+        .panel-header .btn-sm { min-height: 40px; }
+        .panel-header { flex-wrap: wrap; }
     }
 </style>
 {% endblock %}

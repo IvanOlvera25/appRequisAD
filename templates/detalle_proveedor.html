@@ -1,819 +1,464 @@
 {% extends "layout.html" %}
 {% block title %}Detalle de Proveedor | AD17 Solutions{% endblock %}
-{% block content %}
+
+{% block extra_css %}
 <style>
-    /* ==========================================================================
-       Variables & Base Design Tokens
-       ========================================================================== */
-    :root {
-        --color-primary: #ff9800;
-        --color-primary-hover: #ffa726;
-        --color-primary-dark: #e65100;
-        --color-bg-panel: #161a22;
-        --color-bg-card: #1f242e;
-        --color-border: #2e3545;
-        --color-text-muted: #94a3b8;
-        --color-text-light: #f1f5f9;
-        --color-text-white: #ffffff;
-        --border-radius-lg: 16px;
-        --border-radius-md: 10px;
-        --border-radius-sm: 6px;
-        --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        --shadow-premium: 0 10px 30px rgba(0, 0, 0, 0.4);
-    }
-
-    .detalle-container {
-        color: var(--color-text-light);
-        padding: 10px 0 40px 0;
-        animation: pageFadeIn 0.5s ease-out;
-    }
-
-    @keyframes pageFadeIn {
-        from { opacity: 0; transform: translateY(15px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ==========================================================================
-       Top Action Bar
-       ========================================================================== */
-    .top-action-bar {
-        background: var(--color-bg-card);
-        border: 1px solid var(--color-border);
-        border-radius: var(--border-radius-lg);
-        padding: 16px 24px;
-        margin-bottom: 25px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 15px;
-        box-shadow: var(--shadow-premium);
-    }
-
-    .top-action-bar h2 {
-        font-size: 1.4rem;
-        font-weight: 700;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: var(--color-text-white);
-    }
-
-    .btn-group-actions {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        flex-wrap: wrap;
-    }
-
-    .btn-action-detail {
-        padding: 10px 18px;
-        font-size: 0.9rem;
-        font-weight: 600;
-        border-radius: var(--border-radius-md);
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-        border: none;
-        transition: var(--transition-smooth);
-        color: var(--color-text-white);
-    }
-
-    .btn-action-detail.btn-back {
-        background-color: #272d3b;
-        border: 1px solid var(--color-border);
-        color: var(--color-text-light);
-    }
-
-    .btn-action-detail.btn-back:hover {
-        background-color: #333a4c;
-        color: var(--color-text-white);
-        transform: translateX(-2px);
-    }
-
-    .btn-action-detail.btn-edit {
-        background-color: rgba(33, 150, 243, 0.1);
-        border: 1px solid rgba(33, 150, 243, 0.3);
-        color: #2196f3;
-    }
-
-    .btn-action-detail.btn-edit:hover {
-        background-color: #2196f3;
-        color: var(--color-text-white);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(33, 150, 243, 0.25);
-    }
-
-    .btn-action-detail.btn-delete {
-        background-color: rgba(244, 67, 54, 0.1);
-        border: 1px solid rgba(244, 67, 54, 0.3);
-        color: #f44336;
-    }
-
-    .btn-action-detail.btn-delete:hover {
-        background-color: #f44336;
-        color: var(--color-text-white);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(244, 67, 54, 0.25);
-    }
-
-    /* ==========================================================================
-       Two Column Grid Layout
-       ========================================================================== */
-    .profile-grid-layout {
-        display: grid;
-        grid-template-columns: 35% 65%;
-        gap: 25px;
-        align-items: start;
-    }
-
-    @media (max-width: 1024px) {
-        .profile-grid-layout {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    /* Left Column: Profile Card */
-    .profile-identity-card {
-        background: var(--color-bg-card);
-        border: 1px solid var(--color-border);
-        border-radius: var(--border-radius-lg);
-        padding: 30px 24px;
-        box-shadow: var(--shadow-premium);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-    }
-
-    .profile-avatar-large {
-        width: 80px;
-        height: 80px;
-        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-        color: var(--color-text-white);
-        font-size: 2.2rem;
-        font-weight: 700;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 18px;
-        box-shadow: 0 8px 24px rgba(255, 152, 0, 0.25);
-        border: 2px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .profile-title-name {
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: var(--color-text-white);
-        margin: 0 0 4px 0;
-        line-height: 1.3;
-    }
-
-    .profile-sub-rfc-badge {
-        background: rgba(255, 152, 0, 0.08);
-        border: 1px solid rgba(255, 152, 0, 0.2);
-        color: var(--color-primary);
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-family: monospace;
-        font-weight: 600;
-        margin-bottom: 25px;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        cursor: pointer;
-        transition: var(--transition-smooth);
-    }
-
-    .profile-sub-rfc-badge:hover {
-        background: rgba(255, 152, 0, 0.15);
-        transform: scale(1.02);
-    }
-
-    .profile-details-list {
-        width: 100%;
-        text-align: left;
-        border-top: 1px solid rgba(255, 255, 255, 0.04);
-        padding-top: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-    }
-
-    .profile-detail-row {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .profile-detail-label {
-        font-size: 0.78rem;
-        text-transform: uppercase;
-        color: var(--color-text-muted);
-        letter-spacing: 0.8px;
-        font-weight: 700;
-    }
-
-    .profile-detail-value {
-        font-size: 0.95rem;
-        color: #e2e8f0;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .profile-detail-value i {
-        color: var(--color-primary);
-        font-size: 0.9rem;
-        width: 16px;
-        text-align: center;
-    }
-
-    .profile-detail-value a {
-        color: #e2e8f0;
-        text-decoration: none;
-        transition: var(--transition-smooth);
-    }
-
-    .profile-detail-value a:hover {
-        color: var(--color-primary);
-        text-decoration: underline;
-    }
-
-    .btn-copy-inline {
-        background: none;
-        border: none;
-        color: var(--color-text-muted);
-        cursor: pointer;
-        padding: 2px;
-        font-size: 0.8rem;
-        transition: var(--transition-smooth);
-    }
-
-    .btn-copy-inline:hover {
-        color: var(--color-primary);
-        transform: scale(1.1);
-    }
-
-    /* Right Column: Payment Methods Section */
-    .payments-dashboard-card {
-        background: var(--color-bg-card);
-        border: 1px solid var(--color-border);
-        border-radius: var(--border-radius-lg);
-        padding: 30px;
-        box-shadow: var(--shadow-premium);
-    }
-
-    .payments-dashboard-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 25px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-        padding-bottom: 15px;
-    }
-
-    .payments-dashboard-header h3 {
-        font-size: 1.3rem;
-        font-weight: 700;
-        margin: 0;
-        color: var(--color-text-white);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .payments-dashboard-header h3 i {
-        color: var(--color-primary);
-    }
-
-    .btn-add-method {
-        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-        border: none;
-        color: var(--color-text-white);
-        padding: 8px 16px;
-        font-size: 0.88rem;
-        font-weight: 600;
-        border-radius: var(--border-radius-md);
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        box-shadow: 0 4px 10px rgba(230, 81, 0, 0.2);
-        transition: var(--transition-smooth);
-    }
-
-    .btn-add-method:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 15px rgba(230, 81, 0, 0.35);
-        background: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary) 100%);
-    }
-
-    /* Visual bank card grid */
-    .bank-cards-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 20px;
-    }
-
-    .virtual-bank-card {
-        background: linear-gradient(135deg, #282f3d 0%, #151a24 100%);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 14px;
-        padding: 20px;
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        min-height: 175px;
-        overflow: hidden;
-        transition: var(--transition-smooth);
-    }
-
-    .virtual-bank-card:hover {
-        transform: translateY(-4px) scale(1.01);
-        border-color: rgba(255, 152, 0, 0.2);
-        box-shadow: 0 15px 25px rgba(0, 0, 0, 0.45);
-    }
-
-    /* CSS chip decoration */
-    .virtual-card-chip {
-        width: 32px;
-        height: 24px;
-        background: linear-gradient(135deg, #d4af37 0%, #aa7c11 100%);
-        border-radius: 4px;
-        position: relative;
-        overflow: hidden;
-        border: 1px solid rgba(255,255,255,0.15);
-    }
-
-    .virtual-card-chip::after {
-        content: '';
-        position: absolute;
-        width: 100%;
-        height: 1px;
-        background: rgba(0, 0, 0, 0.2);
-        top: 50%;
-        left: 0;
-    }
-
-    .virtual-card-chip::before {
-        content: '';
-        position: absolute;
-        height: 100%;
-        width: 1px;
-        background: rgba(0, 0, 0, 0.2);
-        left: 50%;
-        top: 0;
-    }
-
-    .virtual-card-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 15px;
-    }
-
-    .virtual-card-type {
-        font-size: 0.72rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        background: rgba(255, 255, 255, 0.08);
-        padding: 3px 8px;
-        border-radius: 4px;
-        font-weight: 700;
-        color: #fff;
-    }
-
-    .virtual-card-clabe-wrapper {
-        margin: 15px 0;
-    }
-
-    .virtual-card-clabe-label {
-        font-size: 0.65rem;
-        text-transform: uppercase;
-        color: var(--color-text-muted);
-        letter-spacing: 0.5px;
-        display: block;
-        margin-bottom: 2px;
-    }
-
-    .virtual-card-clabe {
-        font-family: monospace;
-        font-size: 1.05rem;
-        font-weight: 600;
-        letter-spacing: 1px;
-        color: #fff;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .virtual-card-bottom {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-    }
-
-    .virtual-card-info-group {
-        display: flex;
-        flex-direction: column;
-        max-width: 65%;
-    }
-
-    .virtual-card-info-lbl {
-        font-size: 0.62rem;
-        text-transform: uppercase;
-        color: var(--color-text-muted);
-        letter-spacing: 0.5px;
-    }
-
-    .virtual-card-info-val {
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: #e2e8f0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .virtual-card-actions {
-        display: flex;
-        gap: 6px;
-    }
-
-    .btn-card-micro {
-        width: 28px;
-        height: 28px;
-        border-radius: 6px;
-        border: none;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.8rem;
-        transition: var(--transition-smooth);
-        text-decoration: none;
-    }
-
-    .btn-card-micro.edit {
-        background-color: rgba(33, 150, 243, 0.15);
-        color: #2196f3;
-    }
-
-    .btn-card-micro.edit:hover {
-        background-color: #2196f3;
-        color: #fff;
-    }
-
-    .btn-card-micro.delete {
-        background-color: rgba(244, 67, 54, 0.15);
-        color: #f44336;
-    }
-
-    .btn-card-micro.delete:hover {
-        background-color: #f44336;
-        color: #fff;
-    }
-
-    /* Empty payment state */
-    .empty-payments-box {
-        text-align: center;
-        padding: 40px 20px;
-        background-color: rgba(0, 0, 0, 0.2);
-        border: 1px dashed var(--color-border);
-        border-radius: var(--border-radius-md);
-        color: var(--color-text-muted);
-    }
-
-    .empty-payments-box i {
-        font-size: 2.2rem;
-        margin-bottom: 12px;
-        color: #3b4252;
-    }
-
-    .empty-payments-box p {
-        margin: 0;
-        font-size: 0.9rem;
-    }
-
-    /* ==========================================================================
-       Toast Popups
-       ========================================================================== */
-    .toast-popup {
-        position: fixed;
-        bottom: 24px;
-        left: 50%;
-        transform: translateX(-50%) translateY(100px);
-        background-color: #1a1e28;
-        color: var(--color-text-white);
-        padding: 12px 24px;
-        border-radius: 30px;
-        font-size: 0.9rem;
-        font-weight: 600;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        z-index: 10000;
-        opacity: 0;
-        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        border: 1px solid var(--color-primary);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .toast-popup i {
-        color: #81c784;
-    }
-
-    .toast-popup.show {
-        transform: translateX(-50%) translateY(0);
-        opacity: 1;
-    }
-
-    /* ==========================================================================
-       Modal Premium
-       ========================================================================== */
-    .premium-modal {
-        display: none;
-        position: fixed;
-        z-index: 9999;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.65);
-        backdrop-filter: blur(8px);
-        animation: modalFadeIn 0.3s ease-out;
-        overflow-y: auto;
-    }
-
-    @keyframes modalFadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-
+  /* ---------- Variables locales → tokens globales (tema claro/oscuro) ---------- */
+  :root {
+    --color-primary: var(--brand);
+    --color-primary-hover: var(--brand-600);
+    --color-primary-dark: var(--brand-700);
+    --color-bg-panel: var(--surface-2);
+    --color-bg-card: var(--surface);
+    --color-border: var(--border);
+    --color-text-muted: var(--text-2);
+    --color-text-light: var(--text);
+    --color-text-white: var(--text);
+  }
+
+  .detalle-container { min-width: 0; }
+
+  /* ---------- Encabezado ---------- */
+  .crumb { display: inline-flex; align-items: center; gap: .4rem; }
+  .crumb a { color: inherit; padding: .75rem .35rem; margin: -.75rem -.35rem; border-radius: 8px; }
+  .crumb a:hover { color: var(--brand-600); text-decoration: underline; }
+  .crumb .sep { color: var(--text-3); font-size: .62rem; }
+
+  /* ---------- Tarjeta de identidad (perfil) ---------- */
+  .profile-identity-card {
+    position: relative; overflow: hidden; padding: 0; margin-bottom: 1rem;
+  }
+  .profile-cover {
+    height: 76px;
+    background:
+      radial-gradient(420px 140px at 0% 0%, color-mix(in srgb, var(--brand) 26%, transparent), transparent 70%),
+      radial-gradient(380px 140px at 100% 0%, color-mix(in srgb, var(--info) 16%, transparent), transparent 70%),
+      linear-gradient(135deg, color-mix(in srgb, var(--brand) 8%, var(--surface-2)), var(--surface-2));
+    border-bottom: 1px solid var(--border);
+  }
+  .profile-hero {
+    display: flex; align-items: flex-start; gap: .4rem 1.1rem; flex-wrap: wrap;
+    padding: 0 1.35rem 1.2rem;
+  }
+  .profile-avatar-large {
+    --c: var(--brand);
+    width: 84px; height: 84px; border-radius: 24px; flex-shrink: 0; display: grid; place-items: center;
+    font-size: 2.1rem; font-weight: 800; color: var(--c);
+    background: color-mix(in srgb, var(--c) 12%, var(--surface));
+    border: 4px solid var(--surface); box-shadow: var(--shadow-md), inset 0 0 0 1px color-mix(in srgb, var(--c) 22%, transparent);
+    margin-top: -38px;
+  }
+  .av-1 { --c: var(--info); }
+  .av-2 { --c: #7c3aed; }
+  .av-3 { --c: #0d9488; }
+  .av-4 { --c: var(--success); }
+  .av-5 { --c: #db2777; }
+  html[data-theme="dark"] .av-2 { --c: #a78bfa; }
+  html[data-theme="dark"] .av-3 { --c: #2dd4bf; }
+  html[data-theme="dark"] .av-5 { --c: #f472b6; }
+
+  .profile-hero-text { flex: 1 1 320px; min-width: 0; padding-top: .95rem; }
+  .profile-title-name { margin: 0 0 .45rem; font-size: clamp(1.15rem, 2.2vw, 1.45rem); font-weight: 750; line-height: 1.25; color: var(--text); word-break: break-word; }
+  .profile-hero-meta { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; }
+  .profile-hero-meta .chip { min-height: 30px; padding: .2rem .65rem; }
+  .profile-sub-rfc-badge {
+    display: inline-flex; align-items: center; gap: .45rem; min-height: 30px; padding: .2rem .7rem; border-radius: 999px;
+    font-family: var(--mono); font-size: .78rem; font-weight: 650; color: var(--brand);
+    background: var(--brand-50); border: 1px solid var(--brand-100); cursor: pointer;
+    transition: background .18s var(--ease), border-color .18s var(--ease);
+  }
+  .profile-sub-rfc-badge:hover { border-color: color-mix(in srgb, var(--brand) 45%, transparent); background: var(--brand-100); }
+  .profile-sub-rfc-badge .copy-ico { font-size: .72rem; opacity: .75; }
+
+  .btn-group-actions { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; padding-top: 1rem; }
+  .btn-group-actions form { margin: 0; display: inline-flex; }
+
+  /* ---------- Rejilla principal ---------- */
+  .profile-grid-layout { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 1rem; align-items: start; }
+  .profile-side { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+  .profile-side .card { margin: 0; }
+  @media (max-width: 1024px) {
+    .profile-grid-layout { grid-template-columns: minmax(0, 1fr); }
+    .payments-dashboard-card { order: -1; } /* En pantallas angostas, primero los métodos de pago */
+  }
+
+  .info-card { padding: 1.05rem 1.15rem .6rem; }
+  .info-card-title {
+    display: flex; align-items: center; gap: .55rem; margin: 0 0 .5rem;
+    font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-2);
+  }
+  .info-card-title i { color: var(--brand); }
+
+  .profile-details-list { display: flex; flex-direction: column; }
+  .profile-detail-row { display: flex; align-items: flex-start; gap: .75rem; padding: .65rem 0; border-top: 1px solid var(--border); min-width: 0; }
+  .profile-detail-row:first-child { border-top: 0; }
+  .detail-ico {
+    width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0; display: grid; place-items: center;
+    font-size: .82rem; color: var(--text-2); background: var(--surface-2); border: 1px solid var(--border);
+  }
+  .detail-body { display: flex; flex-direction: column; gap: .1rem; flex: 1; min-width: 0; }
+  .profile-detail-label { font-size: .74rem; font-weight: 600; color: var(--text-2); }
+  .profile-detail-value { display: flex; align-items: center; gap: .5rem; min-width: 0; font-size: .92rem; font-weight: 550; color: var(--text); line-height: 1.4; }
+  .profile-detail-value.multiline { align-items: flex-start; white-space: pre-line; word-break: break-word; font-weight: 500; }
+  .profile-detail-value .val-text, .profile-detail-value a { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .profile-detail-value a { color: var(--text); }
+  .profile-detail-value a:hover { color: var(--brand); text-decoration: underline; }
+  .profile-detail-value .val-empty { color: var(--text-3); font-weight: 500; font-style: italic; }
+  .profile-detail-value.is-note { color: var(--text-2); }
+  .mono-val { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  .btn-copy-inline {
+    flex-shrink: 0; margin-left: auto; width: 34px; height: 34px; border-radius: 9px; display: inline-grid; place-items: center;
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--text-2); cursor: pointer; font-size: .8rem;
+    transition: color .18s var(--ease), border-color .18s var(--ease), background .18s var(--ease);
+  }
+  .btn-copy-inline:hover { color: var(--brand); border-color: color-mix(in srgb, var(--brand) 45%, var(--border)); background: var(--brand-50); }
+  .btn-copy-inline:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+  /* ---------- Métodos de pago ---------- */
+  .payments-dashboard-card { margin: 0; padding: 0; overflow: hidden; }
+  .payments-dashboard-header {
+    display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap;
+    padding: 1rem 1.15rem; border-bottom: 1px solid var(--border);
+  }
+  .payments-dashboard-header h3 { margin: 0; font-size: 1rem; display: flex; align-items: center; gap: .55rem; }
+  .payments-dashboard-header h3 .ico { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; font-size: .85rem; color: var(--brand); background: var(--brand-50); }
+  .payments-dashboard-header h3 .badge { margin-left: .15rem; }
+  .payments-body { padding: 1.15rem; }
+
+  .bank-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(290px, 100%), 1fr)); gap: 1rem; }
+  .virtual-bank-card {
+    position: relative; overflow: hidden; display: flex; flex-direction: column; gap: .9rem; min-width: 0;
+    padding: 1rem 1.05rem 1.05rem; border-radius: 16px; border: 1px solid var(--border);
+    background:
+      radial-gradient(260px 160px at 100% 0%, color-mix(in srgb, var(--brand) 13%, transparent), transparent 70%),
+      linear-gradient(145deg, var(--surface), var(--surface-2));
+    box-shadow: var(--shadow-sm);
+    transition: transform .2s var(--ease), box-shadow .2s var(--ease), border-color .2s var(--ease);
+  }
+  .virtual-bank-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: color-mix(in srgb, var(--brand) 35%, var(--border)); }
+  .virtual-card-top { display: flex; justify-content: space-between; align-items: center; gap: .6rem; }
+  .vc-brand { display: flex; align-items: center; gap: .6rem; min-width: 0; }
+  .virtual-card-chip {
+    width: 34px; height: 26px; border-radius: 6px; flex-shrink: 0; position: relative; overflow: hidden;
+    background: linear-gradient(135deg, #e7c66b 0%, #c9992b 55%, #a87a12 100%);
+    border: 1px solid rgba(120, 85, 10, .35);
+  }
+  .virtual-card-chip::after { content: ''; position: absolute; width: 100%; height: 1px; background: rgba(0, 0, 0, .22); top: 50%; left: 0; }
+  .virtual-card-chip::before { content: ''; position: absolute; height: 100%; width: 1px; background: rgba(0, 0, 0, .22); left: 50%; top: 0; }
+  .virtual-card-type {
+    font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-2);
+    background: var(--surface-3); border-radius: 999px; padding: .2rem .6rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+  }
+  .virtual-card-actions { display: flex; gap: .35rem; flex-shrink: 0; }
+  .virtual-card-actions form { margin: 0; display: inline-flex; }
+  .btn-card-micro { width: 34px; min-width: 34px; height: 34px; min-height: 34px; padding: 0; }
+  .btn-card-micro.edit:hover { color: var(--info); border-color: color-mix(in srgb, var(--info) 40%, var(--border)); }
+  .btn-card-micro.delete { color: var(--danger); }
+  .btn-card-micro.delete:hover { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--border)); background: color-mix(in srgb, var(--danger) 8%, var(--surface)); }
+
+  .virtual-card-clabe-wrapper { min-width: 0; }
+  .virtual-card-clabe-label, .virtual-card-info-lbl {
+    display: block; font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); margin-bottom: .15rem;
+  }
+  .virtual-card-clabe {
+    display: flex; align-items: center; gap: .5rem; min-width: 0;
+    font-family: var(--mono); font-size: 1.05rem; font-weight: 650; letter-spacing: .06em; color: var(--text);
+    font-variant-numeric: tabular-nums; word-break: break-all; min-height: 34px;
+  }
+  .virtual-card-clabe .btn-copy-inline { margin-left: 0; }
+  .virtual-card-bottom { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; padding-top: .8rem; border-top: 1px dashed var(--border); }
+  .virtual-card-info-group { display: flex; flex-direction: column; min-width: 0; }
+  .virtual-card-info-group.right { text-align: right; flex-shrink: 0; max-width: 45%; }
+  .virtual-card-info-val { font-size: .86rem; font-weight: 650; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .virtual-card-info-val.bank { color: var(--brand); }
+
+  .empty-payments-box {
+    text-align: center; padding: 2.25rem 1rem; border-radius: 14px;
+    background: var(--surface-2); border: 1.5px dashed var(--border-strong); color: var(--text-2);
+  }
+  .empty-payments-box .empty-ico {
+    width: 56px; height: 56px; margin: 0 auto .8rem; border-radius: 16px; display: grid; place-items: center;
+    font-size: 1.3rem; color: var(--text-3); background: var(--surface); border: 1px solid var(--border);
+  }
+  .empty-payments-box p { margin: 0; font-size: .9rem; }
+  .empty-payments-box .hint { margin-top: .3rem; font-size: .8rem; color: var(--text-3); }
+
+  /* ---------- Aviso "copiado" ---------- */
+  .toast-popup {
+    position: fixed; left: 50%; bottom: 24px; z-index: 1250;
+    display: flex; align-items: center; gap: .6rem; padding: .7rem 1.1rem; border-radius: 999px;
+    background: var(--surface); color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow-lg);
+    font-size: .88rem; font-weight: 600; white-space: nowrap; max-width: calc(100vw - 32px);
+    opacity: 0; visibility: hidden; transform: translateX(-50%) translateY(16px);
+    transition: opacity .25s var(--ease), transform .3s var(--ease), visibility .3s;
+  }
+  .toast-popup i { color: var(--success); }
+  .toast-popup.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+
+  /* ---------- Modal agregar/editar método ---------- */
+  .premium-modal {
+    display: none; position: fixed; inset: 0; z-index: 1050; overflow-y: auto;
+    padding: 6vh 1rem; background: var(--overlay);
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    animation: fade-in .2s var(--ease);
+  }
+  .premium-modal-content {
+    position: relative; width: 100%; max-width: 540px; margin: 0 auto; overflow: hidden;
+    background: var(--surface); color: var(--text); border: 1px solid var(--border);
+    border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); animation: modal-in .28s var(--ease);
+  }
+  .premium-modal-header {
+    display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+    padding: 1.05rem 1.35rem; border-bottom: 1px solid var(--border);
+  }
+  .premium-modal-header .mh-title { display: flex; align-items: center; gap: .7rem; min-width: 0; }
+  .premium-modal-header .mh-ico { width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0; display: grid; place-items: center; color: var(--brand); background: var(--brand-50); border: 1px solid var(--brand-100); }
+  .premium-modal-header h3 { margin: 0; font-size: 1.05rem; }
+  .premium-modal-close {
+    width: 40px; height: 40px; flex-shrink: 0; border-radius: 11px; display: inline-grid; place-items: center; cursor: pointer;
+    border: 0; background: transparent; color: var(--text-2); font-size: 1.05rem;
+  }
+  .premium-modal-close:hover { background: var(--surface-hover); color: var(--text); }
+  .premium-modal-body { padding: 1.2rem 1.35rem .35rem; }
+  .form-group-modal { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1rem; }
+  .form-group-modal label { font-size: .86rem; font-weight: 600; color: var(--text); }
+  .form-group-modal .help-text { display: block; }
+  .premium-modal-footer {
+    display: flex; gap: .5rem; justify-content: flex-end; padding: 1rem 1.35rem;
+    border-top: 1px solid var(--border); background: var(--surface-2);
+  }
+
+  /* ---------- Responsivo ---------- */
+  @media (max-width: 760px) {
+    .profile-cover { height: 64px; }
+    .profile-hero { padding: 0 1rem 1rem; gap: .2rem .85rem; }
+    .profile-avatar-large { width: 72px; height: 72px; font-size: 1.8rem; border-radius: 20px; margin-top: -32px; }
+    .profile-hero-text { flex-basis: 100%; padding-top: .5rem; }
+    .btn-group-actions { width: 100%; padding-top: .6rem; }
+    .virtual-card-clabe { min-height: 40px; }
+    .btn-group-actions > .btn, .btn-group-actions > form { flex: 1 1 0; }
+    .btn-group-actions form .btn { width: 100%; }
+    .btn-group-actions .btn, .page-actions .btn { min-height: 44px; }
+    .profile-sub-rfc-badge { min-height: 40px; }
+    .profile-hero-meta .chip { min-height: 36px; }
+    .profile-detail-value a { padding: .6rem 0; }
+    .btn-copy-inline, .btn-card-micro { width: 40px; min-width: 40px; height: 40px; min-height: 40px; }
+    .payments-dashboard-header .btn-add-method { width: 100%; min-height: 44px; }
+    .payments-body { padding: 1rem; }
+    .toast-popup { bottom: calc(80px + env(safe-area-inset-bottom)); }
+  }
+  /* Pantallas táctiles (tabletas incluidas): objetivos de toque ≥ 40px */
+  @media (pointer: coarse) {
+    .btn-copy-inline, .btn-card-micro { width: 40px; min-width: 40px; height: 40px; min-height: 40px; }
+    .profile-sub-rfc-badge { min-height: 40px; }
+    .profile-detail-value a { padding: .6rem 0; }
+  }
+  @media (max-width: 640px) {
+    .premium-modal { padding: 0; overflow: hidden; }
     .premium-modal-content {
-        background-color: var(--color-bg-card);
-        margin: 8% auto;
-        padding: 0;
-        border: 1px solid var(--color-border);
-        width: 90%;
-        max-width: 550px;
-        border-radius: var(--border-radius-lg);
-        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
-        animation: modalSlideDown 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.15);
-        color: var(--color-text-light);
-        overflow: hidden;
+      position: absolute; left: 0; right: 0; bottom: 0; max-width: none; margin: 0;
+      border-radius: 22px 22px 0 0; max-height: 92vh; overflow-y: auto; animation: sheet-in .3s var(--ease);
+      padding-bottom: env(safe-area-inset-bottom);
     }
-
-    @keyframes modalSlideDown {
-        from { transform: translateY(-40px); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
-    }
-
-    .premium-modal-header {
-        background: linear-gradient(135deg, #272d3b 0%, #151a24 100%);
-        padding: 20px 24px;
-        border-bottom: 1px solid var(--color-border);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .premium-modal-header h3 {
-        margin: 0;
-        font-size: 1.2rem;
-        font-weight: 700;
-        color: var(--color-text-white);
-    }
-
-    .premium-modal-close {
-        color: var(--color-text-muted);
-        font-size: 1.5rem;
-        cursor: pointer;
-        transition: var(--transition-smooth);
-        background: none;
-        border: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-    }
-
-    .premium-modal-close:hover {
-        color: var(--color-text-white);
-        background-color: rgba(255,255,255,0.05);
-    }
-
-    .premium-modal-body {
-        padding: 24px;
-    }
-
-    .form-group-modal {
-        margin-bottom: 20px;
-    }
-
-    .form-group-modal label {
-        display: block;
-        margin-bottom: 8px;
-        color: var(--color-text-muted);
-        font-weight: 600;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .form-control-modal {
-        width: 100%;
-        padding: 10px 14px;
-        background-color: rgba(0, 0, 0, 0.25);
-        color: var(--color-text-light);
-        border: 1px solid var(--color-border);
-        border-radius: var(--border-radius-md);
-        font-size: 0.95rem;
-        transition: var(--transition-smooth);
-    }
-
-    .form-control-modal:focus {
-        outline: none;
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.15);
-        background-color: rgba(0, 0, 0, 0.4);
-    }
-
-    .premium-modal-footer {
-        padding: 16px 24px 24px 24px;
-        display: flex;
-        gap: 12px;
-        justify-content: flex-end;
-    }
-
-    .btn-modal-action {
-        padding: 10px 20px;
-        font-size: 0.9rem;
-        font-weight: 600;
-        border-radius: var(--border-radius-md);
-        cursor: pointer;
-        border: none;
-        transition: var(--transition-smooth);
-    }
-
-    .btn-modal-action.save {
-        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-        color: var(--color-text-white);
-        box-shadow: 0 4px 10px rgba(230, 81, 0, 0.25);
-    }
-
-    .btn-modal-action.save:hover {
-        background: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary) 100%);
-        transform: translateY(-1px);
-    }
-
-    .btn-modal-action.cancel {
-        background-color: #272d3b;
-        color: var(--color-text-light);
-        border: 1px solid var(--color-border);
-    }
-
-    .btn-modal-action.cancel:hover {
-        background-color: #333a4c;
-        color: var(--color-text-white);
-    }
+    .premium-modal-footer .btn { flex: 1; min-height: 46px; }
+  }
 </style>
+{% endblock %}
 
+{% block content %}
+{% set av = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.find((proveedor.nombre or 'P')[0]|upper) % 6 %}
+{% set n_metodos = (metodos_pago or [])|length %}
 <div class="detalle-container">
-    <!-- Top Action Bar -->
-    <div class="top-action-bar">
-        <h2>
-            <i class="fas fa-id-card-alt" style="color: var(--color-primary);"></i>
-            Ficha del Proveedor
-        </h2>
-        <div class="btn-group-actions">
-            <a href="{{ url_for('proveedores_dashboard') }}" class="btn-action-detail btn-back">
-                <i class="fas fa-arrow-left"></i> Volver
+    <!-- Encabezado -->
+    <div class="page-head reveal">
+        <div>
+            <div class="eyebrow crumb">
+                <i class="fa-solid fa-truck-field"></i>
+                <a href="{{ url_for('proveedores_dashboard') }}">Proveedores</a>
+                <i class="fa-solid fa-chevron-right sep"></i>
+                <span>#{{ proveedor.id }}</span>
+            </div>
+            <h1>Ficha del Proveedor</h1>
+        </div>
+        <div class="page-actions">
+            <a href="{{ url_for('proveedores_dashboard') }}" class="btn btn-secondary btn-action-detail btn-back">
+                <i class="fa-solid fa-arrow-left"></i> Volver
             </a>
-            <a href="{{ url_for('editar_proveedor', proveedor_id=proveedor.id) }}" class="btn-action-detail btn-edit">
-                <i class="fas fa-edit"></i> Editar Datos
-            </a>
-            <form method="POST" action="{{ url_for('eliminar_proveedor', proveedor_id=proveedor.id) }}"
-                  style="display: inline;"
-                  onsubmit="return confirm('¿Está seguro de eliminar este proveedor de forma permanente?');">
-                <button type="submit" class="btn-action-detail btn-delete">
-                    <i class="fas fa-trash-alt"></i> Eliminar
-                </button>
-            </form>
+        </div>
+    </div>
+
+    <!-- Identidad del proveedor -->
+    <div class="card profile-identity-card reveal reveal-1">
+        <div class="profile-cover" aria-hidden="true"></div>
+        <div class="profile-hero">
+            <div class="profile-avatar-large av-{{ av }}" aria-hidden="true">
+                {{ (proveedor.nombre or 'P')[0] | upper }}
+            </div>
+            <div class="profile-hero-text">
+                <h2 class="profile-title-name">{{ proveedor.nombre or 'Sin nombre registrado' }}</h2>
+                <div class="profile-hero-meta">
+                    <span class="profile-sub-rfc-badge" onclick="copyToClipboard('{{ proveedor.rfc or '' }}', 'RFC')" title="Hacer clic para copiar RFC">
+                        <i class="fa-regular fa-id-card"></i> {{ proveedor.rfc or 'Sin RFC registrado' }}
+                        {% if proveedor.rfc %}
+                            <i class="fa-regular fa-copy copy-ico"></i>
+                        {% endif %}
+                    </span>
+                    <span class="chip {{ 'chip-success' if n_metodos else 'chip-warning' }}">
+                        <i class="fa-solid fa-wallet"></i> {{ n_metodos }} {{ 'método de pago' if n_metodos == 1 else 'métodos de pago' }}
+                    </span>
+                </div>
+            </div>
+            <div class="btn-group-actions">
+                <a href="{{ url_for('editar_proveedor', proveedor_id=proveedor.id) }}" class="btn btn-secondary btn-action-detail btn-edit">
+                    <i class="fa-solid fa-pen-to-square"></i> Editar Datos
+                </a>
+                <form method="POST" action="{{ url_for('eliminar_proveedor', proveedor_id=proveedor.id) }}"
+                      onsubmit="return confirm('¿Está seguro de eliminar este proveedor de forma permanente?');">
+                    <button type="submit" class="btn btn-danger btn-action-detail">
+                        <i class="fa-solid fa-trash-can"></i> Eliminar
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 
     <!-- Profile Grid Layout -->
     <div class="profile-grid-layout">
-        <!-- Left: Profile Info Card -->
-        <div class="profile-identity-card">
-            <div class="profile-avatar-large">
-                {{ (proveedor.nombre or 'P')[0] | upper }}
-            </div>
-            <h3 class="profile-title-name">{{ proveedor.nombre or 'Sin nombre registrado' }}</h3>
-            
-            <span class="profile-sub-rfc-badge" onclick="copyToClipboard('{{ proveedor.rfc or '' }}', 'RFC')" title="Hacer clic para copiar RFC">
-                <i class="far fa-id-card"></i> {{ proveedor.rfc or 'Sin RFC registrado' }}
-                {% if proveedor.rfc %}
-                    <i class="far fa-copy" style="font-size: 0.75rem; margin-left: 2px;"></i>
-                {% endif %}
-            </span>
+        <!-- Izquierda: datos del proveedor -->
+        <div class="profile-side">
+            <section class="card info-card reveal reveal-2">
+                <h3 class="info-card-title"><i class="fa-solid fa-address-book"></i> Contacto</h3>
+                <div class="profile-details-list">
+                    <div class="profile-detail-row">
+                        <span class="detail-ico"><i class="fa-solid fa-user-tie"></i></span>
+                        <div class="detail-body">
+                            <span class="profile-detail-label">Nombre de Contacto</span>
+                            <span class="profile-detail-value">
+                                {% if proveedor.contacto %}<span class="val-text">{{ proveedor.contacto }}</span>{% else %}<span class="val-empty">No especificado</span>{% endif %}
+                            </span>
+                        </div>
+                    </div>
 
-            <div class="profile-details-list">
-                <div class="profile-detail-row">
-                    <span class="profile-detail-label">ID Proveedor</span>
-                    <span class="profile-detail-value"><i class="fas fa-hashtag"></i> #{{ proveedor.id }}</span>
-                </div>
+                    <div class="profile-detail-row">
+                        <span class="detail-ico"><i class="fa-solid fa-phone"></i></span>
+                        <div class="detail-body">
+                            <span class="profile-detail-label">Teléfono Principal</span>
+                            <span class="profile-detail-value">
+                                {% if proveedor.telefono %}
+                                    <span class="val-text">{{ proveedor.telefono }}</span>
+                                    <button class="btn-copy-inline" onclick="copyToClipboard('{{ proveedor.telefono }}', 'Teléfono')" title="Copiar Teléfono" aria-label="Copiar teléfono">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                {% else %}
+                                    <span class="val-empty">No registrado</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
 
-                <div class="profile-detail-row">
-                    <span class="profile-detail-label">Nombre de Contacto</span>
-                    <span class="profile-detail-value">
-                        <i class="fas fa-user-tie"></i> {{ proveedor.contacto or 'No especificado' }}
-                    </span>
+                    <div class="profile-detail-row">
+                        <span class="detail-ico"><i class="fa-solid fa-envelope"></i></span>
+                        <div class="detail-body">
+                            <span class="profile-detail-label">Correo Electrónico</span>
+                            <span class="profile-detail-value">
+                                {% if proveedor.email %}
+                                    <a href="mailto:{{ proveedor.email }}" title="{{ proveedor.email }}">{{ proveedor.email }}</a>
+                                    <button class="btn-copy-inline" onclick="copyToClipboard('{{ proveedor.email }}', 'Correo')" title="Copiar Correo" aria-label="Copiar correo">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                {% else %}
+                                    <span class="val-empty">No registrado</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
                 </div>
+            </section>
 
-                <div class="profile-detail-row">
-                    <span class="profile-detail-label">Teléfono Principal</span>
-                    <span class="profile-detail-value">
-                        <i class="fas fa-phone-alt"></i>
-                        {% if proveedor.telefono %}
-                            {{ proveedor.telefono }}
-                            <button class="btn-copy-inline" onclick="copyToClipboard('{{ proveedor.telefono }}', 'Teléfono')" title="Copiar Teléfono">
-                                <i class="far fa-copy"></i>
-                            </button>
-                        {% else %}
-                            No registrado
-                        {% endif %}
-                    </span>
-                </div>
+            <section class="card info-card reveal reveal-3">
+                <h3 class="info-card-title"><i class="fa-solid fa-building"></i> Datos fiscales</h3>
+                <div class="profile-details-list">
+                    <div class="profile-detail-row">
+                        <span class="detail-ico"><i class="fa-solid fa-hashtag"></i></span>
+                        <div class="detail-body">
+                            <span class="profile-detail-label">ID Proveedor</span>
+                            <span class="profile-detail-value mono-val">#{{ proveedor.id }}</span>
+                        </div>
+                    </div>
 
-                <div class="profile-detail-row">
-                    <span class="profile-detail-label">Correo Electrónico</span>
-                    <span class="profile-detail-value">
-                        <i class="fas fa-envelope"></i>
-                        {% if proveedor.email %}
-                            <a href="mailto:{{ proveedor.email }}">{{ proveedor.email }}</a>
-                            <button class="btn-copy-inline" onclick="copyToClipboard('{{ proveedor.email }}', 'Correo')" title="Copiar Correo">
-                                <i class="far fa-copy"></i>
-                            </button>
-                        {% else %}
-                            No registrado
-                        {% endif %}
-                    </span>
-                </div>
+                    <div class="profile-detail-row">
+                        <span class="detail-ico"><i class="fa-solid fa-location-dot"></i></span>
+                        <div class="detail-body">
+                            <span class="profile-detail-label">Dirección Fiscal</span>
+                            <span class="profile-detail-value multiline">{{ proveedor.direccion or 'Dirección no especificada' }}</span>
+                        </div>
+                    </div>
 
-                <div class="profile-detail-row">
-                    <span class="profile-detail-label">Dirección Fiscal</span>
-                    <span class="profile-detail-value" style="align-items: flex-start; line-height: 1.4;">
-                        <i class="fas fa-map-marker-alt" style="margin-top: 3px;"></i> {{ proveedor.direccion or 'Dirección no especificada' }}
-                    </span>
+                    <div class="profile-detail-row">
+                        <span class="detail-ico"><i class="fa-solid fa-tag"></i></span>
+                        <div class="detail-body">
+                            <span class="profile-detail-label">Referencia</span>
+                            <span class="profile-detail-value multiline">{{ proveedor.referencia or 'Sin referencia registrada' }}</span>
+                        </div>
+                    </div>
                 </div>
+            </section>
 
-                <div class="profile-detail-row">
-                    <span class="profile-detail-label">Referencia</span>
-                    <span class="profile-detail-value" style="align-items: flex-start; line-height: 1.4;">
-                        <i class="fas fa-hashtag" style="margin-top: 3px;"></i> {{ proveedor.referencia or 'Sin referencia registrada' }}
-                    </span>
+            <section class="card info-card reveal reveal-4">
+                <h3 class="info-card-title"><i class="fa-solid fa-note-sticky"></i> Notas Internas</h3>
+                <div class="profile-details-list">
+                    <div class="profile-detail-row">
+                        <div class="detail-body">
+                            <span class="profile-detail-value multiline is-note">{{ proveedor.notas or 'Sin notas registradas' }}</span>
+                        </div>
+                    </div>
                 </div>
-
-                <div class="profile-detail-row">
-                    <span class="profile-detail-label">Notas Internas</span>
-                    <span class="profile-detail-value" style="align-items: flex-start; line-height: 1.4; color: var(--color-text-muted);">
-                        <i class="fas fa-sticky-note" style="margin-top: 3px;"></i> {{ proveedor.notas or 'Sin notas registradas' }}
-                    </span>
-                </div>
-            </div>
+            </section>
         </div>
 
-        <!-- Right: Payment Methods -->
-        <div class="payments-dashboard-card">
+        <!-- Derecha: métodos de pago -->
+        <div class="card payments-dashboard-card reveal reveal-2">
             <div class="payments-dashboard-header">
                 <h3>
-                    <i class="fas fa-credit-card"></i>
+                    <span class="ico"><i class="fa-solid fa-credit-card"></i></span>
                     Métodos de Pago Registrados
+                    <span class="badge">{{ n_metodos }}</span>
                 </h3>
-                <button onclick="openModal()" class="btn-add-method">
-                    <i class="fas fa-plus"></i> Agregar Método
+                <button onclick="openModal()" class="btn btn-primary btn-add-method">
+                    <i class="fa-solid fa-plus"></i> Agregar Método
                 </button>
             </div>
 
+            <div class="payments-body">
             {% if metodos_pago %}
                 <div class="bank-cards-grid">
                     {% for metodo in metodos_pago %}
                     <div class="virtual-bank-card">
                         <div class="virtual-card-top">
-                            <div class="virtual-card-chip"></div>
-                            <span class="virtual-card-type">{{ metodo.metodo_nombre or 'Transferencia' }}</span>
+                            <div class="vc-brand">
+                                <div class="virtual-card-chip" aria-hidden="true"></div>
+                                <span class="virtual-card-type" title="{{ metodo.metodo_nombre or 'Transferencia' }}">{{ metodo.metodo_nombre or 'Transferencia' }}</span>
+                            </div>
+
+                            <div class="virtual-card-actions">
+                                <button onclick="editMetodo({{ metodo.metodo_regID }}, '{{ metodo.metodo_id }}', '{{ metodo.banco }}', '{{ metodo.beneficiario }}', '{{ metodo.clabe }}')"
+                                        class="btn btn-secondary btn-icon btn-card-micro edit" title="Editar este método de pago" aria-label="Editar método de pago">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <form method="POST"
+                                      action="{{ url_for('eliminar_metodo_pago', metodo_regID=metodo.metodo_regID) }}">
+                                    <input type="hidden" name="proveedor_id" value="{{ proveedor.id }}">
+                                    <button type="submit"
+                                            class="btn btn-secondary btn-icon btn-card-micro delete"
+                                            title="Eliminar este método de pago"
+                                            aria-label="Eliminar método de pago"
+                                            onclick="return confirm('¿Está seguro de eliminar este método de pago?');">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </div>
 
                         <div class="virtual-card-clabe-wrapper">
@@ -821,8 +466,8 @@
                             <span class="virtual-card-clabe">
                                 {{ metodo.clabe or 'NO REGISTRADA' }}
                                 {% if metodo.clabe %}
-                                <button class="btn-copy-inline" style="color: #fff;" onclick="copyToClipboard('{{ metodo.clabe }}', 'CLABE')" title="Copiar CLABE">
-                                    <i class="far fa-copy"></i>
+                                <button class="btn-copy-inline" onclick="copyToClipboard('{{ metodo.clabe }}', 'CLABE')" title="Copiar CLABE" aria-label="Copiar CLABE">
+                                    <i class="fa-regular fa-copy"></i>
                                 </button>
                                 {% endif %}
                             </span>
@@ -833,57 +478,43 @@
                                 <span class="virtual-card-info-lbl">Beneficiario</span>
                                 <span class="virtual-card-info-val" title="{{ metodo.beneficiario or '-' }}">{{ metodo.beneficiario or '-' }}</span>
                             </div>
-                            <div class="virtual-card-info-group" style="text-align: right; max-width: 35%;">
+                            <div class="virtual-card-info-group right">
                                 <span class="virtual-card-info-lbl">Banco</span>
-                                <span class="virtual-card-info-val" style="color: var(--color-primary);" title="{{ metodo.banco or '-' }}">{{ metodo.banco or '-' }}</span>
+                                <span class="virtual-card-info-val bank" title="{{ metodo.banco or '-' }}">{{ metodo.banco or '-' }}</span>
                             </div>
-                        </div>
-
-                        <!-- Card Actions Hover Floating Overlay -->
-                        <div class="virtual-card-actions" style="position: absolute; top: 12px; right: 12px;">
-                            <button onclick="editMetodo({{ metodo.metodo_regID }}, '{{ metodo.metodo_id }}', '{{ metodo.banco }}', '{{ metodo.beneficiario }}', '{{ metodo.clabe }}')"
-                                    class="btn-card-micro edit" title="Editar este método de pago">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <form method="POST"
-                                  action="{{ url_for('eliminar_metodo_pago', metodo_regID=metodo.metodo_regID) }}"
-                                  style="display: inline;">
-                                <input type="hidden" name="proveedor_id" value="{{ proveedor.id }}">
-                                <button type="submit"
-                                        class="btn-card-micro delete"
-                                        title="Eliminar este método de pago"
-                                        onclick="return confirm('¿Está seguro de eliminar este método de pago?');">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
-                            </form>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
             {% else %}
                 <div class="empty-payments-box">
-                    <i class="fas fa-credit-card"></i>
+                    <span class="empty-ico"><i class="fa-solid fa-credit-card"></i></span>
                     <p>No hay métodos de pago registrados para este proveedor.</p>
+                    <p class="hint">Usa «Agregar Método» para registrar una cuenta bancaria o forma de pago.</p>
                 </div>
             {% endif %}
+            </div>
         </div>
     </div>
 </div>
 
 <!-- Modal para agregar/editar método de pago -->
 <div id="metodoModal" class="premium-modal">
-    <div class="premium-modal-content">
+    <div class="premium-modal-content" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
         <div class="premium-modal-header">
-            <h3 id="modalTitle">Agregar Método de Pago</h3>
-            <button class="premium-modal-close" onclick="closeModal()">&times;</button>
+            <div class="mh-title">
+                <span class="mh-ico"><i class="fa-solid fa-credit-card"></i></span>
+                <h3 id="modalTitle">Agregar Método de Pago</h3>
+            </div>
+            <button class="premium-modal-close" onclick="closeModal()" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
         </div>
 
         <form method="POST" id="metodoForm" action="{{ url_for('agregar_metodo_pago', proveedor_id=proveedor.id) }}">
             <input type="hidden" name="proveedor_id" value="{{ proveedor.id }}">
-            
+
             <div class="premium-modal-body">
                 <div class="form-group-modal">
-                    <label for="metodo_id">Tipo de Método de Pago *</label>
+                    <label for="metodo_id">Tipo de Método de Pago <span class="required">*</span></label>
                     <select name="metodo_id" id="metodo_id" class="form-control-modal" required>
                         <option value="">Seleccione...</option>
                         {% for tipo in tipos_metodos %}
@@ -891,35 +522,35 @@
                         {% endfor %}
                     </select>
                 </div>
-                
+
                 <div class="form-group-modal">
                     <label for="banco">Institución Bancaria</label>
                     <input type="text" name="banco" id="banco" class="form-control-modal" placeholder="Ej. BBVA, Banorte, Santander..." maxlength="255">
                 </div>
-                
+
                 <div class="form-group-modal">
                     <label for="beneficiario">Nombre del Beneficiario</label>
                     <input type="text" name="beneficiario" id="beneficiario" class="form-control-modal" placeholder="Nombre completo del titular" maxlength="255">
                 </div>
-                
+
                 <div class="form-group-modal">
                     <label for="clabe">CLABE Interbancaria (18 dígitos)</label>
-                    <input type="text" name="clabe" id="clabe" class="form-control-modal" placeholder="012345678901234567" maxlength="20" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                    <small style="color: var(--color-text-muted); font-size: 0.8rem; margin-top: 4px; display: block;">Solo números. Deben ser 18 dígitos.</small>
+                    <input type="text" name="clabe" id="clabe" class="form-control-modal mono-val" placeholder="012345678901234567" maxlength="20" pattern="[0-9]*" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                    <small class="help-text">Solo números. Deben ser 18 dígitos.</small>
                 </div>
             </div>
-            
+
             <div class="premium-modal-footer">
-                <button type="button" class="btn-modal-action cancel" onclick="closeModal()">Cancelar</button>
-                <button type="submit" class="btn-modal-action save">Guardar cambios</button>
+                <button type="button" class="btn btn-secondary btn-modal-action cancel" onclick="closeModal()">Cancelar</button>
+                <button type="submit" class="btn btn-primary btn-modal-action save"><i class="fa-solid fa-floppy-disk"></i> Guardar cambios</button>
             </div>
         </form>
     </div>
 </div>
 
 <!-- Toast Popup Container -->
-<div id="toast-msg" class="toast-popup">
-    <i class="fas fa-check-circle"></i>
+<div id="toast-msg" class="toast-popup" role="status" aria-live="polite">
+    <i class="fa-solid fa-circle-check"></i>
     <span id="toast-text">Copiado al portapapeles</span>
 </div>
 
@@ -942,7 +573,7 @@ function editMetodo(regID, metodoId, banco, beneficiario, clabe) {
     document.getElementById('metodoModal').style.display = 'block';
     document.getElementById('modalTitle').textContent = 'Editar Método de Pago';
     document.getElementById('metodoForm').action = "{{ url_for('editar_metodo_pago', metodo_regID=0) }}".replace('0', regID);
-    
+
     document.getElementById('metodo_id').value = metodoId;
     document.getElementById('banco').value = banco;
     document.getElementById('beneficiario').value = beneficiario;

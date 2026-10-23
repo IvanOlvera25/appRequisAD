@@ -4,495 +4,193 @@
 {# ==================== CSS Y ESTILOS ESPECÍFICOS ==================== #}
 {% block extra_css %}
 <!-- Date Range Picker CSS (si lo llegas a usar) -->
-<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 
 <style>
-    :root {
-        --primary-color: #FF9800;
-        --primary-dark: #F57C00;
-        --secondary-color: #2196F3;
-        --success-color: #4CAF50;
-        --danger-color: #F44336;
-        --warning-color: #FFC107;
-        --dark-bg: #0a0a0a;
-        --card-bg: #1a1a1a;
-        --card-hover: #252525;
-        --border-color: #333;
-        --text-primary: #ffffff;
-        --text-secondary: #b0b0b0;
+    /* ---------- KPIs ---------- */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+    .kpi {
+        --c: var(--brand);
+        position: relative; overflow: hidden; display: flex; flex-direction: column; gap: .3rem; min-width: 0;
+        padding: 1rem 1.1rem; border-radius: var(--radius-lg); background: var(--surface); color: var(--text);
+        border: 1px solid var(--border); box-shadow: var(--shadow-sm);
+        transition: transform .2s var(--ease), box-shadow .2s var(--ease), border-color .2s var(--ease);
     }
-
-    body {
-        background-color: var(--dark-bg);
-        color: var(--text-primary);
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    .kpi::after {
+        content: ""; position: absolute; right: -40px; top: -40px; width: 130px; height: 130px; border-radius: 50%;
+        background: radial-gradient(circle, color-mix(in srgb, var(--c) 20%, transparent), transparent 70%); pointer-events: none;
     }
-
-    /* === HEADER ESTADÍSTICAS === */
-    .stats-header {
-        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-        padding: 30px;
-        border-radius: 15px;
-        margin-bottom: 30px;
-        box-shadow: 0 8px 20px rgba(255, 152, 0, 0.3);
-    }
-
-    .stats-header h1 {
-        margin: 0;
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: white;
-    }
-
-    .stats-header p {
-        margin: 10px 0 0 0;
-        opacity: 0.9;
-        font-size: 1.1rem;
-    }
-
-    /* === KPI CARDS === */
-    .kpi-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 20px;
-        margin-bottom: 30px;
-    }
-
-    .kpi-card {
-        background: var(--card-bg);
-        border-radius: 12px;
-        padding: 25px;
-        border-left: 4px solid var(--primary-color);
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .kpi-card:hover {
-        background: var(--card-hover);
-        transform: translateY(-5px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
-    }
-
-    .kpi-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 100px;
-        height: 100px;
-        background: linear-gradient(135deg, transparent, rgba(255, 152, 0, 0.1));
-        border-radius: 0 0 0 100%;
-    }
-
-    .kpi-icon {
-        font-size: 2.5rem;
-        margin-bottom: 15px;
-        opacity: 0.8;
-    }
-
-    .kpi-label {
-        font-size: 0.9rem;
-        color: var(--text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 8px;
-    }
-
-    .kpi-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 10px;
-    }
-
+    .kpi:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: color-mix(in srgb, var(--c) 40%, var(--border)); }
+    .kpi-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .2rem; }
+    .kpi-ico { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent); }
+    .kpi-label { font-size: .8rem; font-weight: 600; color: var(--text-2); }
+    .kpi-value { font-size: 1.6rem; font-weight: 800; letter-spacing: -.025em; font-variant-numeric: tabular-nums; line-height: 1.15; overflow-wrap: anywhere; }
+    .kpi.k-capital { --c: var(--success); } .kpi.k-total { --c: var(--info); }
+    .kpi.k-rest { --c: var(--warning); } .kpi.k-util { --c: var(--danger); }
     .kpi-change {
-        font-size: 0.85rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 4px 10px;
-        border-radius: 20px;
+        display: inline-flex; align-items: center; gap: .3rem; padding: .18rem .55rem; border-radius: 999px;
+        font-size: .74rem; font-weight: 700; font-variant-numeric: tabular-nums; position: relative; z-index: 1;
+    }
+    .kpi-change.positive { background: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success); }
+    .kpi-change.negative { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+    @media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 760px) {
+        .kpi-grid { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 78%; overflow-x: auto; scroll-snap-type: x mandatory; padding: 0 1rem .25rem; margin: 0 -1rem 1rem; scrollbar-width: none; }
+        .kpi-grid::-webkit-scrollbar { display: none; }
+        .kpi { scroll-snap-align: start; }
+        .kpi:hover { transform: none; }
     }
 
-    .kpi-change.positive {
-        background: rgba(76, 175, 80, 0.2);
-        color: var(--success-color);
+    /* ---------- Secciones ---------- */
+    .sec-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .sec-head h2 { margin: 0; font-size: 1rem; display: flex; align-items: center; gap: .55rem; }
+    .sec-head h2 .ico { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-size: .85rem; color: var(--brand); background: var(--brand-50); }
+    .sec-head p { margin: .15rem 0 0; font-size: .84rem; color: var(--text-2); }
+
+    /* ---------- Reportes (exportar) ---------- */
+    .export-buttons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .85rem; }
+    .report {
+        --c: var(--info);
+        display: flex; flex-direction: column; gap: .7rem; margin: 0; min-width: 0;
+        padding: .95rem 1rem; border-radius: 14px; border: 1px solid var(--border); background: var(--surface-2);
+        transition: border-color .2s var(--ease);
     }
+    .report:hover, .report:focus-within { border-color: color-mix(in srgb, var(--c) 45%, var(--border)); }
+    .report.r-anual { --c: var(--brand); } .report.r-cons { --c: var(--success); }
+    .report-top { display: flex; align-items: center; gap: .7rem; }
+    .report-ico { width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0; display: grid; place-items: center; color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent); }
+    .report-top strong { display: block; font-size: .92rem; }
+    .report-top div > span { display: block; font-size: .78rem; color: var(--text-2); }
+    .report-ctrl { display: flex; gap: .5rem; align-items: center; }
+    .report-ctrl input, .report-ctrl select { flex: 1 1 auto; min-width: 0; width: auto; }
+    .report-ctrl .btn { flex-shrink: 0; min-height: 42px; }
+    @media (max-width: 1100px) { .export-buttons { grid-template-columns: minmax(0, 1fr); } }
 
-    .kpi-change.negative {
-        background: rgba(244, 67, 54, 0.2);
-        color: var(--danger-color);
+    /* ---------- Filtros ---------- */
+    .filters-container { padding: 1rem 1.1rem; }
+    .filters-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: .85rem; align-items: end; }
+    .filter-group { display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
+    .filter-group label { font-size: .76rem; font-weight: 650; color: var(--text-2); display: flex; align-items: center; gap: .4rem; }
+    .filter-group label i { color: var(--text-3); }
+    .btn-filter { min-height: 42px; }
+    @media (max-width: 900px) {
+        .filters-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .filters-grid .filter-group:last-child { grid-column: 1 / -1; }
+        .btn-filter { width: 100%; }
     }
+    @media (max-width: 560px) { .filters-grid { grid-template-columns: minmax(0, 1fr); } }
 
-    /* === FILTROS === */
-    .filters-container {
-        background: var(--card-bg);
-        padding: 25px;
-        border-radius: 12px;
-        margin-bottom: 30px;
-        border: 1px solid var(--border-color);
-    }
-
-    .filters-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 15px;
-        align-items: end;
-    }
-
-    .filter-group {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .filter-group label {
-        color: var(--text-secondary);
-        font-size: 0.85rem;
-        margin-bottom: 8px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .filter-group select,
-    .filter-group input {
-        background: var(--dark-bg);
-        color: var(--text-primary);
-        border: 1px solid var(--border-color);
-        padding: 10px 15px;
-        border-radius: 8px;
-        font-size: 0.95rem;
-        transition: all 0.3s ease;
-    }
-
-    .filter-group select:focus,
-    .filter-group input:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1);
-    }
-
-    .btn-filter {
-        background: var(--primary-color);
-        color: white;
-        border: none;
-        padding: 10px 25px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .btn-filter:hover {
-        background: var(--primary-dark);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
-    }
-
-    /* === CHART CONTAINERS === */
-    .charts-grid {
-        display: grid;
-        gap: 25px;
-        margin-bottom: 30px;
-    }
-
-    .chart-card {
-        background: var(--card-bg);
-        border-radius: 12px;
-        padding: 25px;
-        border: 1px solid var(--border-color);
-        transition: all 0.3s ease;
-    }
-
-    .chart-card:hover {
-        border-color: var(--primary-color);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-    }
-
-    .chart-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-        padding-bottom: 15px;
-        border-bottom: 2px solid var(--border-color);
-    }
-
-    .chart-title {
-        font-size: 1.3rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .chart-actions {
-        display: flex;
-        gap: 10px;
-    }
-
-    .chart-btn {
-        background: transparent;
-        border: 1px solid var(--border-color);
-        color: var(--text-secondary);
-        padding: 6px 12px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 0.85rem;
-        transition: all 0.3s ease;
-    }
-
-    .chart-btn:hover {
-        border-color: var(--primary-color);
-        color: var(--primary-color);
-    }
-
-    .chart-container {
-        position: relative;
-        height: 400px;
-    }
-
-    .chart-container.small {
-        height: 300px;
-    }
-
-    .chart-container.large {
-        height: 500px;
-    }
-
-    /* === TABLA DE DATOS === */
-    .data-table-container {
-        background: var(--card-bg);
-        border-radius: 12px;
-        padding: 25px;
-        border: 1px solid var(--border-color);
-        overflow-x: auto;
-    }
-
-    .data-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-    }
-
-    .data-table thead th {
-        background: var(--dark-bg);
-        color: var(--text-secondary);
-        padding: 15px;
-        text-align: left;
-        font-weight: 600;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-
-    .data-table tbody tr {
-        border-bottom: 1px solid var(--border-color);
-        transition: all 0.2s ease;
-    }
-
-    .data-table tbody tr:hover {
-        background: var(--card-hover);
-    }
-
-    .data-table tbody td {
-        padding: 15px;
-        color: var(--text-primary);
-    }
-
-    .badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 0.8rem;
-        font-weight: 600;
-    }
-
-    .badge-success { background: rgba(76, 175, 80, 0.2); color: var(--success-color); }
-    .badge-warning { background: rgba(255, 193, 7, 0.2); color: var(--warning-color); }
-    .badge-danger  { background: rgba(244, 67, 54, 0.2); color: var(--danger-color); }
-    .badge-info    { background: rgba(33, 150, 243, 0.2); color: var(--secondary-color); }
-
-    /* === TABS === */
-    .tabs-container {
-        margin-bottom: 30px;
-    }
-
+    /* ---------- Pestañas ---------- */
+    .tabs-container { margin-bottom: 1rem; }
     .tabs-header {
-        display: flex;
-        gap: 5px;
-        border-bottom: 2px solid var(--border-color);
-        margin-bottom: 25px;
-        flex-wrap: wrap;
+        display: inline-flex; gap: .3rem; padding: .3rem; border-radius: 14px; background: var(--surface);
+        border: 1px solid var(--border); box-shadow: var(--shadow-xs); margin-bottom: 1rem; max-width: 100%;
+        overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity;
     }
-
+    .tabs-header::-webkit-scrollbar { display: none; }
     .tab-btn {
-        background: transparent;
-        border: none;
-        color: var(--text-secondary);
-        padding: 12px 25px;
-        cursor: pointer;
-        font-weight: 600;
-        border-bottom: 3px solid transparent;
-        transition: all 0.3s ease;
+        display: inline-flex; align-items: center; gap: .5rem; min-height: 40px; padding: .5rem .9rem; border-radius: 10px;
+        background: transparent; border: 0; color: var(--text-2); font-family: inherit; font-weight: 600; font-size: .86rem;
+        white-space: nowrap; cursor: pointer; scroll-snap-align: start;
+        transition: background .18s var(--ease), color .18s var(--ease);
+    }
+    .tab-btn i { font-size: .85rem; opacity: .85; }
+    .tab-btn:hover { background: var(--surface-hover); color: var(--text); }
+    .tab-btn.active { background: var(--text); color: var(--bg); box-shadow: var(--shadow-sm); }
+    .tab-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: rise-in .3s var(--ease); }
+    @media (max-width: 760px) { .tabs-header { display: flex; } }
+
+    /* ---------- Gráficas ---------- */
+    .charts-grid { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1fr); }
+    .chart-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    @media (max-width: 980px) { .chart-pair { grid-template-columns: minmax(0, 1fr); } }
+    .chart-card {
+        background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm); padding: 1rem 1.1rem 1.1rem; min-width: 0;
+        transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+    }
+    .chart-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-md); }
+    .chart-header { display: flex; justify-content: space-between; align-items: center; gap: .75rem; margin-bottom: .85rem; }
+    .chart-title { font-size: .98rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: .55rem; min-width: 0; }
+    .chart-title i { width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0; display: grid; place-items: center; font-size: .82rem; color: var(--brand); background: var(--brand-50); }
+    .chart-actions { display: flex; gap: .4rem; flex-shrink: 0; }
+    .chart-btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-width: 40px; height: 40px; padding: 0 .75rem;
+        border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2);
+        font-family: inherit; font-size: .84rem; font-weight: 600; cursor: pointer;
+        transition: all .18s var(--ease);
+    }
+    .chart-btn:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-50); }
+    .chart-container { position: relative; height: 360px; }
+    .chart-container.small { height: 300px; }
+    .chart-container.large { height: 460px; }
+    @media (max-width: 760px) {
+        .chart-container { height: 300px; }
+        .chart-container.small { height: 280px; }
+        .chart-container.large { height: 360px; }
+        .chart-container.tall-m { height: 400px; }
+        .chart-card { padding: .9rem .85rem 1rem; }
     }
 
-    .tab-btn:hover {
-        color: var(--primary-color);
+    /* ---------- Tabla de detalles ---------- */
+    .data-table-container { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
+    .data-table-container .chart-header { padding: 1rem 1.1rem; margin: 0; border-bottom: 1px solid var(--border); }
+    .data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .88rem; }
+    .data-table thead th { position: sticky; top: 0; z-index: 1; }
+    .data-table td.num, .data-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .data-table tbody td strong { font-weight: 650; }
+    .data-table .badge { height: auto; padding: .2rem .6rem; font-size: .74rem; font-weight: 650; }
+    .data-table .badge-success { background: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success); }
+    .data-table .badge-warning { background: color-mix(in srgb, var(--warning) 14%, transparent); color: var(--warning); }
+    .data-table .badge-danger  { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+    .data-table .badge-info    { background: color-mix(in srgb, var(--info) 12%, transparent); color: var(--info); }
+    .data-table .empty-cell { text-align: center; padding: 2.5rem 1rem; color: var(--text-2); }
+    .data-table .empty-cell i { display: block; font-size: 2rem; color: var(--text-3); margin-bottom: .6rem; }
+    .data-table .empty-cell p { margin: 0; }
+    @media (max-width: 640px) {
+        .data-table thead { display: none; }
+        .data-table, .data-table tbody { display: block; }
+        .data-table tbody tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .35rem .75rem; padding: .85rem 1rem; border-bottom: 1px solid var(--border); }
+        .data-table tbody tr:last-child { border-bottom: 0; }
+        .data-table tbody td { padding: 0; border: 0; text-align: left !important; }
+        .data-table tbody td[data-label]::before { content: attr(data-label); display: block; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); }
+        .data-table tbody td.c-periodo { grid-column: 1 / 3; grid-row: 1; font-size: .95rem; align-self: center; }
+        .data-table tbody td.c-periodo::before { display: none; }
+        .data-table tbody td.c-estado { grid-column: 3; grid-row: 1; justify-self: end; }
+        .data-table tbody td.num { grid-row: 2; }
+        .data-table tbody td.c-estado::before { display: none; }
+        .data-table tbody td.empty-cell { grid-column: 1 / -1; text-align: center !important; }
+        .data-table-container .chart-header { flex-wrap: wrap; }
     }
 
-    .tab-btn.active {
-        color: var(--primary-color);
-        border-bottom-color: var(--primary-color);
+    /* ---------- Sincronización ---------- */
+    .sync-controls-card { margin-top: 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+    .sync-info { display: flex; align-items: center; gap: .85rem; min-width: 0; }
+    .sync-info .ico { width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0; display: grid; place-items: center; color: var(--info); background: color-mix(in srgb, var(--info) 12%, transparent); }
+    .sync-info h3 { margin: 0; font-size: 1rem; }
+    .sync-info p { margin: .1rem 0 0; color: var(--text-2); font-size: .86rem; }
+    .sync-buttons { display: flex; gap: .5rem; flex-wrap: wrap; }
+    @media (max-width: 640px) {
+        .sync-buttons { width: 100%; }
+        .sync-buttons .btn { flex: 1 1 100%; }
     }
 
-    .tab-content {
-        display: none;
-    }
-
-    .tab-content.active {
-        display: block;
-        animation: fadeIn 0.3s ease;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
-
-    /* === EXPORT BUTTONS === */
-    .export-buttons {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-bottom: 20px;
-    }
-
-    .btn-export {
-        background: var(--secondary-color);
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        transition: all 0.3s ease;
-    }
-
-    .btn-export:hover {
-        background: #1976D2;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
-    }
-
-    .btn-export.success {
-        background: var(--success-color);
-    }
-
-    .btn-export.success:hover {
-        background: #388E3C;
-    }
-
-    /* === LOADING OVERLAY === */
+    /* ---------- Overlay de carga ---------- */
     .loading-overlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.8);
-        z-index: 9999;
-        justify-content: center;
-        align-items: center;
+        display: none; position: fixed; inset: 0; z-index: 1300; justify-content: center; align-items: center;
+        background: var(--overlay); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    }
+    .loading-overlay.active { display: flex; }
+    .loading-spinner { text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); padding: 1.75rem 2.25rem; }
+    .loading-spinner .spinner { width: 46px; height: 46px; border: 4px solid var(--brand-100); border-top-color: var(--brand); margin: 0 auto; animation: spin .8s linear infinite; }
+    .loading-spinner p { margin: 1rem 0 0; color: var(--text-2); font-weight: 600; }
+
+    /* ---------- Page head (móvil) ---------- */
+    @media (max-width: 640px) {
+        .page-head h1 { font-size: 1.35rem; }
     }
 
-    .loading-overlay.active {
-        display: flex;
-    }
-
-    .loading-spinner {
-        text-align: center;
-    }
-
-    .spinner {
-        width: 50px;
-        height: 50px;
-        border: 4px solid rgba(255, 152, 0, 0.3);
-        border-top-color: var(--primary-color);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-
-    /* === RESPONSIVE === */
-    @media (max-width: 768px) {
-        .stats-header h1 {
-            font-size: 1.8rem;
-        }
-
-        .kpi-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .filters-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .chart-container {
-            height: 300px;
-        }
-    }
-
-    /* === SYNC CONTROLS === */
-    .sync-controls-card {
-        background: linear-gradient(135deg, #FF9800, #F57C00);
-        color: white;
-        padding: 25px;
-        border-radius: 12px;
-        margin-top: 30px;
-        box-shadow: 0 8px 20px rgba(255, 152, 0, 0.3);
-    }
-
-    .sync-buttons {
-        display: flex;
-        gap: 15px;
-        flex-wrap: wrap;
-        margin-top: 20px;
-    }
-
-    .sync-btn {
-        background: rgba(0, 0, 0, 0.3);
-        color: white;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        padding: 12px 20px;
-        border-radius: 8px;
-        text-decoration: none;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .sync-btn:hover {
-        background: rgba(0, 0, 0, 0.5);
-        border-color: rgba(255, 255, 255, 0.6);
-        transform: translateY(-2px);
-    }
 </style>
 {% endblock %}
 
@@ -502,97 +200,124 @@
 <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-spinner">
         <div class="spinner"></div>
-        <p style="margin-top: 20px; color: white;">Cargando datos...</p>
+        <p>Cargando datos...</p>
     </div>
 </div>
 
-<div class="container-fluid px-4 py-4">
+<div class="est-page">
     <!-- Header -->
-    <div class="stats-header">
-        <h1><i class="fas fa-chart-line"></i> Dashboard Ejecutivo de Estadísticas</h1>
-        <p>Análisis completo de solicitudes de pago y tendencias financieras</p>
-    </div>
-
-    <!-- Export Buttons -->
-    <div class="export-buttons">
-        <form method="GET" action="{{ url_for('exportar_reporte_semanal') }}" style="display: inline-block;">
-            <input type="date" name="fecha_inicio" id="fecha_inicio_export"
-                   style="background: var(--card-bg); color: white; border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; margin-right: 10px;">
-            <button type="submit" class="btn-export">
-                <i class="fas fa-file-excel"></i> Reporte Semanal
-            </button>
-        </form>
-
-        <form method="GET" action="{{ url_for('exportar_reporte_anual') }}" style="display: inline-block;">
-            <select name="anio" style="background: var(--card-bg); color: white; border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; margin-right: 10px;">
-                <option value="{{ current_year }}">{{ current_year }}</option>
-                <option value="{{ current_year - 1 }}">{{ current_year - 1 }}</option>
-                <option value="{{ current_year - 2 }}">{{ current_year - 2 }}</option>
-            </select>
-            <button type="submit" class="btn-export">
-                <i class="fas fa-calendar-alt"></i> Reporte Anual
-            </button>
-        </form>
-
-        <form method="GET" action="{{ url_for('exportar_reporte_consolidado') }}" style="display: inline-block;">
-            <input type="date" name="fecha_inicio" id="fecha_inicio_consolidado"
-                   style="background: var(--card-bg); color: white; border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; margin-right: 10px;">
-            <button type="submit" class="btn-export success">
-                <i class="fas fa-file-invoice-dollar"></i> Reporte Consolidado
-            </button>
-        </form>
+    <div class="page-head reveal">
+        <div>
+            <div class="eyebrow"><i class="fa-solid fa-chart-line"></i> Análisis</div>
+            <h1>Dashboard ejecutivo de estadísticas</h1>
+            <p class="subtitle">Análisis completo de solicitudes de pago y tendencias financieras</p>
+        </div>
     </div>
 
     <!-- KPIs -->
     <div class="kpi-grid">
-        <div class="kpi-card" style="border-left-color: var(--success-color);">
-            <div class="kpi-icon" style="color: var(--success-color);">
-                <i class="fas fa-wallet"></i>
+        <div class="kpi k-capital reveal reveal-1">
+            <div class="kpi-top">
+                <span class="kpi-ico"><i class="fa-solid fa-wallet"></i></span>
+                <div class="kpi-change positive">
+                    <i class="fa-solid fa-arrow-up"></i> 100%
+                </div>
             </div>
-            <div class="kpi-label">Capital Total</div>
-            <div class="kpi-value">${{ "{:,.2f}".format(capital_total) }}</div>
-            <div class="kpi-change positive">
-                <i class="fas fa-arrow-up"></i> 100%
-            </div>
+            <span class="kpi-label">Capital total</span>
+            <span class="kpi-value">${{ "{:,.2f}".format(capital_total) }}</span>
         </div>
 
-        <div class="kpi-card" style="border-left-color: var(--secondary-color);">
-            <div class="kpi-icon" style="color: var(--secondary-color);">
-                <i class="fas fa-file-invoice-dollar"></i>
+        <div class="kpi k-total reveal reveal-2">
+            <div class="kpi-top">
+                <span class="kpi-ico"><i class="fa-solid fa-file-invoice-dollar"></i></span>
             </div>
-            <div class="kpi-label">Total Solicitudes</div>
-            <div class="kpi-value">${{ "{:,.2f}".format(total_solicitudes) }}</div>
+            <span class="kpi-label">Total solicitudes</span>
+            <span class="kpi-value">${{ "{:,.2f}".format(total_solicitudes) }}</span>
         </div>
 
-        <div class="kpi-card" style="border-left-color: var(--warning-color);">
-            <div class="kpi-icon" style="color: var(--warning-color);">
-                <i class="fas fa-coins"></i>
+        <div class="kpi k-rest reveal reveal-3">
+            <div class="kpi-top">
+                <span class="kpi-ico"><i class="fa-solid fa-coins"></i></span>
+                <div class="kpi-change {% if remaining > capital_total * 0.3 %}positive{% else %}negative{% endif %}">
+                    <i class="fa-solid fa-percent"></i>
+                    {{ "{:.1f}".format((remaining / capital_total * 100) if capital_total > 0 else 0) }}%
+                </div>
             </div>
-            <div class="kpi-label">Capital Restante</div>
-            <div class="kpi-value">${{ "{:,.2f}".format(remaining) }}</div>
-            <div class="kpi-change {% if remaining > capital_total * 0.3 %}positive{% else %}negative{% endif %}">
-                <i class="fas fa-percentage"></i>
-                {{ "{:.1f}".format((remaining / capital_total * 100) if capital_total > 0 else 0) }}%
-            </div>
+            <span class="kpi-label">Capital restante</span>
+            <span class="kpi-value">${{ "{:,.2f}".format(remaining) }}</span>
         </div>
 
-        <div class="kpi-card" style="border-left-color: var(--danger-color);">
-            <div class="kpi-icon" style="color: var(--danger-color);">
-                <i class="fas fa-chart-pie"></i>
+        <div class="kpi k-util reveal reveal-4">
+            <div class="kpi-top">
+                <span class="kpi-ico"><i class="fa-solid fa-chart-pie"></i></span>
             </div>
-            <div class="kpi-label">Utilización</div>
-            <div class="kpi-value">
+            <span class="kpi-label">Utilización</span>
+            <span class="kpi-value">
                 {{ "{:.1f}".format(((total_solicitudes / capital_total) * 100) if capital_total > 0 else 0) }}%
-            </div>
+            </span>
         </div>
     </div>
 
+    <!-- Export Buttons -->
+    <section class="card reveal reveal-3">
+        <div class="sec-head">
+            <div>
+                <h2><span class="ico"><i class="fa-solid fa-file-arrow-down"></i></span> Reportes en Excel</h2>
+                <p>Elige el periodo y descarga el reporte.</p>
+            </div>
+        </div>
+        <div class="export-buttons">
+            <form method="GET" action="{{ url_for('exportar_reporte_semanal') }}" class="report r-sem">
+                <div class="report-top">
+                    <span class="report-ico"><i class="fa-solid fa-file-excel"></i></span>
+                    <div><strong>Reporte semanal</strong><span>Semana que inicia el lunes elegido</span></div>
+                </div>
+                <div class="report-ctrl">
+                    <input type="date" name="fecha_inicio" id="fecha_inicio_export" aria-label="Fecha de inicio del reporte semanal">
+                    <button type="submit" class="btn-export btn btn-secondary">
+                        <i class="fa-solid fa-download"></i> Descargar
+                    </button>
+                </div>
+            </form>
+
+            <form method="GET" action="{{ url_for('exportar_reporte_anual') }}" class="report r-anual">
+                <div class="report-top">
+                    <span class="report-ico"><i class="fa-solid fa-calendar-days"></i></span>
+                    <div><strong>Reporte anual</strong><span>Todas las solicitudes del año</span></div>
+                </div>
+                <div class="report-ctrl">
+                    <select name="anio" aria-label="Año del reporte">
+                        <option value="{{ current_year }}">{{ current_year }}</option>
+                        <option value="{{ current_year - 1 }}">{{ current_year - 1 }}</option>
+                        <option value="{{ current_year - 2 }}">{{ current_year - 2 }}</option>
+                    </select>
+                    <button type="submit" class="btn-export btn btn-secondary">
+                        <i class="fa-solid fa-download"></i> Descargar
+                    </button>
+                </div>
+            </form>
+
+            <form method="GET" action="{{ url_for('exportar_reporte_consolidado') }}" class="report r-cons">
+                <div class="report-top">
+                    <span class="report-ico"><i class="fa-solid fa-file-invoice-dollar"></i></span>
+                    <div><strong>Reporte consolidado</strong><span>Consolidado desde la fecha elegida</span></div>
+                </div>
+                <div class="report-ctrl">
+                    <input type="date" name="fecha_inicio" id="fecha_inicio_consolidado" aria-label="Fecha de inicio del reporte consolidado">
+                    <button type="submit" class="btn-export success btn btn-success">
+                        <i class="fa-solid fa-download"></i> Descargar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
     <!-- Filters -->
-    <div class="filters-container">
+    <div class="filters-container card reveal reveal-4">
         <form method="GET" action="{{ url_for('estadisticas') }}" id="filterForm">
             <div class="filters-grid">
                 <div class="filter-group">
-                    <label><i class="fas fa-calendar"></i> Período</label>
+                    <label for="periodo"><i class="fa-solid fa-calendar"></i> Período</label>
                     <select name="periodo" id="periodo">
                         <option value="diario"  {% if periodo == "diario"  %}selected{% endif %}>Diario</option>
                         <option value="semanal" {% if periodo == "semanal" %}selected{% endif %}>Semanal</option>
@@ -602,10 +327,9 @@
                 </div>
 
                 <div class="filter-group">
-                    <label><i class="fas fa-building"></i> Proveedor</label>
+                    <label for="proveedor"><i class="fa-solid fa-building"></i> Proveedor</label>
                     <input list="proveedores_list" name="proveedor" id="proveedor"
-                           placeholder="Todos los proveedores" value="{{ proveedor_selected|default('') }}"
-                           style="background: var(--dark-bg); color: white; border: 1px solid var(--border-color); padding: 10px; border-radius: 8px;">
+                           placeholder="Todos los proveedores" value="{{ proveedor_selected|default('') }}">
                     <datalist id="proveedores_list">
                         {% for prov in proveedores %}
                         <option value="{{ prov.nombre }}">
@@ -614,7 +338,7 @@
                 </div>
 
                 <div class="filter-group">
-                    <label><i class="fas fa-filter"></i> Vista</label>
+                    <label for="view"><i class="fa-solid fa-filter"></i> Vista</label>
                     <select name="view" id="view">
                         <option value=""           {% if not view %}selected{% endif %}>General</option>
                         <option value="proveedor" {% if view == "proveedor" %}selected{% endif %}>Por Proveedor</option>
@@ -622,8 +346,8 @@
                 </div>
 
                 <div class="filter-group">
-                    <button type="submit" class="btn-filter">
-                        <i class="fas fa-search"></i> Aplicar Filtros
+                    <button type="submit" class="btn-filter btn btn-primary">
+                        <i class="fa-solid fa-magnifying-glass"></i> Aplicar filtros
                     </button>
                 </div>
             </div>
@@ -631,19 +355,19 @@
     </div>
 
     <!-- Tabs -->
-    <div class="tabs-container">
-        <div class="tabs-header">
+    <div class="tabs-container reveal reveal-5">
+        <div class="tabs-header" role="tablist" aria-label="Vistas de estadísticas">
             <button class="tab-btn active" onclick="switchTab('general', this)">
-                <i class="fas fa-chart-bar"></i> Vista General
+                <i class="fa-solid fa-chart-column"></i> Vista general
             </button>
             <button class="tab-btn" onclick="switchTab('timeline', this)">
-                <i class="fas fa-timeline"></i> Timeline
+                <i class="fa-solid fa-timeline"></i> Timeline
             </button>
             <button class="tab-btn" onclick="switchTab('comparison', this)">
-                <i class="fas fa-balance-scale"></i> Comparativas
+                <i class="fa-solid fa-scale-balanced"></i> Comparativas
             </button>
             <button class="tab-btn" onclick="switchTab('details', this)">
-                <i class="fas fa-table"></i> Detalles
+                <i class="fa-solid fa-table"></i> Detalles
             </button>
         </div>
 
@@ -654,16 +378,16 @@
                 <div class="chart-card">
                     <div class="chart-header">
                         <div class="chart-title">
-                            <i class="fas fa-chart-pie"></i>
-                            Distribución por Tipo de Solicitud
+                            <i class="fa-solid fa-chart-pie"></i>
+                            Distribución por tipo de solicitud
                         </div>
                         <div class="chart-actions">
-                            <button class="chart-btn" onclick="downloadChart('chartTipoSolicitud')">
-                                <i class="fas fa-download"></i>
+                            <button class="chart-btn" onclick="downloadChart('chartTipoSolicitud')" title="Descargar imagen" aria-label="Descargar imagen">
+                                <i class="fa-solid fa-download"></i>
                             </button>
                         </div>
                     </div>
-                    <div class="chart-container">
+                    <div class="chart-container tall-m">
                         <canvas id="chartTipoSolicitud"></canvas>
                     </div>
                 </div>
@@ -672,12 +396,12 @@
                 <div class="chart-card">
                     <div class="chart-header">
                         <div class="chart-title">
-                            <i class="fas fa-chart-line"></i>
-                            Evolución Temporal de Pagos
+                            <i class="fa-solid fa-chart-line"></i>
+                            Evolución temporal de pagos
                         </div>
                         <div class="chart-actions">
-                            <button class="chart-btn" onclick="downloadChart('chartEvolucion')">
-                                <i class="fas fa-download"></i>
+                            <button class="chart-btn" onclick="downloadChart('chartEvolucion')" title="Descargar imagen" aria-label="Descargar imagen">
+                                <i class="fa-solid fa-download"></i>
                             </button>
                         </div>
                     </div>
@@ -687,13 +411,13 @@
                 </div>
 
                 <!-- Grid de 2 columnas -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 25px;">
+                <div class="chart-pair">
                     <!-- Gráfico de Estados -->
                     <div class="chart-card">
                         <div class="chart-header">
                             <div class="chart-title">
-                                <i class="fas fa-tasks"></i>
-                                Estados de Solicitudes
+                                <i class="fa-solid fa-list-check"></i>
+                                Estados de solicitudes
                             </div>
                         </div>
                         <div class="chart-container small">
@@ -705,8 +429,8 @@
                     <div class="chart-card">
                         <div class="chart-header">
                             <div class="chart-title">
-                                <i class="fas fa-sitemap"></i>
-                                Por Departamento
+                                <i class="fa-solid fa-sitemap"></i>
+                                Por departamento
                             </div>
                         </div>
                         <div class="chart-container small">
@@ -723,8 +447,8 @@
                 <div class="chart-card">
                     <div class="chart-header">
                         <div class="chart-title">
-                            <i class="fas fa-calendar-alt"></i>
-                            Timeline de Pagos por Mes
+                            <i class="fa-solid fa-calendar-days"></i>
+                            Timeline de pagos por mes
                         </div>
                     </div>
                     <div class="chart-container large">
@@ -737,12 +461,12 @@
         <!-- Tab 3: Comparativas -->
         <div class="tab-content" id="tab-comparison">
             <div class="charts-grid">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+                <div class="chart-pair">
                     <div class="chart-card">
                         <div class="chart-header">
                             <div class="chart-title">
-                                <i class="fas fa-chart-bar"></i>
-                                Top 10 Proveedores
+                                <i class="fa-solid fa-chart-column"></i>
+                                Top 10 proveedores
                             </div>
                         </div>
                         <div class="chart-container">
@@ -753,8 +477,8 @@
                     <div class="chart-card">
                         <div class="chart-header">
                             <div class="chart-title">
-                                <i class="fas fa-credit-card"></i>
-                                Tipos de Pago
+                                <i class="fa-solid fa-credit-card"></i>
+                                Tipos de pago
                             </div>
                         </div>
                         <div class="chart-container">
@@ -770,67 +494,74 @@
             <div class="data-table-container">
                 <div class="chart-header">
                     <div class="chart-title">
-                        <i class="fas fa-table"></i>
-                        Resumen Detallado por Período
+                        <i class="fa-solid fa-table"></i>
+                        Resumen detallado por período
                     </div>
                     <div class="chart-actions">
                         <button class="chart-btn" onclick="exportTableToCSV()">
-                            <i class="fas fa-file-csv"></i> Exportar CSV
+                            <i class="fa-solid fa-file-csv"></i> Exportar CSV
                         </button>
                     </div>
                 </div>
+                <div class="table-wrap">
                 <table class="data-table" id="detailsTable">
                     <thead>
                         <tr>
                             <th>Período</th>
-                            <th>Total</th>
-                            <th>Cantidad</th>
-                            <th>Promedio</th>
+                            <th class="num">Total</th>
+                            <th class="num">Cantidad</th>
+                            <th class="num">Promedio</th>
                             <th>Estado</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in summary_data %}
                         <tr>
-                            <td><strong>{{ row.Periodo }}</strong></td>
-                            <td>${{ "{:,.2f}".format(row.Total) }}</td>
-                            <td>{{ row.Cantidad|default(0) }}</td>
-                            <td>${{ "{:,.2f}".format(row.Total / row.Cantidad if row.Cantidad else 0) }}</td>
-                            <td>
+                            <td class="c-periodo"><strong>{{ row.Periodo }}</strong></td>
+                            <td class="num" data-label="Total">${{ "{:,.2f}".format(row.Total) }}</td>
+                            <td class="num" data-label="Cantidad">{{ row.Cantidad|default(0) }}</td>
+                            <td class="num" data-label="Promedio">${{ "{:,.2f}".format(row.Total / row.Cantidad if row.Cantidad else 0) }}</td>
+                            <td class="c-estado">
                                 <span class="badge badge-success">Completado</span>
                             </td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="5" style="text-align: center; padding: 40px;">
-                                <i class="fas fa-inbox" style="font-size: 3rem; opacity: 0.3; margin-bottom: 10px;"></i>
-                                <p style="color: var(--text-secondary);">No hay datos para mostrar</p>
+                            <td colspan="5" class="empty-cell">
+                                <i class="fa-solid fa-inbox"></i>
+                                <p>No hay datos para mostrar</p>
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Sync Controls (Admin Only) -->
     {% if session.get('role') == 'admin' %}
-    <div class="sync-controls-card">
-        <h3 style="margin: 0 0 10px 0;"><i class="fas fa-sync-alt"></i> Herramientas de Sincronización MySQL</h3>
-        <p style="margin: 0; opacity: 0.9;">Gestiona la sincronización de datos con la base de datos remota</p>
+    <div class="sync-controls-card card">
+        <div class="sync-info">
+            <span class="ico"><i class="fa-solid fa-arrows-rotate"></i></span>
+            <div>
+                <h3>Herramientas de sincronización MySQL</h3>
+                <p>Gestiona la sincronización de datos con la base de datos remota</p>
+            </div>
+        </div>
 
         <div class="sync-buttons">
-            <a href="{{ url_for('sync_now') }}" class="sync-btn"
+            <a href="{{ url_for('sync_now') }}" class="sync-btn btn btn-secondary"
                onclick="return confirm('¿Iniciar sincronización manual?')">
-                <i class="fas fa-rocket"></i> Sincronizar Ahora
+                <i class="fa-solid fa-rocket"></i> Sincronizar ahora
             </a>
-            <a href="{{ url_for('test_remote_connection') }}" class="sync-btn">
-                <i class="fas fa-plug"></i> Probar Conexión
+            <a href="{{ url_for('test_remote_connection') }}" class="sync-btn btn btn-secondary">
+                <i class="fa-solid fa-plug"></i> Probar conexión
             </a>
-            <a href="{{ url_for('verify_remote_structure') }}" class="sync-btn"
+            <a href="{{ url_for('verify_remote_structure') }}" class="sync-btn btn btn-secondary"
                onclick="return confirm('¿Verificar estructura de BD?')">
-                <i class="fas fa-database"></i> Verificar Estructura
+                <i class="fa-solid fa-database"></i> Verificar estructura
             </a>
         </div>
     </div>
@@ -843,27 +574,68 @@
 <!-- Librerías JS -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 
 <script>
 // === CONFIGURACIÓN GLOBAL DE CHART.JS ===
 Chart.register(ChartDataLabels);
 
-Chart.defaults.color = '#b0b0b0';
-Chart.defaults.borderColor = '#333';
-Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+// --- Tema (claro / oscuro): los colores de texto y rejilla salen de las variables CSS ---
+function leerTema() {
+    const cs = getComputedStyle(document.documentElement);
+    const v = (name, fallback) => (cs.getPropertyValue(name) || '').trim() || fallback;
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    return {
+        dark: dark,
+        text:    v('--text-2', dark ? '#a3aec2' : '#475569'),
+        strong:  v('--text', dark ? '#e6eaf2' : '#0f172a'),
+        border:  v('--border', dark ? '#1f2a3d' : '#e2e8f0'),
+        surface: v('--surface', dark ? '#111827' : '#ffffff'),
+        grid:    dark ? 'rgba(255, 255, 255, 0.07)' : 'rgba(15, 23, 42, 0.07)',
+        font:    v('--font', "'Inter', system-ui, sans-serif")
+    };
+}
+let tema = leerTema();
+
+Chart.defaults.color = tema.text;
+Chart.defaults.borderColor = tema.border;
+Chart.defaults.font.family = tema.font;
+
+// Etiquetas de datos: legibles y sin amontonarse (los valores exactos siguen en el tooltip)
+function compacto(v) {
+    if (typeof v !== 'number' || !isFinite(v)) return v;
+    const a = Math.abs(v);
+    if (a >= 1e6) return (v / 1e6).toFixed(a >= 1e7 ? 1 : 2) + 'M';
+    if (a >= 1e3) return (v / 1e3).toFixed(a >= 1e4 ? 0 : 1) + 'K';
+    return Number.isInteger(v) ? String(v) : v.toFixed(2);
+}
+const fmtMoneda = v => (typeof v === 'number' ? '$' + compacto(v) : v);
+const fmtConteo = v => compacto(v);
+// Oculta etiquetas en valores vacíos o en porciones muy pequeñas
+function mostrarSi(minShare) {
+    return function (ctx) {
+        const data = ctx.dataset.data || [];
+        const val = +data[ctx.dataIndex] || 0;
+        if (!val) return false;
+        if (!minShare) return 'auto';
+        const ref = data.reduce((a, b) => a + (Math.abs(+b) || 0), 0);
+        return ref && Math.abs(val) / ref >= minShare ? 'auto' : false;
+    };
+}
+const textoTema = () => tema.text;
+const rejillaTema = () => tema.grid;
+const superficieTema = () => tema.surface;
+const fuenteEtiqueta = { size: 11, weight: '600' };
 
 // Colores del tema
 const colors = {
-    primary:   '#FF9800',
-    secondary: '#2196F3',
-    success:   '#4CAF50',
-    danger:    '#F44336',
-    warning:   '#FFC107',
-    info:      '#00BCD4',
-    purple:    '#9C27B0',
-    pink:      '#E91E63'
+    primary:   '#f37c22',
+    secondary: '#3b82f6',
+    success:   '#22c55e',
+    danger:    '#ef4444',
+    warning:   '#f59e0b',
+    info:      '#06b6d4',
+    purple:    '#8b5cf6',
+    pink:      '#ec4899'
 };
 
 const chartColors = [
@@ -931,6 +703,32 @@ function exportTableToCSV() {
     link.click();
 }
 
+// Actualiza colores de texto / rejilla de todas las gráficas al cambiar de tema
+function aplicarTemaGraficas() {
+    const t = leerTema();
+    if (t.dark === tema.dark && t.text === tema.text && t.surface === tema.surface) return;
+    tema = t;
+    Chart.defaults.color = t.text;
+    Chart.defaults.borderColor = t.border;
+    Object.values(Chart.instances || {}).forEach(chart => {
+        const o = chart.options;
+        Object.values(o.scales || {}).forEach(s => {
+            if (s.ticks) s.ticks.color = t.text;
+            if (s.pointLabels) s.pointLabels.color = t.text;
+            if (s.grid && s.grid.display !== false) s.grid.color = t.grid;
+            if (s.angleLines) s.angleLines.color = t.grid;
+            if (s.border) s.border.color = t.border;
+        });
+        if (o.plugins && o.plugins.legend && o.plugins.legend.labels) o.plugins.legend.labels.color = t.text;
+        chart.update('none');
+    });
+}
+document.addEventListener('themechange', aplicarTemaGraficas);
+// También cuando el tema sigue al del sistema (cambia data-theme sin evento)
+if (window.MutationObserver) {
+    new MutationObserver(aplicarTemaGraficas).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+}
+
 // === CREAR GRÁFICOS ===
 document.addEventListener('DOMContentLoaded', function() {
     // 1. Gráfico de Tipo de Solicitud (Dona)
@@ -944,19 +742,47 @@ document.addEventListener('DOMContentLoaded', function() {
                     data: summaryByType.map(item => item.Total),
                     backgroundColor: chartColors,
                     borderWidth: 3,
-                    borderColor: '#1a1a1a'
+                    borderColor: superficieTema
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                cutout: '58%',
+                onResize: function(chart, size) {
+                    const pos = size.width < 620 ? 'bottom' : 'right';
+                    if (chart.options.plugins.legend.position !== pos) {
+                        chart.options.plugins.legend.position = pos;
+                        chart.update('none');
+                    }
+                },
                 plugins: {
                     legend: {
-                        position: 'right',
+                        position: (ctxTipoSolicitud.parentNode.clientWidth || 800) < 620 ? 'bottom' : 'right',
                         labels: {
-                            padding: 20,
-                            font: { size: 12 }
+                            padding: 14,
+                            boxWidth: 12,
+                            boxHeight: 12,
+                            usePointStyle: true,
+                            pointStyle: 'rectRounded',
+                            color: tema.text,
+                            font: { size: 12 },
+                            // Nombres muy largos se recortan en la leyenda (completos en el tooltip)
+                            generateLabels: function(chart) {
+                                const items = Chart.overrides.doughnut.plugins.legend.labels.generateLabels(chart);
+                                const max = chart.width < 620 ? 30 : 46;
+                                items.forEach(it => {
+                                    if (it.text && it.text.length > max) it.text = it.text.slice(0, max - 1) + '…';
+                                });
+                                return items;
+                            }
                         }
+                    },
+                    datalabels: {
+                        color: '#fff',
+                        font: { size: 11, weight: '700' },
+                        formatter: fmtMoneda,
+                        display: mostrarSi(0.05)
                     },
                     tooltip: {
                         callbacks: {
@@ -985,24 +811,41 @@ document.addEventListener('DOMContentLoaded', function() {
                     label: 'Monto Total',
                     data: summaryData.map(item => item.Total),
                     borderColor: colors.primary,
-                    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                    backgroundColor: 'rgba(243, 124, 34, 0.12)',
                     fill: true,
                     tension: 0.4,
                     borderWidth: 3,
-                    pointRadius: 5,
+                    pointRadius: 4,
                     pointHoverRadius: 7,
                     pointBackgroundColor: colors.primary,
-                    pointBorderColor: '#1a1a1a',
+                    pointBorderColor: superficieTema,
                     pointBorderWidth: 2
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: { padding: { top: 8, right: 22 } },
                 plugins: {
                     legend: {
                         display: true,
-                        position: 'top'
+                        position: 'top',
+                        labels: { color: tema.text, usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 12, boxHeight: 12 }
+                    },
+                    datalabels: {
+                        color: textoTema,
+                        font: fuenteEtiqueta,
+                        align: function(ctx) {
+                            const n = ctx.dataset.data.length;
+                            return ctx.dataIndex === 0 ? 'right' : (ctx.dataIndex === n - 1 ? 'left' : 'top');
+                        },
+                        offset: 6,
+                        formatter: fmtMoneda,
+                        // En pantallas angostas se ocultan (el valor exacto sigue en el tooltip)
+                        display: function(ctx) {
+                            if (ctx.chart.width < 560) return false;
+                            return (+ctx.dataset.data[ctx.dataIndex] || 0) ? 'auto' : false;
+                        }
                     },
                     tooltip: {
                         mode: 'index',
@@ -1017,18 +860,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 scales: {
                     y: {
                         beginAtZero: true,
+                        grace: '8%',
                         ticks: {
+                            color: textoTema,
                             callback: function(value) {
                                 return '$' + value.toLocaleString();
                             }
                         },
                         grid: {
-                            color: 'rgba(255, 255, 255, 0.05)'
-                        }
+                            color: rejillaTema
+                        },
+                        border: { display: false }
                     },
                     x: {
+                        ticks: { color: textoTema },
                         grid: {
-                            color: 'rgba(255, 255, 255, 0.05)'
+                            color: rejillaTema
                         }
                     }
                 },
@@ -1051,13 +898,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     data: estadosData.totales,
                     backgroundColor: [
-                        'rgba(255, 193, 7, 0.7)',
-                        'rgba(33, 150, 243, 0.7)',
-                        'rgba(76, 175, 80, 0.7)',
-                        'rgba(244, 67, 54, 0.7)',
-                        'rgba(156, 39, 176, 0.7)'
+                        'rgba(245, 158, 11, 0.75)',
+                        'rgba(59, 130, 246, 0.75)',
+                        'rgba(34, 197, 94, 0.75)',
+                        'rgba(239, 68, 68, 0.75)',
+                        'rgba(139, 92, 246, 0.75)'
                     ],
-                    borderColor: '#1a1a1a',
+                    borderColor: superficieTema,
                     borderWidth: 2
                 }]
             },
@@ -1067,13 +914,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 plugins: {
                     legend: {
                         position: 'bottom',
-                        labels: { padding: 15 }
+                        labels: { padding: 12, color: tema.text, usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 12, boxHeight: 12 }
+                    },
+                    datalabels: {
+                        color: '#fff',
+                        font: fuenteEtiqueta,
+                        formatter: fmtMoneda,
+                        display: mostrarSi(0.06)
                     }
                 },
                 scales: {
                     r: {
                         ticks: { display: false },
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        grid: { color: rejillaTema }
                     }
                 }
             }
@@ -1092,7 +945,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     data: departamentosData.totales,
                     backgroundColor: colors.secondary,
                     borderColor: colors.secondary,
-                    borderWidth: 1
+                    borderWidth: 1,
+                    borderRadius: 6
                 }]
             },
             options: {
@@ -1100,18 +954,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: false }
+                    legend: { display: false },
+                    datalabels: {
+                        color: '#fff',
+                        font: fuenteEtiqueta,
+                        anchor: 'end',
+                        align: 'start',
+                        clamp: true,
+                        formatter: fmtMoneda,
+                        display: mostrarSi(0.08)
+                    }
                 },
                 scales: {
                     x: {
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        grid: { color: rejillaTema },
+                        border: { display: false },
                         ticks: {
+                            color: textoTema,
                             callback: function(value) {
                                 return '$' + (value / 1000) + 'K';
                             }
                         }
                     },
                     y: {
+                        ticks: { color: textoTema },
                         grid: { display: false }
                     }
                 }
@@ -1149,12 +1015,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 scales: {
                     x: {
                         stacked: true,
+                        ticks: { color: textoTema },
                         grid: { display: false }
                     },
                     y: {
                         stacked: true,
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        grid: { color: rejillaTema },
+                        border: { display: false },
                         ticks: {
+                            color: textoTema,
                             callback: function(value) {
                                 return '$' + value.toLocaleString();
                             }
@@ -1163,7 +1032,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 plugins: {
                     legend: {
-                        position: 'top'
+                        position: 'top',
+                        labels: { color: tema.text, usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 12, boxHeight: 12 }
+                    },
+                    datalabels: {
+                        color: '#fff',
+                        font: { size: 10, weight: '600' },
+                        formatter: fmtMoneda,
+                        display: function(ctx) {
+                            const val = +ctx.dataset.data[ctx.dataIndex] || 0;
+                            if (!val) return false;
+                            const max = Math.max.apply(null, ctx.chart.data.labels.map((_, i) =>
+                                ctx.chart.data.datasets.reduce((s, d) => s + (+d.data[i] || 0), 0)));
+                            return max && val / max >= 0.07 ? 'auto' : false;
+                        }
                     },
                     tooltip: {
                         mode: 'index',
@@ -1191,19 +1073,32 @@ document.addEventListener('DOMContentLoaded', function() {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: { padding: { top: 18 } },
                 plugins: {
-                    legend: { display: false }
+                    legend: { display: false },
+                    datalabels: {
+                        color: textoTema,
+                        font: fuenteEtiqueta,
+                        anchor: 'end',
+                        align: 'end',
+                        offset: 2,
+                        formatter: fmtMoneda,
+                        display: mostrarSi(0)
+                    }
                 },
                 scales: {
                     y: {
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        grid: { color: rejillaTema },
+                        border: { display: false },
                         ticks: {
+                            color: textoTema,
                             callback: function(value) {
                                 return '$' + (value / 1000) + 'K';
                             }
                         }
                     },
                     x: {
+                        ticks: { color: textoTema },
                         grid: { display: false }
                     }
                 }
@@ -1222,10 +1117,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     label: 'Frecuencia',
                     data: tipoPagoData.cantidades,
                     borderColor: colors.primary,
-                    backgroundColor: 'rgba(255, 152, 0, 0.2)',
+                    backgroundColor: 'rgba(243, 124, 34, 0.2)',
                     borderWidth: 3,
                     pointBackgroundColor: colors.primary,
-                    pointBorderColor: '#1a1a1a',
+                    pointBorderColor: superficieTema,
                     pointRadius: 5,
                     pointHoverRadius: 7
                 }]
@@ -1235,13 +1130,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        position: 'top'
+                        position: 'top',
+                        labels: { color: tema.text, usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 12, boxHeight: 12 }
+                    },
+                    datalabels: {
+                        color: textoTema,
+                        font: fuenteEtiqueta,
+                        align: 'end',
+                        offset: 4,
+                        formatter: fmtConteo,
+                        display: mostrarSi(0)
                     }
                 },
                 scales: {
                     r: {
-                        angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
-                        grid:      { color: 'rgba(255, 255, 255, 0.1)' },
+                        angleLines: { color: rejillaTema },
+                        grid:      { color: rejillaTema },
+                        pointLabels: { color: textoTema, font: { size: 12 } },
                         ticks: {
                             display: false,
                             stepSize: 20

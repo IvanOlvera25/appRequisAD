@@ -1,1087 +1,375 @@
 {% extends "layout.html" %}
-{% block title %}Solicitar Pago{% endblock %}
-{% block content %}
+{% block title %}Nueva solicitud de pago{% endblock %}
 
+{% block extra_css %}
 <style>
-  .form-container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 1rem;
-  }
+  /* ---------- Encabezado ---------- */
+  .np-hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 1.25rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .np-hero h1 { margin: .15rem 0 .25rem; font-size: clamp(1.4rem, 2.6vw, 1.85rem); }
+  .np-hero p { color: var(--text-2); margin: 0; }
+  .np-progress { min-width: 260px; flex: 0 1 340px; }
+  .np-progress-top { display: flex; justify-content: space-between; font-size: .8rem; font-weight: 650; color: var(--text-2); margin-bottom: .4rem; }
+  .np-progress-top strong { color: var(--text); }
+  .np-bar { height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+  .np-bar span { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, #f59e0b, #f37c22 60%, #16a34a); transition: width .45s var(--ease); }
 
-  .form-header {
-    background: linear-gradient(135deg, var(--primary-color) 0%, #e06d17 100%);
-    color: var(--text-color);
-    padding: 2rem;
-    border-radius: 12px;
-    margin-bottom: 2rem;
-    text-align: center;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    animation: fadeIn 0.5s ease-out;
-  }
+  /* ---------- Layout ---------- */
+  .np-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 1.5rem; align-items: start; }
+  @media (max-width: 1080px) { .np-grid { grid-template-columns: minmax(0, 1fr); } }
+  .np-form { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
 
-  #categoria-administrativos-container {
-    transition: all 0.3s ease;
-  }
+  .np-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 1.25rem clamp(1rem, 2.5vw, 1.5rem) .5rem; scroll-margin-top: calc(var(--nav-h) + 16px); transition: border-color .25s var(--ease), box-shadow .25s var(--ease); }
+  .np-card:focus-within { border-color: color-mix(in srgb, var(--brand) 45%, var(--border)); box-shadow: var(--shadow-md); }
+  .np-card-head { display: flex; align-items: center; gap: .85rem; margin-bottom: 1.1rem; }
+  .np-step { width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0; display: grid; place-items: center; font-weight: 800; font-size: .9rem; color: var(--brand); background: var(--brand-50); border: 1px solid var(--brand-100); transition: all .3s var(--ease); }
+  .np-card.done .np-step { color: #fff; background: var(--success); border-color: transparent; }
+  .np-card.done .np-step .n { display: none; }
+  .np-step .ok { display: none; }
+  .np-card.done .np-step .ok { display: inline; animation: pop .35s var(--ease); }
+  @keyframes pop { 0% { transform: scale(.4); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
+  .np-card-head h2 { margin: 0; font-size: 1.05rem; }
+  .np-card-head p { margin: .1rem 0 0; font-size: .84rem; color: var(--text-2); }
+  .np-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1rem; }
+  .np-row-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 1rem; }
+  @media (max-width: 680px) { .np-row, .np-row-3 { grid-template-columns: minmax(0, 1fr); } }
+  .hint { font-size: .78rem; color: var(--text-3); display: flex; align-items: center; gap: .35rem; }
+  .hint i { color: var(--brand); }
+  .dynamic-section { background: var(--surface-2); border: 1px dashed var(--border-strong); border-radius: 12px; padding: 1rem 1rem .25rem; margin-bottom: 1rem; animation: fadeIn .25s var(--ease); }
+  .autofill-note { display: flex; align-items: center; gap: .5rem; font-size: .8rem; color: var(--text-2); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: .55rem .75rem; margin-bottom: 1rem; }
+  .autofill-note i { color: var(--info); }
+  #clabe.is-valid { border-color: var(--success); }
+  .clabe-meta { font-size: .74rem; color: var(--text-3); text-align: right; font-variant-numeric: tabular-nums; }
+  .clabe-meta.ok { color: var(--success); font-weight: 650; }
 
-  #categoria-administrativos-container.active {
-    background: var(--header-bg);
-    border: 2px solid var(--primary-color);
-    border-radius: 8px;
-    padding: 1rem;
-    margin-top: 1rem;
-  }
+  /* Monto */
+  .money-input { position: relative; }
+  .money-input .cur { position: absolute; left: .95rem; top: 50%; transform: translateY(-50%); font-weight: 700; color: var(--text-2); font-size: 1.15rem; pointer-events: none; }
+  .money-input .suf { position: absolute; right: .9rem; top: 50%; transform: translateY(-50%); font-size: .75rem; font-weight: 700; color: var(--text-3); pointer-events: none; }
+  .money-input input { padding-left: 2.1rem; padding-right: 3.4rem; min-height: 54px; font-size: 1.35rem; font-weight: 750; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+  .monto-display { background: var(--surface-3) !important; }
+  .calc-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .6rem; margin-top: .6rem; }
+  .calc-item { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: .55rem .75rem; }
+  .calc-item span { display: block; font-size: .72rem; font-weight: 650; color: var(--text-2); text-transform: uppercase; letter-spacing: .05em; }
+  .calc-item strong { font-size: 1rem; font-variant-numeric: tabular-nums; }
+  .calc-item.c-brand strong { color: var(--brand); } .calc-item.c-ok strong { color: var(--success); }
 
-  .form-header h2 {
-    margin: 0;
-    font-size: 2rem;
-    font-weight: 300;
-  }
+  /* Interruptor (anticipo) */
+  .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .85rem 1rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); cursor: pointer; margin-bottom: 1rem; }
+  .switch-row strong { display: block; font-size: .92rem; }
+  .switch-row small { color: var(--text-2); }
+  .switch { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+  .switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; z-index: 1; }
+  .switch .track { position: absolute; inset: 0; border-radius: 999px; background: var(--border-strong); transition: background .2s var(--ease); }
+  .switch .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform .25s var(--ease); }
+  .switch input:checked + .track { background: var(--brand); }
+  .switch input:checked + .track::after { transform: translateX(20px); }
+  .switch input:focus-visible + .track { box-shadow: var(--focus-ring); }
 
-  .form-header p {
-    margin: 0.5rem 0 0 0;
-    opacity: 0.9;
-    font-size: 1.1rem;
-  }
+  /* Viáticos */
+  .persona-row { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: .85rem 1rem .1rem; margin-bottom: .75rem; }
+  .persona-title { font-weight: 700; font-size: .85rem; margin-bottom: .6rem; display: flex; align-items: center; gap: .45rem; color: var(--text); }
+  .persona-title i { color: var(--brand); }
+  .persona-grid { display: grid; grid-template-columns: 2fr 1fr 2fr; gap: 0 .75rem; }
+  @media (max-width: 680px) { .persona-grid { grid-template-columns: minmax(0, 1fr); } }
 
-  .progress-steps {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 2rem;
-    background: var(--header-bg);
-    padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-    border: 1px solid var(--border-color);
-    animation: fadeIn 0.5s ease-out;
-  }
+  /* Correos */
+  #correos-container { display: flex; flex-direction: column; gap: .5rem; }
+  .correo-row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; animation: fadeIn .2s var(--ease); }
+  .correo-row .correo-select { flex: 1 1 240px; width: auto; }
+  .correo-row .correo-otro { flex: 1 1 220px; width: auto; }
+  .remove-btn { width: 40px; height: 42px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); cursor: pointer; flex-shrink: 0; }
+  .remove-btn:hover { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--border)); }
 
-  .step {
-    display: flex;
-    align-items: center;
-    color: #6b7280;
-    font-size: 0.875rem;
-    font-weight: 500;
-  }
+  /* Descripción */
+  .char-count { font-size: .74rem; color: var(--text-3); text-align: right; font-variant-numeric: tabular-nums; }
 
-  .step.active {
-    color: var(--primary-color);
-  }
+  /* Archivos */
+  .archivos-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin-bottom: 1rem; }
+  @media (max-width: 760px) { .archivos-grid { grid-template-columns: minmax(0, 1fr); } }
+  .dropzone { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: .3rem; min-height: 132px; padding: 1rem; border-radius: 14px; border: 1.5px dashed var(--border-strong); background: var(--surface-2); transition: all .2s var(--ease); }
+  .dropzone input[type="file"] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2; }
+  .dropzone:hover, .dropzone.drag { border-color: var(--brand); background: var(--brand-50); }
+  .dropzone.drag { transform: scale(1.02); }
+  .dz-ico { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 1.1rem; color: var(--brand); background: var(--surface); border: 1px solid var(--border); margin-bottom: .2rem; }
+  .dz-title { font-weight: 700; font-size: .9rem; }
+  .dz-hint { font-size: .76rem; color: var(--text-3); }
+  .file-display { font-size: .78rem; font-weight: 650; color: var(--success); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-display:empty { display: none; }
+  .dropzone.has-file { border-style: solid; border-color: color-mix(in srgb, var(--success) 50%, var(--border)); background: color-mix(in srgb, var(--success) 6%, var(--surface)); }
+  .dropzone.has-file .dz-ico { color: var(--success); }
+  .dropzone.has-file .dz-hint { display: none; }
 
-  .step-number {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: var(--border-color);
-    color: #6b7280;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 0.5rem;
-    font-weight: 600;
-    font-size: 0.875rem;
-  }
+  /* ---------- Resumen ---------- */
+  .np-summary { position: sticky; top: calc(var(--nav-h) + 16px); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); overflow: hidden; }
+  .sum-head { padding: 1rem 1.15rem; background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 14%, var(--surface)), var(--surface)); border-bottom: 1px solid var(--border); }
+  .sum-head h3 { margin: 0; font-size: .95rem; display: flex; align-items: center; gap: .5rem; }
+  .sum-total { margin-top: .6rem; }
+  .sum-total span { font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-2); }
+  .sum-total strong { display: block; font-size: 1.9rem; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .sum-total small { color: var(--text-2); font-size: .8rem; }
+  .sum-list { list-style: none; margin: 0; padding: .6rem 1.15rem; }
+  .sum-list li { display: flex; justify-content: space-between; gap: 1rem; padding: .45rem 0; border-bottom: 1px dashed var(--border); font-size: .84rem; }
+  .sum-list li:last-child { border-bottom: 0; }
+  .sum-list li[hidden] { display: none; }
+  .sum-list li span { color: var(--text-2); flex-shrink: 0; }
+  .sum-list li b { font-weight: 600; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sum-list li b.empty { color: var(--text-3); font-weight: 500; }
+  .sum-foot { padding: 1rem 1.15rem 1.15rem; border-top: 1px solid var(--border); background: var(--surface-2); }
+  .sum-foot p { font-size: .76rem; color: var(--text-3); margin: .6rem 0 0; text-align: center; }
+  @media (max-width: 1080px) { .np-summary { display: none; } }
 
-  .step.active .step-number {
-    background: var(--primary-color);
-    color: var(--text-color);
-  }
+  .submit-btn { width: 100%; min-height: 50px; font-size: 1rem; border-radius: 13px; }
 
-  .step-divider {
-    width: 50px;
-    height: 2px;
-    background: var(--border-color);
-    margin: 0 1rem;
-  }
-
-  .step.active+.step-divider {
-    background: var(--primary-color);
-  }
-
-  .form-section {
-    background: var(--header-bg);
-    border-radius: 12px;
-    padding: 2rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-    border: 1px solid var(--border-color);
-    animation: fadeIn 0.5s ease-out;
-  }
-
-  .section-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-color);
-    margin-bottom: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 2px solid var(--border-color);
-  }
-
-  .form-grid {
-    display: grid;
-    gap: 1.5rem;
-  }
-
-  .form-grid-2 {
-    grid-template-columns: 1fr;
-  }
-
-  @media (min-width: 768px) {
-    .form-grid-2 {
-      grid-template-columns: 1fr 1fr;
+  /* Barra de envío fija (celular / tablet) */
+  .np-mobilebar { display: none; }
+  @media (max-width: 1080px) {
+    .np-mobilebar {
+      display: flex; align-items: center; gap: .85rem; position: sticky; bottom: 0; z-index: 50; margin: 0 calc(-1 * clamp(1rem, 2.4vw, 2rem));
+      padding: .75rem clamp(1rem, 2.4vw, 2rem); background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid var(--border);
     }
-  }
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .form-group label {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--text-color);
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  .required {
-    color: var(--error-color);
-  }
-
-  .form-group input,
-  .form-group select,
-  .form-group textarea {
-    background-color: var(--input-bg);
-    color: var(--text-color);
-    padding: 0.75rem;
-    border: 2px solid var(--border-color);
-    border-radius: 8px;
-    font-size: 0.875rem;
-    transition: all 0.2s ease;
-  }
-
-  .form-group input:focus,
-  .form-group select:focus,
-  .form-group textarea:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(243, 124, 34, 0.1);
-  }
-
-  .form-group input:invalid,
-  .form-group select:invalid {
-    border-color: var(--error-color);
-  }
-
-  .form-group input:valid,
-  .form-group select:valid {
-    border-color: var(--success-color);
-  }
-
-  .btn {
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    justify-content: center;
-  }
-
-  .btn-primary {
-    background: var(--primary-color);
-    color: var(--text-color);
-  }
-
-  .btn-primary:hover {
-    background: #e06d17;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(243, 124, 34, 0.4);
-  }
-
-  .btn-secondary {
-    background: #6b7280;
-    color: var(--text-color);
-  }
-
-  .btn-secondary:hover {
-    background: #4b5563;
-  }
-
-  .btn-outline {
-    background: transparent;
-    color: var(--primary-color);
-    border: 2px solid var(--primary-color);
-  }
-
-  .btn-outline:hover {
-    background: var(--primary-color);
-    color: var(--text-color);
-  }
-
-  .dynamic-section {
-    background: var(--input-bg);
-    border: 2px dashed var(--border-color);
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-top: 1rem;
-  }
-
-  .dynamic-section.active {
-    background: var(--header-bg);
-    border-color: var(--primary-color);
-  }
-
-  .persona-row {
-    background: var(--header-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin: 1rem 0;
-    position: relative;
-  }
-
-  .persona-row::before {
-    content: "👤";
-    position: absolute;
-    top: -10px;
-    left: 15px;
-    background: var(--header-bg);
-    padding: 0 0.5rem;
-    font-size: 1.2rem;
-  }
-
-  .correo-row {
-    background: var(--header-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 1rem;
-    margin: 0.5rem 0;
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-  }
-
-  .correo-row input,
-  .correo-row select {
-    margin: 0;
-  }
-
-  .remove-btn {
-    background: var(--error-color);
-    color: var(--text-color);
-    border: none;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-  }
-
-  .remove-btn:hover {
-    background: #c82333;
-    transform: scale(1.1);
-  }
-
-  .file-upload-area {
-    border: 2px dashed var(--border-color);
-    border-radius: 8px;
-    padding: 2rem;
-    text-align: center;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    background: var(--input-bg);
-    color: var(--text-color);
-  }
-
-  .file-upload-area:hover {
-    border-color: var(--primary-color);
-    background: var(--header-bg);
-  }
-
-  .file-upload-area.dragover {
-    border-color: var(--primary-color);
-    background: var(--header-bg);
-    transform: scale(1.02);
-  }
-
-  .checkbox-group {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem;
-    background: var(--input-bg);
-    border-radius: 8px;
-    border: 2px solid var(--border-color);
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .checkbox-group:hover {
-    background: var(--header-bg);
-    border-color: var(--primary-color);
-  }
-
-  .checkbox-group input[type="checkbox"] {
-    width: 20px;
-    height: 20px;
-    accent-color: var(--primary-color);
-  }
-
-  .submit-section {
-    background: linear-gradient(135deg, var(--input-bg) 0%, var(--header-bg) 100%);
-    padding: 2rem;
-    border-radius: 12px;
-    text-align: center;
-    border: 1px solid var(--border-color);
-  }
-
-  .submit-btn {
-    font-size: 1rem;
-    padding: 1rem 2rem;
-    background: linear-gradient(135deg, var(--primary-color) 0%, #e06d17 100%);
-    box-shadow: 0 4px 20px rgba(243, 124, 34, 0.3);
-  }
-
-  .submit-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(243, 124, 34, 0.4);
-  }
-
-  .info-tooltip {
-    position: relative;
-    display: inline-block;
-    cursor: help;
-  }
-
-  .info-tooltip .tooltip-text {
-    visibility: hidden;
-    width: 200px;
-    background-color: var(--header-bg);
-    color: var(--text-color);
-    text-align: center;
-    border-radius: 6px;
-    padding: 0.5rem;
-    position: absolute;
-    z-index: 1;
-    bottom: 125%;
-    left: 50%;
-    margin-left: -100px;
-    opacity: 0;
-    transition: opacity 0.3s;
-    font-size: 0.75rem;
-    border: 1px solid var(--border-color);
-  }
-
-  .info-tooltip:hover .tooltip-text {
-    visibility: visible;
-    opacity: 1;
-  }
-
-  .monto-display {
-    background: var(--header-bg);
-    border: 2px solid var(--primary-color);
-    color: var(--primary-color);
-    font-weight: bold;
-    font-size: 1.1rem;
-    text-align: center;
-  }
-
-  .field-error {
-    border-color: var(--error-color) !important;
-    background-color: var(--input-bg);
-  }
-
-  .error-message {
-    color: var(--error-color);
-    font-size: 0.75rem;
-    margin-top: 0.25rem;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  .success-message {
-    color: var(--success-color);
-    font-size: 0.75rem;
-    margin-top: 0.25rem;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  /* NUEVOS ESTILOS PARA 3 ARCHIVOS */
-  .archivos-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
-  }
-
-  .archivo-item {
-    background: var(--input-bg);
-    border: 2px solid var(--border-color);
-    border-radius: 8px;
-    padding: 1rem;
-    transition: all 0.2s ease;
-  }
-
-  .archivo-item:hover {
-    border-color: var(--primary-color);
-    background: var(--header-bg);
-  }
-
-  .archivo-item-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
-    font-weight: 600;
-    color: var(--text-color);
-  }
-
-  .archivo-item-header .emoji {
-    font-size: 1.25rem;
-  }
-
-  .file-input-wrapper {
-    position: relative;
-  }
-
-  .file-input-wrapper input[type="file"] {
-    display: none;
-  }
-
-  .file-input-label {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.75rem;
-    background: var(--header-bg);
-    border: 2px dashed var(--border-color);
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 0.875rem;
-    color: var(--text-color);
-  }
-
-  .file-input-label:hover {
-    border-color: var(--primary-color);
-    background: var(--input-bg);
-  }
-
-  .file-display {
-    margin-top: 0.5rem;
-    font-size: 0.75rem;
-    color: var(--success-color);
-    display: none;
-  }
-
-  .file-display.active {
-    display: block;
-  }
-
-  /* ===================== */
-  /* MOBILE OPTIMIZATIONS  */
-  /* ===================== */
-
-  /* Tablet */
-  @media (max-width: 1024px) {
-    .form-container {
-      padding: 0.75rem;
-    }
-
-    .form-section {
-      padding: 1.25rem;
-    }
-
-    .form-grid-2 {
-      gap: 1rem;
-    }
-  }
-
-  /* Mobile */
-  @media (max-width: 767px) {
-    .form-container {
-      padding: 0.5rem;
-      max-width: 100%;
-    }
-
-    .form-header {
-      padding: 1.25rem;
-      border-radius: 8px;
-      margin-bottom: 1rem;
-    }
-
-    .form-header h2 {
-      font-size: 1.5rem;
-    }
-
-    .form-header p {
-      font-size: 0.95rem;
-    }
-
-    .progress-steps {
-      display: none;
-    }
-
-    .form-section {
-      padding: 1rem;
-      border-radius: 8px;
-      margin-bottom: 0.75rem;
-    }
-
-    .section-title {
-      font-size: 1rem;
-      padding: 0.5rem 0.75rem;
-      margin-bottom: 1rem;
-    }
-
-    .form-grid-2 {
-      grid-template-columns: 1fr;
-      gap: 0.75rem;
-    }
-
-    .archivos-grid {
-      grid-template-columns: 1fr;
-      gap: 0.75rem;
-    }
-
-    /* Inputs más grandes para touch */
-    input[type="text"],
-    input[type="number"],
-    input[type="email"],
-    input[type="date"],
-    input[type="file"],
-    select,
-    textarea {
-      font-size: 16px !important;
-      /* Prevenir zoom en iOS */
-      padding: 0.875rem;
-      min-height: 48px;
-    }
-
-    .form-group label {
-      font-size: 0.9rem;
-      margin-bottom: 0.35rem;
-    }
-
-    /* Botón submit más grande */
-    .submit-section {
-      padding: 1.5rem 1rem;
-    }
-
-    .submit-btn {
-      width: 100%;
-      padding: 1rem 1.5rem;
-      font-size: 1.1rem;
-      min-height: 56px;
-    }
-
-    /* Correos dinámicos */
-    .correo-row {
-      flex-direction: column;
-      gap: 0.5rem !important;
-    }
-
-    .correo-row select,
-    .correo-row input {
-      width: 100% !important;
-    }
-
-    .correo-row button {
-      width: 48px;
-      height: 48px;
-      min-width: 48px;
-      padding: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* Sección de viáticos */
-    #viaticos-personas .form-grid-2 {
-      gap: 0.5rem;
-    }
-
-    /* Checkbox anticipo */
-    input[type="checkbox"] {
-      width: 20px;
-      height: 20px;
-    }
-
-    /* File inputs mejorados */
-    .file-input-wrapper {
-      margin-bottom: 0.75rem;
-    }
-
-    .file-input-label {
-      padding: 1rem;
-      font-size: 0.8rem;
-      min-height: 60px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* Tooltips y ayudas */
-    .nota-monto,
-    .file-display {
-      font-size: 0.75rem;
-    }
-  }
-
-  /* Small mobile */
-  @media (max-width: 480px) {
-    .form-container {
-      padding: 0.25rem;
-    }
-
-    .form-header {
-      padding: 1rem;
-    }
-
-    .form-header h2 {
-      font-size: 1.25rem;
-    }
-
-    .form-section {
-      padding: 0.75rem;
-    }
-
-    .section-title {
-      font-size: 0.9rem;
-      padding: 0.4rem 0.6rem;
-    }
-
-    .form-group label {
-      font-size: 0.85rem;
-    }
-
-    .submit-btn {
-      font-size: 1rem;
-      padding: 0.875rem 1rem;
-    }
-
-    /* Persona viáticos más compacta */
-    .persona-viaticos {
-      padding: 0.75rem !important;
-    }
-
-    .persona-viaticos .form-grid-2 {
-      gap: 0.4rem;
-    }
-  }
-
-  /* ========== LOADING OVERLAY ========== */
-  .loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(17, 24, 39, 0.85);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  .loading-overlay.active {
-    display: flex;
-    opacity: 1;
-  }
-
-  .loading-content {
-    text-align: center;
-    padding: 3rem;
-    background: linear-gradient(135deg, var(--header-bg) 0%, #1e293b 100%);
-    border-radius: 20px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
-      0 0 0 1px rgba(243, 124, 34, 0.2);
-    animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    max-width: 400px;
-    width: 90%;
-  }
-
-  @keyframes scaleIn {
-    from {
-      transform: scale(0.8);
-      opacity: 0;
-    }
-
-    to {
-      transform: scale(1);
-      opacity: 1;
-    }
-  }
-
-  .loading-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--text-color);
-    margin-bottom: 0.5rem;
-  }
-
-  .loading-message {
-    font-size: 1rem;
-    color: #9ca3af;
-    margin-bottom: 1.5rem;
-  }
-
-  .loading-progress {
-    display: flex;
-    gap: 0.5rem;
-    justify-content: center;
-  }
-
-  .loading-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--primary-color);
-    animation: bounce 1.4s ease-in-out infinite;
-  }
-
-  .loading-dot:nth-child(1) {
-    animation-delay: 0s;
-  }
-
-  .loading-dot:nth-child(2) {
-    animation-delay: 0.2s;
-  }
-
-  .loading-dot:nth-child(3) {
-    animation-delay: 0.4s;
-  }
-
-  @keyframes bounce {
-
-    0%,
-    80%,
-    100% {
-      transform: scale(0.6);
-      opacity: 0.5;
-    }
-
-    40% {
-      transform: scale(1);
-      opacity: 1;
-    }
-  }
-
-  .submit-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none !important;
-    box-shadow: none !important;
-  }
+    body.has-bottom-nav .np-mobilebar { bottom: calc(64px + env(safe-area-inset-bottom)); }
+    .np-mobilebar .mb-total { flex: 1; min-width: 0; }
+    .np-mobilebar .mb-total span { display: block; font-size: .7rem; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: .05em; }
+    .np-mobilebar .mb-total strong { font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .np-mobilebar .submit-btn { width: auto; flex: 0 0 auto; min-height: 46px; padding: 0 1.2rem; }
+  }
+  @media (min-width: 761px) and (max-width: 1080px) { body.has-bottom-nav .np-mobilebar { bottom: 0; } }
+
+  /* ---------- Overlay de envío ---------- */
+  .loading-overlay { position: fixed; inset: 0; z-index: 1300; display: none; align-items: center; justify-content: center; background: var(--overlay); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); opacity: 0; transition: opacity .25s var(--ease); padding: 1rem; }
+  .loading-overlay.active { opacity: 1; }
+  .loading-content { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); padding: 2rem 2.25rem; text-align: center; max-width: 360px; animation: modal-in .3s var(--ease); }
+  .loading-spinner-lg { width: 54px; height: 54px; margin: 0 auto 1rem; border-radius: 50%; border: 4px solid var(--brand-100); border-top-color: var(--brand); animation: spin .8s linear infinite; }
+  .loading-title { font-size: 1.1rem; margin-bottom: .3rem; }
+  .loading-message { color: var(--text-2); font-size: .9rem; margin: 0; }
 </style>
+{% endblock %}
 
-<div class="form-container">
-  <div class="form-header">
-    <h2>💰 Nueva Solicitud de Pago</h2>
-    <p>Complete el formulario para solicitar un pago</p>
+{% block content %}
+<div class="np-hero reveal">
+  <div>
+    <div class="page-head" style="margin:0"><div class="eyebrow"><i class="fa-solid fa-file-circle-plus"></i> Solicitudes de pago</div></div>
+    <h1>Nueva solicitud de pago</h1>
+    <p>Llena los datos y envía; te avisaremos por correo cuando se procese. Los campos con <span class="required">*</span> son obligatorios.</p>
   </div>
-
-  <div class="progress-steps">
-    <div class="step active">
-      <div class="step-number">1</div>
-      <span>Información Básica</span>
-    </div>
-    <div class="step-divider"></div>
-    <div class="step">
-      <div class="step-number">2</div>
-      <span>Detalles del Pago</span>
-    </div>
-    <div class="step-divider"></div>
-    <div class="step">
-      <div class="step-number">3</div>
-      <span>Revisión y Envío</span>
-    </div>
+  <div class="np-progress" aria-live="polite">
+    <div class="np-progress-top"><span>Avance del formulario</span><strong id="npPct">0%</strong></div>
+    <div class="np-bar"><span id="npBar"></span></div>
   </div>
+</div>
 
-  <form id="solicitar_pago_form" method="POST" action="{{ url_for('solicitar_pago') }}" enctype="multipart/form-data"
+<div class="np-grid">
+  <form id="solicitar_pago_form" class="np-form" method="POST" action="{{ url_for('solicitar_pago') }}" enctype="multipart/form-data"
     onsubmit="return prepareDestinatario();">
 
-    <!-- Sección 1: Información del Solicitante -->
-    <div class="form-section">
-      <div class="section-title">
-        👤 Información del Solicitante
+    <!-- 1. Solicitante -->
+    <section class="np-card reveal reveal-1" data-sec>
+      <div class="np-card-head">
+        <span class="np-step"><span class="n">1</span><i class="fa-solid fa-check ok"></i></span>
+        <div><h2>¿Quién solicita?</h2><p>Tu nombre y el folio del proyecto</p></div>
       </div>
-
-      <div class="form-grid form-grid-2">
+      <div class="np-row">
         <div class="form-group">
-          <label for="selected_nombre">
-            Nombre del Solicitante <span class="required">*</span>
-          </label>
+          <label for="selected_nombre">Nombre del solicitante <span class="required">*</span></label>
           <select name="selected_nombre" id="selected_nombre" required onchange="onChangeNombre()">
-            <option value="">--Seleccione su nombre--</option>
+            <option value="">Selecciona tu nombre…</option>
             {% for emp in employees %}
-            <option value="{{ emp.nombre }}" data-depto="{{ emp.departamento }}">
-              {{ emp.nombre }}
-            </option>
+            <option value="{{ emp.nombre }}" data-depto="{{ emp.departamento }}">{{ emp.nombre }}</option>
             {% endfor %}
-            <option value="otro">🆕 Otro (no está en la lista)</option>
+            <option value="otro">Otro (no estoy en la lista)</option>
           </select>
         </div>
-
         <div class="form-group">
-          <label for="fp">
-            Folio de Proyecto (FP) <span class="required">*</span>
-            <div class="info-tooltip">ℹ️
-              <span class="tooltip-text">Código único del proyecto al que pertenece este pago</span>
-            </div>
-          </label>
-          <input type="text" name="fp" id="fp" required placeholder="Ej: FP-2024-001">
+          <label for="fp">Folio de proyecto (FP) <span class="required">*</span></label>
+          <input type="text" name="fp" id="fp" required placeholder="Ej: FP-2024-001" autocomplete="off">
+          <span class="hint"><i class="fa-solid fa-circle-info"></i> Código del proyecto al que pertenece este pago</span>
         </div>
       </div>
 
       <div id="otro-container" style="display: none;" class="dynamic-section">
-        <div class="form-grid form-grid-2">
+        <div class="np-row">
           <div class="form-group">
-            <label for="nombre_otro">Nombre Completo <span class="required">*</span></label>
-            <input type="text" name="nombre_otro" id="nombre_otro" placeholder="Ingrese su nombre completo">
+            <label for="nombre_otro">Nombre completo <span class="required">*</span></label>
+            <input type="text" name="nombre_otro" id="nombre_otro" placeholder="Tu nombre completo">
           </div>
           <div class="form-group">
             <label for="departamento_otro">Departamento <span class="required">*</span></label>
-            <input type="text" name="departamento_otro" id="departamento_otro" placeholder="Ingrese su departamento">
+            <input type="text" name="departamento_otro" id="departamento_otro" placeholder="Tu departamento">
           </div>
         </div>
       </div>
-
       <input type="hidden" id="departamento_hidden" name="departamento_hidden" value="">
-    </div>
+    </section>
 
-    <!-- Sección 2: Destinatario y Tipo de Pago -->
-    <div class="form-section">
-      <div class="section-title">
-        🏢 Información del Destinatario
+    <!-- 2. Destinatario -->
+    <section class="np-card reveal reveal-2" data-sec>
+      <div class="np-card-head">
+        <span class="np-step"><span class="n">2</span><i class="fa-solid fa-check ok"></i></span>
+        <div><h2>¿A quién se le paga?</h2><p>Proveedor o persona y su cuenta bancaria</p></div>
       </div>
-
       <div class="form-group">
-        <label for="destinatario">
-          Destinatario (A quién se le pagará) <span class="required">*</span>
-        </label>
+        <label for="destinatario">Destinatario <span class="required">*</span></label>
         <select name="destinatario_select" id="destinatario" required onchange="onChangeProveedor()">
-          <option value="">--Seleccione un proveedor--</option>
+          <option value="">Selecciona un proveedor…</option>
           {% for prov in proveedores %}
           <option value="{{ prov.nombre }}" data-banco="{{ prov.banco }}" data-clabe="{{ prov.clabe }}"
-            data-referencia="{{ prov.referencia }}" data-beneficiario="{{ prov.beneficiario or '' }}">
-            {{ prov.nombre }}
-          </option>
+            data-referencia="{{ prov.referencia }}" data-beneficiario="{{ prov.beneficiario or '' }}">{{ prov.nombre }}</option>
           {% endfor %}
-          <option value="otro">🆕 Otro proveedor</option>
+          <option value="otro">Otro proveedor (no está en el catálogo)</option>
         </select>
       </div>
 
       <div id="destinatario-otro-container" style="display: none;" class="dynamic-section">
         <div class="form-group">
-          <label for="destinatario_otro">Nombre del Destinatario <span class="required">*</span></label>
-          <input type="text" name="destinatario_otro" id="destinatario_otro"
-            placeholder="Ingrese el nombre del destinatario">
+          <label for="destinatario_otro">Nombre del destinatario <span class="required">*</span></label>
+          <input type="text" name="destinatario_otro" id="destinatario_otro" placeholder="Nombre de la persona o empresa">
         </div>
       </div>
-
       <input type="hidden" name="destinatario" id="destinatario_hidden" value="">
 
-      <div class="form-grid form-grid-2">
+      <div class="autofill-note"><i class="fa-solid fa-wand-magic-sparkles"></i> Al elegir un proveedor del catálogo, sus datos bancarios se llenan solos.</div>
+      <div class="np-row">
         <div class="form-group">
-          <label for="beneficiario">Beneficiario de la Cuenta <span class="required">*</span></label>
-          <input type="text" name="beneficiario" id="beneficiario" required placeholder="Nombre del titular de la cuenta">
+          <label for="beneficiario">Beneficiario de la cuenta <span class="required">*</span></label>
+          <input type="text" name="beneficiario" id="beneficiario" required placeholder="Titular de la cuenta">
         </div>
         <div class="form-group">
-          <label for="banco">Banco (Cuenta destino) <span class="required">*</span></label>
+          <label for="banco">Banco <span class="required">*</span></label>
           <input type="text" name="banco" id="banco" required placeholder="Ej: BBVA México">
         </div>
         <div class="form-group">
-          <label for="clabe">CLABE (Cuenta destino) <span class="required">*</span></label>
-          <input type="text" name="clabe" id="clabe" required placeholder="18 dígitos" maxlength="18">
+          <label for="clabe">CLABE <span class="required">*</span></label>
+          <input type="text" name="clabe" id="clabe" required placeholder="18 dígitos" maxlength="18" inputmode="numeric" autocomplete="off">
+          <span class="clabe-meta" id="clabeMeta">0 / 18</span>
         </div>
         <div class="form-group">
-          <label for="referencia">Referencia del Proveedor</label>
-          <input type="text" name="referencia" id="referencia" readonly placeholder="Se completará automáticamente">
+          <label for="referencia">Referencia del proveedor</label>
+          <input type="text" name="referencia" id="referencia" readonly placeholder="Se completa automáticamente">
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Sección 3: Tipo de Solicitud -->
-    <div class="form-section">
-      <div class="section-title">
-        📋 Detalles de la Solicitud
+    <!-- 3. Detalles -->
+    <section class="np-card reveal reveal-3" data-sec>
+      <div class="np-card-head">
+        <span class="np-step"><span class="n">3</span><i class="fa-solid fa-check ok"></i></span>
+        <div><h2>Detalles del pago</h2><p>Tipo de solicitud, método de pago y fecha límite</p></div>
       </div>
-
-      <div class="form-grid form-grid-2">
+      <div class="np-row">
         <div class="form-group">
-          <label for="tipo_solicitud">
-            Tipo de Solicitud <span class="required">*</span>
-          </label>
+          <label for="tipo_solicitud">Tipo de solicitud <span class="required">*</span></label>
           <select name="tipo_solicitud" id="tipo_solicitud" required onchange="toggleViaticosFields()">
-            <option value="">--Seleccione el tipo--</option>
-            <option value="Viáticos">💼 Viáticos</option>
-            <option value="Compras">🛒 Compras</option>
-            <option value="Administrativos">📄 Administrativos</option>
-            <option value="Otro">📂 Otro</option>
+            <option value="">Selecciona el tipo…</option>
+            <option value="Viáticos">Viáticos</option>
+            <option value="Compras">Compras</option>
+            <option value="Administrativos">Administrativos</option>
+            <option value="Otro">Otro</option>
           </select>
         </div>
-
         <div class="form-group" id="categoria-administrativos-container" style="display: none;">
-          <label for="categoria_administrativos">
-            Categoría Administrativa <span class="required">*</span>
-          </label>
+          <label for="categoria_administrativos">Categoría administrativa <span class="required">*</span></label>
           <select name="categoria_administrativos" id="categoria_administrativos">
-            <option value="">--Seleccione una categoría--</option>
+            <option value="">Selecciona una categoría…</option>
             {% for concepto in conceptos_indirectos %}
             <option value="{{ concepto.concepto }}">{{ concepto.concepto }}</option>
             {% endfor %}
           </select>
         </div>
-
         <div class="form-group">
-          <label for="tipo_pago">
-            Tipo de Pago <span class="required">*</span>
-          </label>
+          <label for="tipo_pago">Método de pago <span class="required">*</span></label>
           <select name="tipo_pago" id="tipo_pago" required>
-            <option value="">--Seleccione método de pago--</option>
-            <option value="BBVA Sin factura">🏦 BBVA Sin factura</option>
-            <option value="BBVA Con factura">🏦 BBVA Con factura</option>
-            <option value="Santander">🏦 Santander</option>
-            <option value="HSBC">🏦 HSBC</option>
-            <option value="TDC Corp">💳 TDC Corp</option>
-            <option value="TDC personal">💳 TDC personal</option>
-            <option value="Efectivo">💵 Efectivo</option>
+            <option value="">Selecciona el método…</option>
+            <option value="BBVA Sin factura">BBVA Sin factura (+6% comisión)</option>
+            <option value="BBVA Con factura">BBVA Con factura</option>
+            <option value="Santander">Santander</option>
+            <option value="HSBC">HSBC</option>
+            <option value="TDC Corp">TDC Corp</option>
+            <option value="TDC personal">TDC personal</option>
+            <option value="Efectivo">Efectivo</option>
           </select>
         </div>
-      </div>
-
-      <div class="form-group">
-        <label for="fecha_limite">
-          Fecha Límite de Pago <span class="required">*</span>
-        </label>
-        <input type="date" name="fecha_limite" id="fecha_limite" required>
-      </div>
-
-      <!-- Viáticos Section -->
-      <div id="viaticos-container" style="display:none;" class="dynamic-section active">
-        <div class="section-title" style="margin-bottom: 1rem; font-size: 1rem;">
-          👥 Configuración de Viáticos
-        </div>
-
         <div class="form-group">
-          <label for="cantidad_personas">Cantidad de Personas</label>
-          <input type="number" name="cantidad_personas" id="cantidad_personas" min="1" value="1"
-            onchange="generarCamposPersonas()" style="max-width: 200px;">
+          <label for="fecha_limite">Fecha límite de pago <span class="required">*</span></label>
+          <input type="date" name="fecha_limite" id="fecha_limite" required>
         </div>
+      </div>
 
+      <div id="viaticos-container" style="display:none;" class="dynamic-section active">
+        <div class="np-card-head" style="margin-bottom:.75rem">
+          <div><h2 style="font-size:.95rem"><i class="fa-solid fa-people-group" style="color:var(--brand)"></i> Viáticos por persona</h2><p>El monto total se calcula con la suma de cada persona</p></div>
+        </div>
+        <div class="form-group" style="max-width:220px">
+          <label for="cantidad_personas">Cantidad de personas</label>
+          <input type="number" name="cantidad_personas" id="cantidad_personas" min="1" value="1" onchange="generarCamposPersonas()">
+        </div>
         <div id="personas-container"></div>
       </div>
-    </div>
+    </section>
 
-    <!-- Sección 4: Monto y Contacto -->
-    <div class="form-section">
-      <div class="section-title">
-        💰 Información Financiera y Contacto
+    <!-- 4. Monto -->
+    <section class="np-card reveal reveal-4" data-sec>
+      <div class="np-card-head">
+        <span class="np-step"><span class="n">4</span><i class="fa-solid fa-check ok"></i></span>
+        <div><h2>Monto y anticipo</h2><p>Cuánto se pagará y si habrá anticipo</p></div>
       </div>
-
-      <div class="form-grid form-grid-2">
-        <div class="form-group">
-          <label for="monto">
-            Monto <span class="required">*</span>
-            <span id="label-monto-tipo">(sin comisión)</span>
-          </label>
-          <input type="text" name="monto" id="monto" placeholder="Ej: 1,000.50"
+      <div class="form-group">
+        <label for="monto">Monto <span class="required">*</span> <span id="label-monto-tipo" class="chip">(sin comisión)</span></label>
+        <div class="money-input">
+          <span class="cur">$</span>
+          <input type="text" name="monto" id="monto" placeholder="0.00" inputmode="decimal" autocomplete="off"
             oninput="formatMonto(this); calcularComision();" required>
-          <div id="info-comision"
-            style="display: none; margin-top: 0.5rem; padding: 0.75rem; background: var(--input-bg); border-radius: 6px; border: 1px solid var(--border-color);">
-            <div style="font-size: 0.875rem; color: var(--text-color);">
-              <div>💡 Comisión BBVA (6%): <span id="monto-comision"
-                  style="font-weight: 600; color: var(--primary-color);">$0.00</span></div>
-              <div style="margin-top: 0.25rem;">💰 Total con comisión: <span id="monto-total"
-                  style="font-weight: 600; color: var(--success-color);">$0.00</span></div>
-            </div>
-          </div>
+          <span class="suf">MXN</span>
         </div>
-
-        <div class="form-group">
-          <div class="checkbox-group" onclick="toggleCheckbox('anticipo')">
-            <input type="checkbox" name="anticipo" id="anticipo" onchange="toggleAnticipoField(this)">
-            <label for="anticipo" style="cursor: pointer; font-weight: 500;">
-              💳 Se dará anticipo para este pago
-            </label>
+        <div id="info-comision" style="display: none;">
+          <div class="calc-box">
+            <div class="calc-item c-brand"><span>Comisión BBVA (6%)</span><strong id="monto-comision">$0.00</strong></div>
+            <div class="calc-item c-ok"><span>Total con comisión</span><strong id="monto-total">$0.00</strong></div>
           </div>
         </div>
       </div>
+
+      <label class="switch-row" for="anticipo">
+        <span><strong><i class="fa-solid fa-hand-holding-dollar" style="color:var(--brand)"></i> Se dará anticipo</strong><small>Paga una parte ahora y el resto después</small></span>
+        <span class="switch"><input type="checkbox" name="anticipo" id="anticipo" onchange="toggleAnticipoField(this)"><span class="track"></span></span>
+      </label>
 
       <div id="anticipo-container" style="display:none;" class="dynamic-section active">
-        <div class="form-grid form-grid-2">
+        <div class="np-row">
           <div class="form-group">
-            <label for="tipo_anticipo">
-              Tipo de Anticipo <span class="required">*</span>
-            </label>
+            <label for="tipo_anticipo">Tipo de anticipo <span class="required">*</span></label>
             <select name="tipo_anticipo" id="tipo_anticipo" onchange="toggleTipoAnticipo()">
-              <option value="porcentaje">Por Porcentaje (%)</option>
-              <option value="cantidad">Por Cantidad ($)</option>
+              <option value="porcentaje">Por porcentaje (%)</option>
+              <option value="cantidad">Por cantidad ($)</option>
             </select>
           </div>
-
           <div class="form-group" id="anticipo-porcentaje-group">
-            <label for="porcentaje_anticipo">
-              Porcentaje de Anticipo (%) <span class="required">*</span>
-            </label>
-            <input type="number" name="porcentaje_anticipo" id="porcentaje_anticipo" min="0" max="100" step="0.01"
-              placeholder="Ej: 50" oninput="calcularAnticipoPorcentaje()">
+            <label for="porcentaje_anticipo">Porcentaje de anticipo (%) <span class="required">*</span></label>
+            <input type="number" name="porcentaje_anticipo" id="porcentaje_anticipo" min="0" max="100" step="0.01" placeholder="Ej: 50" oninput="calcularAnticipoPorcentaje()">
           </div>
-
           <div class="form-group" id="anticipo-cantidad-group" style="display: none;">
-            <label for="monto_anticipo">
-              Monto de Anticipo ($) <span class="required">*</span>
-            </label>
-            <input type="text" name="monto_anticipo" id="monto_anticipo" placeholder="Ej: 500.00"
-              oninput="formatMonto(this); calcularAnticipoCantidad()">
+            <label for="monto_anticipo">Monto de anticipo ($) <span class="required">*</span></label>
+            <input type="text" name="monto_anticipo" id="monto_anticipo" placeholder="Ej: 500.00" inputmode="decimal" oninput="formatMonto(this); calcularAnticipoCantidad()">
           </div>
         </div>
-
-        <div
-          style="margin-top: 1rem; padding: 1rem; background: var(--input-bg); border-radius: 6px; border: 1px solid var(--border-color);">
-          <div style="font-size: 0.875rem; color: var(--text-color);">
-            <div>💵 Anticipo: <span id="display-anticipo"
-                style="font-weight: 600; color: var(--primary-color);">$0.00</span> <span
-                id="display-anticipo-porcentaje" style="color: #6b7280;">(0%)</span></div>
-            <div style="margin-top: 0.25rem;">💰 Monto restante: <span id="display-restante"
-                style="font-weight: 600; color: var(--success-color);">$0.00</span></div>
-          </div>
+        <div class="calc-box" style="margin-bottom:1rem">
+          <div class="calc-item c-brand"><span>Anticipo <span id="display-anticipo-porcentaje">(0%)</span></span><strong id="display-anticipo">$0.00</strong></div>
+          <div class="calc-item c-ok"><span>Monto restante</span><strong id="display-restante">$0.00</strong></div>
         </div>
       </div>
+    </section>
 
-      <!-- Correos como dropdown con "Otro…" -->
+    <!-- 5. Notificaciones -->
+    <section class="np-card reveal reveal-5" data-sec>
+      <div class="np-card-head">
+        <span class="np-step"><span class="n">5</span><i class="fa-solid fa-check ok"></i></span>
+        <div><h2>¿A quién avisamos?</h2><p>Correos que recibirán la notificación</p></div>
+      </div>
       <div class="form-group">
-        <label for="correo-dropdown">
-          Correos Electrónicos de Notificación <span class="required">*</span>
-        </label>
+        <label for="correo-dropdown">Correos de notificación <span class="required">*</span></label>
         <div id="correos-container">
           <div class="correo-row">
-            <select class="correo-select" required>
-              <option value="">--Seleccione un correo--</option>
+            <select class="correo-select" required aria-label="Correo">
+              <option value="">Selecciona un correo…</option>
               <option value="dagarcia@ad17solutions.com">dagarcia@ad17solutions.com</option>
               <option value="marivero@ad17solutions.com">marivero@ad17solutions.com</option>
               <option value="vmejia@ad17solutions.com">vmejia@ad17solutions.com</option>
@@ -1091,116 +379,97 @@
             </select>
             <input type="email" class="correo-otro" placeholder="correo@empresa.com" style="display:none;">
             <input type="hidden" name="correo" class="correo-hidden">
-            <button type="button" onclick="agregarCorreo()" class="btn btn-outline">➕ Agregar</button>
+            <button type="button" onclick="agregarCorreo()" class="btn btn-outline"><i class="fa-solid fa-plus"></i> Agregar</button>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Sección 5: Descripción y Archivos -->
-    <div class="form-section">
-      <div class="section-title">
-        📝 Información Adicional
+    <!-- 6. Descripción y archivos -->
+    <section class="np-card reveal reveal-6" data-sec data-optional>
+      <div class="np-card-head">
+        <span class="np-step"><span class="n">6</span><i class="fa-solid fa-check ok"></i></span>
+        <div><h2>Descripción y archivos</h2><p>Opcional, pero ayuda a procesar más rápido</p></div>
+      </div>
+      <div class="form-group">
+        <label for="descripcion">Descripción del pago</label>
+        <textarea name="descripcion" id="descripcion" rows="4" maxlength="500"
+          placeholder="Concepto del pago: materiales, servicios, periodo, etc."></textarea>
+        <span class="char-count"><span id="descCount">0</span> / 500</span>
       </div>
 
-      <div class="form-group">
-        <label for="descripcion">
-          Descripción del Pago
-          <div class="info-tooltip">ℹ️
-            <span class="tooltip-text">Describa brevemente el concepto del pago</span>
-          </div>
-        </label>
-        <textarea name="descripcion" id="descripcion" rows="4"
-          placeholder="Describa el concepto del pago, materiales, servicios, etc. (máx. 500 caracteres)"
-          maxlength="500"></textarea>
-      </div>
-
-      <!-- NUEVOS: 3 ARCHIVOS ADJUNTOS -->
-      <div class="form-group">
-        <label>Archivos Adjuntos <span style="color: #6b7280; font-weight: 400;">(Opcionales - PDF, PNG, JPG, ZIP,
-            RAR)</span></label>
-
-        <div class="archivos-grid">
-
-
-
-          <!-- Orden de Compra -->
-          <div class="archivo-item">
-            <div class="archivo-item-header">
-              <span class="emoji">📋</span>
-              <span>Orden de Compra</span>
-            </div>
-            <div class="file-input-wrapper">
-              <input type="file" name="orden_compra_file" id="orden_compra_file" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar"
-                onchange="updateFileDisplay('orden_compra_file', 'file-display-orden')">
-              <label for="orden_compra_file" class="file-input-label">
-                📎 Seleccionar Orden
-              </label>
-              <div id="file-display-orden" class="file-display"></div>
-            </div>
-          </div>
-
-          <!-- Factura -->
-          <div class="archivo-item">
-            <div class="archivo-item-header">
-              <span class="emoji">🧾</span>
-              <span>Factura</span>
-            </div>
-            <div class="file-input-wrapper">
-              <input type="file" name="factura_file" id="factura_file" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar"
-                onchange="updateFileDisplay('factura_file', 'file-display-factura')">
-              <label for="factura_file" class="file-input-label">
-                📎 Seleccionar Factura
-              </label>
-              <div id="file-display-factura" class="file-display"></div>
-            </div>
-          </div>
-
-          <!-- Recibo -->
-          <div class="archivo-item">
-            <div class="archivo-item-header">
-              <span class="emoji">🧾</span>
-              <span>Recibo</span>
-            </div>
-            <div class="file-input-wrapper">
-              <input type="file" name="recibo_file" id="recibo_file" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar"
-                onchange="updateFileDisplay('recibo_file', 'file-display-recibo')">
-              <label for="recibo_file" class="file-input-label">
-                📎 Seleccionar Recibo
-              </label>
-              <div id="file-display-recibo" class="file-display"></div>
-            </div>
-          </div>
-
+      <label>Archivos adjuntos <span class="text-subtle" style="font-weight:500">(PDF, PNG, JPG, ZIP o RAR)</span></label>
+      <div class="archivos-grid" style="margin-top:.5rem">
+        <div class="dropzone" data-dz>
+          <input type="file" name="orden_compra_file" id="orden_compra_file" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar"
+            onchange="updateFileDisplay('orden_compra_file', 'file-display-orden')" aria-label="Orden de compra">
+          <span class="dz-ico"><i class="fa-solid fa-file-contract"></i></span>
+          <span class="dz-title">Orden de compra</span>
+          <span class="dz-hint">Arrastra o toca para elegir</span>
+          <div id="file-display-orden" class="file-display"></div>
+        </div>
+        <div class="dropzone" data-dz>
+          <input type="file" name="factura_file" id="factura_file" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar"
+            onchange="updateFileDisplay('factura_file', 'file-display-factura')" aria-label="Factura">
+          <span class="dz-ico"><i class="fa-solid fa-file-invoice"></i></span>
+          <span class="dz-title">Factura</span>
+          <span class="dz-hint">Arrastra o toca para elegir</span>
+          <div id="file-display-factura" class="file-display"></div>
+        </div>
+        <div class="dropzone" data-dz>
+          <input type="file" name="recibo_file" id="recibo_file" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar"
+            onchange="updateFileDisplay('recibo_file', 'file-display-recibo')" aria-label="Recibo">
+          <span class="dz-ico"><i class="fa-solid fa-receipt"></i></span>
+          <span class="dz-title">Recibo</span>
+          <span class="dz-hint">Arrastra o toca para elegir</span>
+          <div id="file-display-recibo" class="file-display"></div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Sección de Envío -->
-    <div class="submit-section">
-      <button type="submit" class="btn submit-btn">
-        🚀 Enviar Solicitud de Pago
-      </button>
-      <div style="margin-top: 1rem; font-size: 0.875rem; color: #6b7280;">
-        Se enviará una notificación por correo electrónico una vez procesada la solicitud
-      </div>
+    <!-- Envío (celular / tablet) -->
+    <div class="np-mobilebar">
+      <div class="mb-total"><span>Total a pagar</span><strong data-sum="total">$0.00</strong></div>
+      <button type="submit" class="btn btn-primary submit-btn"><i class="fa-solid fa-paper-plane"></i> Enviar</button>
     </div>
   </form>
+
+  <!-- Resumen (escritorio) -->
+  <aside class="np-summary reveal reveal-2" aria-label="Resumen de la solicitud">
+    <div class="sum-head">
+      <h3><i class="fa-solid fa-receipt" style="color:var(--brand)"></i> Resumen</h3>
+      <div class="sum-total"><span>Total a pagar</span><strong data-sum="total">$0.00</strong><small data-sum="totalNota"></small></div>
+    </div>
+    <ul class="sum-list">
+      <li><span>Solicitante</span><b data-sum="solicitante" class="empty">—</b></li>
+      <li><span>FP</span><b data-sum="fp" class="empty">—</b></li>
+      <li><span>Destinatario</span><b data-sum="destinatario" class="empty">—</b></li>
+      <li><span>Cuenta</span><b data-sum="cuenta" class="empty">—</b></li>
+      <li><span>Tipo</span><b data-sum="tipo" class="empty">—</b></li>
+      <li><span>Método</span><b data-sum="pago" class="empty">—</b></li>
+      <li><span>Fecha límite</span><b data-sum="fecha" class="empty">—</b></li>
+      <li data-sum-row="anticipo" hidden><span>Anticipo</span><b data-sum="anticipo">—</b></li>
+      <li><span>Notificar a</span><b data-sum="correos" class="empty">—</b></li>
+      <li><span>Archivos</span><b data-sum="archivos" class="empty">Ninguno</b></li>
+    </ul>
+    <div class="sum-foot">
+      <button type="submit" form="solicitar_pago_form" class="btn btn-primary submit-btn"><i class="fa-solid fa-paper-plane"></i> Enviar solicitud</button>
+      <p><i class="fa-solid fa-envelope"></i> Recibirás un correo cuando se procese</p>
+    </div>
+  </aside>
 </div>
 
-<!-- Loading Overlay -->
+<!-- Overlay de envío -->
 <div class="loading-overlay" id="loadingOverlay">
   <div class="loading-content">
-    <h3 class="loading-title">💰 Procesando Solicitud</h3>
-    <p class="loading-message">Por favor espera mientras enviamos tu solicitud de pago...</p>
-    <div class="loading-progress">
-      <div class="loading-dot"></div>
-      <div class="loading-dot"></div>
-      <div class="loading-dot"></div>
-    </div>
+    <div class="loading-spinner-lg"></div>
+    <h3 class="loading-title">Enviando solicitud…</h3>
+    <p class="loading-message">Un momento, estamos registrando tu solicitud de pago.</p>
   </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
   // Nombre / departamento
   function onChangeNombre() {
@@ -1294,21 +563,19 @@
       const div = document.createElement('div');
       div.className = 'persona-row';
       div.innerHTML = `
-            <div style="margin-bottom: 1rem; font-weight: 600; color: #374151;">
-                Persona ${i}
-            </div>
-            <div style="display: grid; grid-template-columns: 2fr 1fr 2fr; gap: 1rem; align-items: end;">
+            <div class="persona-title"><i class="fa-solid fa-user"></i> Persona ${i}</div>
+            <div class="persona-grid">
                 <div class="form-group">
-                    <label>Nombre Completo</label>
+                    <label>Nombre completo</label>
                     <input type="text" name="persona_nombre[]" placeholder="Nombre de la persona" required>
                 </div>
                 <div class="form-group">
                     <label>Monto</label>
-                    <input type="number" name="persona_monto[]" step="0.01" value="0" oninput="actualizarMontoTotal()" required>
+                    <input type="number" name="persona_monto[]" step="0.01" value="0" inputmode="decimal" oninput="actualizarMontoTotal()" required>
                 </div>
                 <div class="form-group">
                     <label>CLABE</label>
-                    <input type="text" name="persona_clabe[]" placeholder="18 dígitos" required maxlength="18">
+                    <input type="text" name="persona_clabe[]" placeholder="18 dígitos" required maxlength="18" inputmode="numeric">
                 </div>
             </div>
         `;
@@ -1369,7 +636,7 @@
     <select class="correo-select" required>${CORREO_OPTIONS_HTML}</select>
     <input type="email" class="correo-otro" placeholder="correo@empresa.com" style="display:none;">
     <input type="hidden" name="correo" class="correo-hidden">
-    <button type="button" onclick="removerCorreo(this)" class="remove-btn">✕</button>
+    <button type="button" onclick="removerCorreo(this)" class="remove-btn" aria-label="Quitar correo"><i class="fa-solid fa-xmark"></i></button>
   `;
     cont.appendChild(div);
     initCorreoRow(div, false);
@@ -1448,7 +715,7 @@
     var montoRestante = montoBase - montoAnticipo;
 
     if (montoAnticipo > montoBase) {
-      alert('El anticipo no puede ser mayor al monto total');
+      avisar('El anticipo no puede ser mayor al monto total');
       document.getElementById('monto_anticipo').value = montoBase.toFixed(2);
       montoAnticipo = montoBase;
       porcentaje = 100;
@@ -1501,11 +768,10 @@
     }
 
     document.getElementById('clabe').addEventListener('input', function () {
-      if (this.value.length === 18) {
-        this.style.borderColor = '#10b981';
-      } else {
-        this.style.borderColor = '#e5e7eb';
-      }
+      var ok = this.value.length === 18;
+      this.classList.toggle('is-valid', ok);
+      var meta = document.getElementById('clabeMeta');
+      if (meta) { meta.textContent = ok ? '✓ 18 dígitos' : this.value.length + ' / 18'; meta.classList.toggle('ok', ok); }
     });
 
     const primeraFilaCorreo = document.querySelector('#correos-container .correo-row');
@@ -1518,7 +784,7 @@
 
     if (sel.value === 'otro') {
       const txt = document.getElementById('destinatario_otro').value.trim();
-      if (!txt) { alert('Por favor ingrese el nombre del destinatario.'); return false; }
+      if (!txt) { avisar('Por favor ingrese el nombre del destinatario.'); return false; }
       hid.value = txt;
     }
 
@@ -1527,20 +793,20 @@
       if (tipoAnticipo === 'porcentaje') {
         var porcentaje = parseFloat(document.getElementById('porcentaje_anticipo').value) || 0;
         if (porcentaje <= 0 || porcentaje > 100) {
-          alert('Por favor ingrese un porcentaje de anticipo válido (entre 0 y 100).');
+          avisar('Por favor ingrese un porcentaje de anticipo válido (entre 0 y 100).');
           return false;
         }
       } else {
         var montoAnticipo = parseFloat(document.getElementById('monto_anticipo').value.replace(/,/g, '')) || 0;
         if (montoAnticipo <= 0) {
-          alert('Por favor ingrese un monto de anticipo válido.');
+          avisar('Por favor ingrese un monto de anticipo válido.');
           return false;
         }
       }
     }
 
     const filas = document.querySelectorAll('#correos-container .correo-row');
-    if (filas.length === 0) { alert('Agrega al menos un correo.'); return false; }
+    if (filas.length === 0) { avisar('Agrega al menos un correo.'); return false; }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     for (const row of filas) {
@@ -1551,13 +817,13 @@
       if (select && select.value === 'otro') {
         hidden.value = (inputOtro.value || '').trim();
         if (!emailRegex.test(hidden.value)) {
-          alert('Ingresa un correo válido en la opción "Otro…".');
+          avisar('Ingresa un correo válido en la opción "Otro…".');
           return false;
         }
       } else {
         hidden.value = (select && select.value) ? select.value : '';
         if (!emailRegex.test(hidden.value)) {
-          alert('Selecciona un correo válido de la lista.');
+          avisar('Selecciona un correo válido de la lista.');
           return false;
         }
       }
@@ -1625,13 +891,12 @@
     isSubmitting = true;
 
     const overlay = document.getElementById('loadingOverlay');
-    const submitBtn = document.querySelector('.submit-btn');
 
-    // Deshabilitar botón
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = '⏳ Procesando...';
-    }
+    // Deshabilitar botones de envío
+    document.querySelectorAll('.submit-btn').forEach(function (b) {
+      b.disabled = true;
+      b.innerHTML = '<span class="spinner"></span> Enviando…';
+    });
 
     // Mostrar overlay con animación
     if (overlay) {
@@ -1646,13 +911,12 @@
     isSubmitting = false;
 
     const overlay = document.getElementById('loadingOverlay');
-    const submitBtn = document.querySelector('.submit-btn');
 
-    // Restaurar botón
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = '🚀 Enviar Solicitud de Pago';
-    }
+    // Restaurar botones de envío
+    document.querySelectorAll('.submit-btn').forEach(function (b) {
+      b.disabled = false;
+      b.innerHTML = b.closest('.np-mobilebar') ? '<i class="fa-solid fa-paper-plane"></i> Enviar' : '<i class="fa-solid fa-paper-plane"></i> Enviar solicitud';
+    });
 
     // Ocultar overlay
     if (overlay) {
@@ -1698,7 +962,7 @@
           <select class="correo-select" required>${CORREO_OPTIONS_HTML}</select>
           <input type="email" class="correo-otro" placeholder="correo@empresa.com" style="display:none;">
           <input type="hidden" name="correo" class="correo-hidden" value="vmejia@ad17solutions.com">
-          <button type="button" onclick="removerCorreo(this)" class="remove-btn">✕</button>
+          <button type="button" onclick="removerCorreo(this)" class="remove-btn" aria-label="Quitar correo"><i class="fa-solid fa-xmark"></i></button>
         `;
         correosContainer.appendChild(div);
         // Pre-seleccionar vmejia en el select
@@ -1712,6 +976,110 @@
     }
   }
   document.addEventListener('DOMContentLoaded', detectarComision);
-</script>
 
+
+  // ========== AVISOS (toast) ==========
+  function avisar(msg) {
+    if (window.UI && UI.toast) UI.toast(msg, 'warning', 6000); else window.alert(msg);
+  }
+
+  // ========== RESUMEN EN VIVO, AVANCE Y ARCHIVOS ==========
+  (function () {
+    var form = document.getElementById('solicitar_pago_form');
+    if (!form) return;
+    var $ = function (id) { return document.getElementById(id); };
+    var money = function (n) { return (Number(n) || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 }); };
+    var num = function (v) { return parseFloat(String(v || '').replace(/,/g, '')) || 0; };
+
+    function setSum(key, val, emptyText) {
+      document.querySelectorAll('[data-sum="' + key + '"]').forEach(function (el) {
+        var vacio = val === '' || val == null;
+        el.textContent = vacio ? (emptyText || '—') : val;
+        el.classList.toggle('empty', vacio);
+        if (!vacio) el.title = val;
+      });
+    }
+    function selText(sel) {
+      if (!sel || !sel.value) return '';
+      var o = sel.options[sel.selectedIndex];
+      return o ? o.text.trim() : '';
+    }
+    function visible(el) { return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length); }
+
+    function actualizar() {
+      var nom = $('selected_nombre');
+      setSum('solicitante', nom.value === 'otro' ? $('nombre_otro').value.trim() : nom.value);
+      setSum('fp', $('fp').value.trim());
+      var dest = $('destinatario');
+      setSum('destinatario', dest.value === 'otro' ? $('destinatario_otro').value.trim() : dest.value);
+      var clabe = $('clabe').value.trim(), banco = $('banco').value.trim();
+      var clabeOk = clabe.length === 18, meta = $('clabeMeta');
+      $('clabe').classList.toggle('is-valid', clabeOk);
+      if (meta) { meta.textContent = clabeOk ? '✓ 18 dígitos' : clabe.length + ' / 18'; meta.classList.toggle('ok', clabeOk); }
+      setSum('cuenta', (banco || clabe) ? (banco + (clabe ? ' ·•••' + clabe.slice(-4) : '')).trim() : '');
+      var tipo = $('tipo_solicitud').value;
+      var cat = $('categoria_administrativos').value;
+      setSum('tipo', tipo ? tipo + (tipo === 'Administrativos' && cat ? ' · ' + cat : '') : '');
+      setSum('pago', $('tipo_pago').value);
+      var f = $('fecha_limite').value;
+      setSum('fecha', f ? new Date(f + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+
+      // Total (misma lógica que el cuadro de comisión del formulario)
+      var base = num($('monto').value);
+      var comision = (typeof tieneComision !== 'undefined' && tieneComision) ? base * (porcentajeComision / 100) : 0;
+      var total = base + comision;
+      setSum('total', money(total));
+      setSum('totalNota', comision ? 'Incluye comisión BBVA de ' + money(comision) : (base ? 'Monto sin comisión' : ''), ' ');
+      var antRow = document.querySelector('[data-sum-row="anticipo"]');
+      if (antRow) {
+        antRow.hidden = !$('anticipo').checked;
+        if ($('anticipo').checked) setSum('anticipo', ($('display-anticipo').textContent || '') + ' ' + ($('display-anticipo-porcentaje').textContent || ''));
+      }
+      var correos = Array.prototype.map.call(document.querySelectorAll('#correos-container .correo-hidden'), function (h) { return h.value; }).filter(Boolean);
+      setSum('correos', correos.length ? (correos.length === 1 ? correos[0] : correos.length + ' correos') : '');
+      var archivos = ['orden_compra_file', 'factura_file', 'recibo_file'].filter(function (id) { return $(id).files.length; }).length;
+      setSum('archivos', archivos ? archivos + ' adjunto' + (archivos > 1 ? 's' : '') : '', 'Ninguno');
+      $('descCount').textContent = $('descripcion').value.length;
+
+      // Avance: campos obligatorios visibles completos
+      var req = Array.prototype.filter.call(form.querySelectorAll('[required]'), function (el) { return !el.disabled && visible(el); });
+      var ok = req.filter(function (el) { return el.value && el.value.trim() !== '' && (!el.checkValidity || el.checkValidity()); });
+      var pct = req.length ? Math.round(ok.length / req.length * 100) : 0;
+      $('npPct').textContent = pct + '%';
+      $('npBar').style.width = pct + '%';
+
+      // Palomita por sección
+      document.querySelectorAll('[data-sec]').forEach(function (sec) {
+        var r = Array.prototype.filter.call(sec.querySelectorAll('[required]'), function (el) { return !el.disabled && visible(el); });
+        var done = sec.hasAttribute('data-optional')
+          ? ($('descripcion').value.trim() !== '' || archivos > 0)
+          : (r.length > 0 && r.every(function (el) { return el.value && el.value.trim() !== '' && el.checkValidity(); }));
+        sec.classList.toggle('done', done);
+      });
+    }
+
+    form.addEventListener('input', actualizar);
+    form.addEventListener('change', function () { setTimeout(actualizar, 0); });
+    document.addEventListener('DOMContentLoaded', function () { setTimeout(actualizar, 50); });
+    form.addEventListener('click', function (e) { if (e.target.closest('.remove-btn, .btn-outline')) setTimeout(actualizar, 0); });
+
+    // Arrastrar y soltar archivos
+    document.querySelectorAll('[data-dz]').forEach(function (zone) {
+      var input = zone.querySelector('input[type="file"]');
+      ['dragenter', 'dragover'].forEach(function (ev) { zone.addEventListener(ev, function () { zone.classList.add('drag'); }); });
+      ['dragleave', 'drop'].forEach(function (ev) { zone.addEventListener(ev, function () { zone.classList.remove('drag'); }); });
+      input.addEventListener('change', function () { zone.classList.toggle('has-file', input.files.length > 0); });
+    });
+
+    // Al enviar con campos incompletos, llevar al primero que falte
+    form.addEventListener('invalid', function (e) {
+      var sec = e.target.closest('[data-sec]');
+      if (sec && !form.dataset.scrolling) {
+        form.dataset.scrolling = '1';
+        sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setTimeout(function () { delete form.dataset.scrolling; }, 600);
+      }
+    }, true);
+  })();
+</script>
 {% endblock %}

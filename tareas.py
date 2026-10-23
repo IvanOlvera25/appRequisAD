@@ -7,6 +7,8 @@ recordatorios y las alertas se ejecutan desde este script.
 
 Uso:
     python tareas.py sync           Sincroniza solicitudes y créditos al MySQL remoto
+    python tareas.py recurrentes    Crea las solicitudes de pagos recurrentes que vencen en 14 días
+                                    y avanza su fecha (agrega --simular para solo ver qué haría)
     python tareas.py recordatorios  Recordatorios de pagos recurrentes
     python tareas.py alertas        Alertas de cambios de estado a creadores
     python tareas.py todo           Todas las anteriores (default si no pasas argumento)
@@ -17,6 +19,7 @@ Configuración sugerida en la pestaña Tasks de PythonAnywhere:
     Hourly  -> /home/IvanOlvera25/appRequis/venv/bin/python /home/IvanOlvera25/appRequis/tareas.py todo
 o por separado:
     Daily 08:00 UTC (02:00 MX) -> ... tareas.py sync
+    Daily 13:00 UTC (07:00 MX) -> ... tareas.py recurrentes
     Daily 19:00 UTC (13:00 MX) -> ... tareas.py recordatorios
 """
 import sys
@@ -33,6 +36,7 @@ def main():
         check_recurring_payment_reminders,
         monitor_state_changes_and_notify,
         limpiar_pagos_remotos_huerfanos,
+        generar_solicitudes_recurrentes,
     )
 
     if modo == "limpiar":
@@ -45,6 +49,13 @@ def main():
             sync_all_data()
         except Exception as e:
             print(f"[tareas] Error en sync: {e}")
+
+    # Antes de los recordatorios: generar la solicitud ya avanza la fecha del recurrente
+    if modo in ("recurrentes", "todo"):
+        try:
+            generar_solicitudes_recurrentes(simular="--simular" in sys.argv)
+        except Exception as e:
+            print(f"[tareas] Error en recurrentes: {e}")
 
     if modo in ("recordatorios", "todo"):
         try:

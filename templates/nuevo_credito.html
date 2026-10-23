@@ -3,22 +3,31 @@
 {% block title %}Nuevo Crédito | AD17 Solutions{% endblock %}
 
 {% block content %}
-<div class="form-container">
-    <div class="form-header">
-        <h1>Registrar Nuevo Crédito</h1>
-        <a href="{{ url_for('creditos_dashboard') }}" class="btn btn-secondary">Volver al Listado</a>
+<div class="form-container nc-page">
+    <div class="form-header page-head reveal">
+        <div>
+            <div class="eyebrow"><i class="fa-solid fa-hand-holding-dollar"></i> Finanzas · Créditos</div>
+            <h1>Registrar nuevo crédito</h1>
+            <p class="subtitle">Los campos con <span class="required">*</span> son obligatorios.</p>
+        </div>
+        <div class="page-actions">
+            <a href="{{ url_for('creditos_dashboard') }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Volver al listado</a>
+        </div>
     </div>
 
     <form method="POST" action="{{ url_for('nuevo_credito') }}" class="form-credito" onsubmit="return prepareProveedor();">
-        <div class="form-section">
-            <h2>Información General</h2>
+        <div class="form-section reveal reveal-1">
+            <div class="section-head">
+                <span class="section-ico"><i class="fa-solid fa-file-lines"></i></span>
+                <div><h2>Información general</h2><p>Nombre, entidad, proveedor y tipo de crédito</p></div>
+            </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label for="nombre">Nombre del Crédito *</label>
+                    <label for="nombre">Nombre del Crédito <span class="required">*</span></label>
                     <input type="text" id="nombre" name="nombre" required placeholder="Ej: Hipoteca Casa Principal">
                 </div>
                 <div class="form-group">
-                    <label for="entidad">Entidad Financiera *</label>
+                    <label for="entidad">Entidad Financiera <span class="required">*</span></label>
                     <input type="text" id="entidad" name="entidad" required placeholder="Ej: Banco Santander">
                 </div>
             </div>
@@ -56,21 +65,24 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="tipo_credito">Tipo de Crédito *</label>
+                    <label for="tipo_credito">Tipo de Crédito <span class="required">*</span></label>
                     <select id="tipo_credito" name="tipo_credito" required>
                         <option value="">Seleccionar...</option>
                         <option value="Compras">Compras</option>
-                        <option value="Hipotecario">Hipotecario</option>
-                        <option value="Automotriz">Automotriz</option>
                         <option value="Personal">Personal</option>
                         <option value="Empresarial">Empresarial</option>
+                        <option value="Hipotecario">Hipotecario</option>
+                        <option value="Automotriz">Automotriz</option>
+                        <option value="Línea de Crédito">Línea de Crédito</option>
+                        <option value="Refaccionario">Refaccionario</option>
+                        <option value="Capital de Trabajo">Capital de Trabajo</option>
                         <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
                         <option value="Educativo">Educativo</option>
                         <option value="Otro">Otro</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="estado">Estado *</label>
+                    <label for="estado">Estado <span class="required">*</span></label>
                     <select id="estado" name="estado" required>
                         <option value="Activo">Activo</option>
                         <option value="Liquidado">Liquidado</option>
@@ -85,52 +97,70 @@
             </div>
         </div>
 
-        <div class="form-section">
-            <h2>Información Financiera</h2>
+        <div class="form-section reveal reveal-2">
+            <div class="section-head">
+                <span class="section-ico"><i class="fa-solid fa-coins"></i></span>
+                <div><h2>Información financiera</h2><p>Monto, tasa, plazo, pago mensual y fechas</p></div>
+            </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label for="monto_total">Monto Total (MXN) *</label>
-                    <input type="number" step="0.01" min="0" id="monto_total" name="monto_total" required placeholder="0.00">
+                    <label for="monto_total">Monto Total (MXN) <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <span class="input-icon">$</span>
+                        <input type="number" step="0.01" min="0" id="monto_total" name="monto_total" required placeholder="0.00">
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label for="tasa_interes">Tasa de Interés Anual (%) *</label>
-                    <input type="number" step="0.01" min="0" id="tasa_interes" name="tasa_interes" required placeholder="0.00">
+                    <label for="tasa_interes">Tasa de Interés Anual (%) <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <input type="number" step="0.01" min="0" id="tasa_interes" name="tasa_interes" required placeholder="0.00">
+                        <span class="input-icon-right">%</span>
+                    </div>
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="plazo_meses">Plazo (meses) *</label>
+                    <label for="plazo_meses">Plazo (meses) <span class="required">*</span></label>
                     <input type="number" min="1" id="plazo_meses" name="plazo_meses" required placeholder="12">
                 </div>
                 <div class="form-group">
-                    <label for="pago_mensual">Pago Mensual (MXN) *</label>
-                    <input type="number" step="0.01" min="0" id="pago_mensual" name="pago_mensual" required placeholder="0.00">
+                    <label for="pago_mensual">Pago Mensual (MXN) <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <span class="input-icon">$</span>
+                        <input type="number" step="0.01" min="0" id="pago_mensual" name="pago_mensual" required placeholder="0.00">
+                    </div>
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="fecha_inicio">Fecha de Inicio *</label>
+                    <label for="fecha_inicio">Fecha de Inicio <span class="required">*</span></label>
                     <input type="date" id="fecha_inicio" name="fecha_inicio" required>
                 </div>
                 <div class="form-group">
-                    <label for="fecha_final">Fecha de Finalización *</label>
+                    <label for="fecha_final">Fecha de Finalización <span class="required">*</span></label>
                     <input type="date" id="fecha_final" name="fecha_final" required>
                 </div>
             </div>
 
             <div class="calculadora-info">
                 <div class="info-card">
-                    <h3>📊 Calculadora Automática</h3>
-                    <p>El pago mensual se calcula automáticamente basado en el monto, tasa de interés y plazo.</p>
-                    <p>La fecha final se ajusta automáticamente según el plazo seleccionado.</p>
+                    <span class="info-ico"><i class="fa-solid fa-calculator"></i></span>
+                    <div>
+                        <h3>Calculadora automática</h3>
+                        <p>El pago mensual se calcula automáticamente basado en el monto, tasa de interés y plazo.</p>
+                        <p>La fecha final se ajusta automáticamente según el plazo seleccionado.</p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="form-section">
-            <h2>Información Adicional</h2>
+        <div class="form-section reveal reveal-3">
+            <div class="section-head">
+                <span class="section-ico"><i class="fa-solid fa-address-card"></i></span>
+                <div><h2>Información adicional</h2><p>Cuenta, contacto y notas (opcional)</p></div>
+            </div>
             <div class="form-row">
                 <div class="form-group">
                     <label for="numero_cuenta">Número de Cuenta/Contrato</label>
@@ -149,182 +179,71 @@
         </div>
 
         <div class="form-buttons">
-            <button type="submit" class="btn btn-primary">Guardar Crédito</button>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Guardar crédito</button>
             <a href="{{ url_for('creditos_dashboard') }}" class="btn btn-secondary">Cancelar</a>
         </div>
     </form>
 </div>
 
 <style>
-    .form-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid var(--border-color);
-    }
+    /* La página no es una tarjeta: cada sección lo es */
+    .nc-page.form-container { max-width: 1040px; margin: 0 auto; padding: 0; background: none; border: 0; box-shadow: none; }
 
-    .form-header h1 {
-        margin: 0;
-        color: var(--primary-color);
-        font-size: 1.8rem;
-    }
-
-    .form-credito {
-        display: flex;
-        flex-direction: column;
-        gap: 2rem;
-    }
-
+    .form-credito { display: flex; flex-direction: column; gap: 1rem; margin: 0; }
     .form-section {
-        background-color: var(--input-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        padding: 1.5rem;
-        animation: fadeIn 0.5s ease-out;
+        background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+        padding: 1.2rem clamp(1rem, 2.5vw, 1.5rem) .35rem; transition: border-color .25s var(--ease), box-shadow .25s var(--ease);
+    }
+    .form-section:focus-within { border-color: color-mix(in srgb, var(--brand) 45%, var(--border)); box-shadow: var(--shadow-md); }
+    .section-head { display: flex; align-items: center; gap: .85rem; margin-bottom: 1.1rem; }
+    .section-ico { width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0; display: grid; place-items: center; color: var(--brand); background: var(--brand-50); border: 1px solid var(--brand-100); }
+    .section-head h2 { margin: 0; font-size: 1.02rem; }
+    .section-head p { margin: .1rem 0 0; font-size: .84rem; color: var(--text-2); }
+
+    .form-credito .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1rem; }
+    #proveedor-otro-container > label { display: flex; margin-bottom: .4rem; }
+    /* Si "Otro proveedor" está oculto, su columna no deja hueco (celular) */
+    .form-credito .form-group:has(> #proveedor-otro-container[style*="none"]) { margin-bottom: 0; }
+
+    /* Validación: neutral al cargar; solo marca error cuando el usuario ya interactuó */
+    .form-group input:user-invalid, .form-group select:user-invalid, .form-group textarea:user-invalid {
+        border-color: var(--danger);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 14%, transparent);
     }
 
-    .form-section h2 {
-        margin-top: 0;
-        margin-bottom: 1.5rem;
-        font-size: 1.3rem;
-        color: var(--primary-color);
-        border-bottom: 1px solid var(--border-color);
-        padding-bottom: 0.5rem;
-    }
+    /* Inputs con prefijo / sufijo */
+    .input-with-icon { position: relative; display: flex; align-items: center; }
+    .input-with-icon input { width: 100%; }
+    .input-icon, .input-icon-right { position: absolute; top: 50%; transform: translateY(-50%); font-weight: 700; color: var(--text-2); pointer-events: none; z-index: 1; }
+    .input-icon { left: .85rem; }
+    .input-icon-right { right: .85rem; }
+    .input-with-icon .input-icon + input { padding-left: 1.8rem; }
+    .input-with-icon input:has(+ .input-icon-right) { padding-right: 2.2rem; }
 
-    .form-row {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 1rem;
-    }
-
-    .form-group {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        margin-bottom: 1rem;
-    }
-
-    .form-group label {
-        margin-bottom: 0.5rem;
-        font-weight: bold;
-        color: var(--text-color);
-    }
-
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-        background-color: var(--input-bg);
-        color: var(--text-color);
-        padding: 0.75rem;
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-        font-size: 1rem;
-        transition: border-color 0.3s ease;
-    }
-
-    .form-group input:focus,
-    .form-group select:focus,
-    .form-group textarea:focus {
-        outline: none;
-        border-color: var(--primary-color);
-    }
-
-    .form-group input::placeholder,
-    .form-group textarea::placeholder {
-        color: #bbb;
-    }
-
-    .form-group textarea {
-        resize: vertical;
-        min-height: 80px;
-    }
-
-    .calculadora-info {
-        margin-top: 1rem;
-    }
-
+    /* Nota de calculadora */
+    .calculadora-info { margin: 0 0 1rem; }
     .info-card {
-        background-color: var(--header-bg);
-        border: 1px solid var(--primary-color);
-        border-radius: 8px;
-        padding: 1rem;
-        border-left: 4px solid var(--primary-color);
+        display: flex; gap: .8rem; align-items: flex-start; padding: .85rem 1rem; border-radius: 12px;
+        background: color-mix(in srgb, var(--info) 7%, var(--surface)); border: 1px solid color-mix(in srgb, var(--info) 25%, transparent);
     }
+    .info-ico { width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; display: grid; place-items: center; color: var(--info); background: color-mix(in srgb, var(--info) 13%, transparent); }
+    .info-card h3 { margin: 0 0 .2rem; font-size: .9rem; }
+    .info-card p { margin: .1rem 0 0; font-size: .84rem; color: var(--text-2); }
 
-    .info-card h3 {
-        margin-top: 0;
-        margin-bottom: 0.5rem;
-        color: var(--primary-color);
-        font-size: 1.1rem;
-    }
-
-    .info-card p {
-        margin: 0.25rem 0;
-        color: var(--text-color);
-        font-size: 0.9rem;
-    }
-
+    /* Botones */
     .form-buttons {
-        display: flex;
-        justify-content: flex-end;
-        gap: 1rem;
-        margin-top: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid var(--border-color);
-    }
-
-    /* Validación visual */
-    .form-group input:invalid,
-    .form-group select:invalid,
-    .form-group textarea:invalid {
-        border-color: var(--error-color);
-    }
-
-    .form-group input:valid,
-    .form-group select:valid,
-    .form-group textarea:valid {
-        border-color: var(--success-color);
-    }
-
-    /* Indicador de campo requerido */
-    .form-group label[for]:after {
-        content: " *";
-        color: var(--error-color);
-    }
-
-    /* Solo mostrar asterisco en campos requeridos */
-    .form-group label[for="descripcion"]:after,
-    .form-group label[for="numero_cuenta"]:after,
-    .form-group label[for="contacto"]:after,
-    .form-group label[for="notas"]:after,
-    .form-group label[for="nombre_proveedor_select"]:after,
-    .form-group label[for="nombre_proveedor_otro"]:after {
-        content: "";
+        display: flex; flex-direction: row-reverse; justify-content: flex-start; gap: .6rem; flex-wrap: wrap;
+        padding: .9rem 1.1rem; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-sm);
     }
 
     /* Responsive */
-    @media (max-width: 768px) {
-        .form-header {
-            flex-direction: column;
-            gap: 1rem;
-            text-align: center;
-        }
-
-        .form-row {
-            flex-direction: column;
-            gap: 0;
-        }
-
-        .form-buttons {
-            flex-direction: column;
-        }
-
-        .form-buttons .btn {
-            width: 100%;
-        }
+    @media (max-width: 760px) {
+        .page-head h1 { font-size: 1.35rem; }
+        .page-actions, .page-actions .btn { width: 100%; }
+        .form-credito .form-row { grid-template-columns: minmax(0, 1fr); }
+        .form-buttons { flex-direction: column; }
+        .form-buttons .btn { width: 100%; }
+        .form-group input, .form-group select, .form-group textarea { font-size: 16px; } /* evita zoom en iOS */
     }
 </style>
 

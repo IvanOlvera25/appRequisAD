@@ -1,9 +1,216 @@
 {% extends "layout.html" %}
 {% block title %}Calendario{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ---------- Página ---------- */
+  .cal-page { min-width: 0; }
+  .cal-legend { display: inline-flex; align-items: center; gap: .45rem; font-size: .82rem; color: var(--text-2); font-weight: 600; }
+  .cal-legend .sw { width: 16px; height: 12px; border-radius: 4px; background: color-mix(in srgb, var(--brand) 18%, var(--surface)); border: 1px solid color-mix(in srgb, var(--brand) 30%, transparent); border-left: 3px solid var(--brand); }
+  .cal-card { padding: clamp(.75rem, 2vw, 1.25rem); margin-bottom: 0; min-width: 0; }
+
+  /* ---------- FullCalendar con los tokens del tema ---------- */
+  #calendar { width: 100%; min-width: 0; }
+  .cal-card .fc {
+    --fc-small-font-size: .78rem;
+    --fc-page-bg-color: var(--surface);
+    --fc-neutral-bg-color: var(--surface-2);
+    --fc-neutral-text-color: var(--text-3);
+    --fc-border-color: var(--border);
+    --fc-button-text-color: var(--text);
+    --fc-button-bg-color: var(--surface);
+    --fc-button-border-color: var(--border);
+    --fc-button-hover-bg-color: var(--surface-hover);
+    --fc-button-hover-border-color: var(--border-strong);
+    --fc-button-active-bg-color: var(--text);
+    --fc-button-active-border-color: var(--text);
+    --fc-event-bg-color: var(--brand);
+    --fc-event-border-color: var(--brand);
+    --fc-event-text-color: var(--text);
+    --fc-event-selected-overlay-color: color-mix(in srgb, var(--text) 12%, transparent);
+    --fc-more-link-bg-color: transparent;
+    --fc-more-link-text-color: var(--brand);
+    --fc-highlight-color: color-mix(in srgb, var(--brand) 12%, transparent);
+    --fc-today-bg-color: color-mix(in srgb, var(--brand) 6%, transparent);
+    --fc-now-indicator-color: var(--danger);
+    --fc-list-event-hover-bg-color: var(--surface-hover);
+    font-family: inherit;
+    color: var(--text);
+  }
+  .cal-card .fc a { color: inherit; text-decoration: none; }
+
+  /* Barra de herramientas */
+  .cal-card .fc .fc-toolbar.fc-header-toolbar { margin-bottom: 1rem; gap: .75rem; flex-wrap: wrap; }
+  .cal-card .fc .fc-toolbar-chunk { display: flex; align-items: center; gap: .5rem; }
+  .cal-card .fc .fc-toolbar-title { font-size: 1.2rem; font-weight: 750; letter-spacing: -.01em; color: var(--text); }
+  .cal-card .fc .fc-toolbar-title::first-letter { text-transform: uppercase; }
+  .cal-card .fc .fc-button {
+    min-height: 40px; padding: .45rem .9rem; border-radius: 10px;
+    font-family: inherit; font-size: .86rem; font-weight: 600; line-height: 1.2; text-transform: none;
+    box-shadow: var(--shadow-xs);
+    transition: background .18s var(--ease), border-color .18s var(--ease), color .18s var(--ease);
+  }
+  .cal-card .fc .fc-button .fc-icon { font-size: 1.15em; vertical-align: -.1em; }
+  .cal-card .fc .fc-button-primary:not(:disabled).fc-button-active,
+  .cal-card .fc .fc-button-primary:not(:disabled):active { color: var(--bg); }
+  .cal-card .fc .fc-button-primary:disabled { opacity: .5; color: var(--text-2); background: var(--surface); border-color: var(--border); }
+  .cal-card .fc .fc-button:focus, .cal-card .fc .fc-button-primary:not(:disabled):active:focus,
+  .cal-card .fc .fc-button-primary:not(:disabled).fc-button-active:focus { box-shadow: var(--shadow-xs); }
+  .cal-card .fc .fc-button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+  .cal-card .fc .fc-button-group { box-shadow: var(--shadow-xs); border-radius: 10px; }
+  .cal-card .fc .fc-button-group > .fc-button { box-shadow: none; border-radius: 0; }
+  .cal-card .fc .fc-button-group > .fc-button:first-child { border-radius: 10px 0 0 10px; }
+  .cal-card .fc .fc-button-group > .fc-button:last-child { border-radius: 0 10px 10px 0; }
+  .cal-card .fc .fc-button-group > .fc-button:only-child { border-radius: 10px; }
+  .cal-card .fc .fc-prev-button, .cal-card .fc .fc-next-button { width: 40px; padding: 0; }
+
+  /* Rejilla */
+  .cal-card .fc-theme-standard .fc-scrollgrid { border-radius: 12px; overflow: hidden; outline: 1px solid var(--border); outline-offset: -1px; }
+  .cal-card .fc .fc-col-header-cell { background: var(--surface-2); }
+  .cal-card .fc .fc-col-header-cell-cushion {
+    display: inline-block; padding: .6rem .4rem; font-size: .72rem; font-weight: 700; color: var(--text-2);
+    text-transform: uppercase; letter-spacing: .06em;
+  }
+  .cal-card .fc .fc-daygrid-day-number { padding: .4rem .5rem; font-size: .82rem; font-weight: 650; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .cal-card .fc .fc-day-other .fc-daygrid-day-top { opacity: .45; }
+  .cal-card .fc .fc-day-today .fc-daygrid-day-number {
+    min-width: 26px; height: 26px; margin: .3rem .35rem 0 0; padding: 0 .35rem; border-radius: 999px;
+    display: inline-grid; place-items: center; background: var(--brand); color: #fff;
+  }
+  html[data-theme="dark"] .cal-card .fc .fc-day-today .fc-daygrid-day-number { color: #1a0d03; }
+  .cal-card .fc .fc-timegrid-slot-label-cushion, .cal-card .fc .fc-timegrid-axis-cushion { font-size: .74rem; color: var(--text-3); }
+
+  /* Eventos (los colores que pone el JS se sustituyen por los del tema) */
+  .cal-card .fc .fc-event { cursor: pointer; }
+  .cal-card .fc .fc-daygrid-event,
+  .cal-card .fc .fc-timegrid-event {
+    background: color-mix(in srgb, var(--brand) 13%, var(--surface)) !important;
+    border: 1px solid color-mix(in srgb, var(--brand) 22%, transparent) !important;
+    border-left: 3px solid var(--brand) !important;
+    border-radius: 7px; margin: 1px 4px 2px; padding: 2px 6px;
+    font-size: .76rem; font-weight: 650; box-shadow: none;
+    transition: background .15s var(--ease), transform .15s var(--ease);
+  }
+  .cal-card .fc .fc-daygrid-event:hover,
+  .cal-card .fc .fc-timegrid-event:hover { background: color-mix(in srgb, var(--brand) 22%, var(--surface)) !important; }
+  .cal-card .fc .fc-daygrid-event .fc-event-main,
+  .cal-card .fc .fc-daygrid-event .fc-event-title,
+  .cal-card .fc .fc-timegrid-event .fc-event-main { color: var(--text); }
+  .cal-card .fc .fc-daygrid-dot-event .fc-daygrid-event-dot { border-color: var(--brand); }
+  .cal-card .fc .fc-daygrid-more-link { font-size: .74rem; font-weight: 700; color: var(--brand); padding: 1px 6px; border-radius: 6px; }
+  .cal-card .fc .fc-daygrid-more-link:hover { background: var(--brand-50); }
+
+  /* Popover "+N más" */
+  .cal-card .fc .fc-popover { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-lg); overflow: hidden; z-index: 20; }
+  .cal-card .fc .fc-popover-header { padding: .55rem .75rem; font-weight: 700; font-size: .84rem; background: var(--surface-2); color: var(--text); }
+  .cal-card .fc .fc-popover-close { opacity: .7; }
+  .cal-card .fc .fc-popover-body { padding: .4rem 0; }
+
+  /* Vista de lista */
+  .cal-card .fc .fc-list { border-radius: 12px; overflow: hidden; }
+  .cal-card .fc .fc-list-day-cushion { background: var(--surface-2); padding: .6rem .85rem; font-size: .8rem; font-weight: 700; }
+  .cal-card .fc .fc-list-day-text, .cal-card .fc .fc-list-day-side-text { color: var(--text); }
+  .cal-card .fc .fc-list-day-side-text { color: var(--text-2); font-weight: 600; text-transform: capitalize; }
+  .cal-card .fc .fc-list-event { background: transparent !important; }
+  .cal-card .fc .fc-list-event td { padding: .75rem .85rem; font-size: .88rem; }
+  .cal-card .fc .fc-list-event-time { color: var(--text-3); font-size: .78rem; white-space: nowrap; }
+  .cal-card .fc .fc-list-event-dot { border-color: var(--brand); }
+  .cal-card .fc .fc-list-event-title { font-weight: 600; color: var(--text); }
+  .cal-card .fc .fc-list-empty { background: var(--surface); color: var(--text-2); }
+
+  /* ---------- Modal de detalle (Bootstrap JS, estilos propios) ---------- */
+  #eventModal.modal { position: fixed; inset: 0; z-index: 1055; display: none; overflow-x: hidden; overflow-y: auto; outline: 0; }
+  #eventModal.fade { transition: opacity .2s var(--ease); }
+  #eventModal.fade:not(.show) { opacity: 0; }
+  #eventModal .modal-dialog {
+    position: relative; width: auto; max-width: 720px; margin: 1.75rem auto; padding: 0 1rem; pointer-events: none;
+    display: flex; align-items: center; min-height: calc(100% - 3.5rem);
+    transition: transform .28s var(--ease);
+  }
+  #eventModal.fade .modal-dialog { transform: translateY(14px) scale(.98); }
+  #eventModal.show .modal-dialog { transform: none; }
+  #eventModal .modal-content {
+    pointer-events: auto; position: relative; width: 100%; display: flex; flex-direction: column;
+    max-height: calc(100vh - 3.5rem);
+    background: var(--surface); color: var(--text); border: 1px solid var(--border);
+    border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); overflow: hidden;
+  }
+  #eventModal .modal-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
+  #eventModal .modal-title { margin: 0; font-size: 1.02rem; font-weight: 700; display: flex; align-items: center; gap: .55rem; }
+  #eventModal .modal-title::before {
+    content: "\f133"; font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: .85rem;
+    width: 32px; height: 32px; border-radius: 10px; display: inline-grid; place-items: center;
+    color: var(--brand); background: var(--brand-50);
+  }
+  #eventModal .btn-close {
+    width: 40px; height: 40px; border-radius: 10px; display: inline-grid; place-items: center; flex-shrink: 0;
+    border: 0; background: transparent; color: var(--text-2); font-size: 1.1rem; cursor: pointer;
+  }
+  #eventModal .btn-close:hover { background: var(--surface-hover); color: var(--text); }
+  #eventModal .btn-close:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+  #eventModal .modal-body { padding: 1.1rem 1.25rem; overflow-y: auto; }
+  #eventModal .modal-footer { display: flex; justify-content: flex-end; gap: .5rem; padding: .85rem 1.25rem; border-top: 1px solid var(--border); background: var(--surface-2); }
+
+  /* Contenido que arma el JS: <h4> + <p><strong>Etiqueta:</strong> valor</p> */
+  #modalBody .container { padding: 0; max-width: none; }
+  #modalBody h4 { font-size: 1.05rem; font-weight: 750; margin: 0 0 .85rem; padding-bottom: .75rem; border-bottom: 1px dashed var(--border); word-break: break-word; }
+  #modalBody p {
+    display: grid; grid-template-columns: minmax(130px, 34%) minmax(0, 1fr); gap: .75rem;
+    margin: 0; padding: .5rem 0; font-size: .88rem; color: var(--text); word-break: break-word;
+    border-bottom: 1px solid var(--border);
+  }
+  #modalBody p:last-child { border-bottom: 0; }
+  #modalBody p strong { color: var(--text-2); font-weight: 600; }
+
+  .modal-backdrop { position: fixed; inset: 0; z-index: 1050; width: 100vw; height: 100vh; background: var(--overlay); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+  .modal-backdrop.fade { opacity: 0; transition: opacity .2s var(--ease); }
+  .modal-backdrop.show { opacity: 1; }
+
+  /* ---------- Celular ---------- */
+  @media (max-width: 640px) {
+    .cal-card { padding: .75rem; }
+    .cal-card .fc .fc-toolbar.fc-header-toolbar { gap: .6rem; margin-bottom: .75rem; }
+    .cal-card .fc .fc-toolbar-chunk:nth-child(2) { order: -1; flex: 1 1 auto; min-width: 0; }
+    .cal-card .fc .fc-toolbar-chunk:nth-child(1) { order: 0; }
+    .cal-card .fc .fc-toolbar-chunk:nth-child(3) { order: 1; flex: 1 1 100%; }
+    .cal-card .fc .fc-toolbar-chunk:nth-child(3) .fc-button-group { display: flex; width: 100%; }
+    .cal-card .fc .fc-toolbar-chunk:nth-child(3) .fc-button { flex: 1 1 0; padding-left: .3rem; padding-right: .3rem; }
+    .cal-card .fc .fc-toolbar-title { font-size: 1.08rem; }
+    .cal-card .fc .fc-daygrid-event { margin: 1px 2px; padding: 1px 4px; font-size: .68rem; }
+    .cal-card .fc .fc-col-header-cell-cushion { padding: .5rem .1rem; font-size: .66rem; letter-spacing: .02em; }
+    .cal-card .fc .fc-list-event td { padding: .8rem .65rem; }
+    .cal-card .fc .fc-list-event-time { width: 1%; font-size: .72rem; }
+    .cal-card .fc .fc-daygrid-more-link { font-size: .62rem; padding: 1px 2px; white-space: nowrap; }
+
+    #eventModal .modal-dialog { margin: 0; padding: 0; min-height: 100%; align-items: flex-end; max-width: none; }
+    #eventModal.fade .modal-dialog { transform: translateY(40px); }
+    #eventModal.show .modal-dialog { transform: none; }
+    #eventModal .modal-content { border-radius: 22px 22px 0 0; max-height: 92vh; padding-bottom: env(safe-area-inset-bottom); }
+    #modalBody p { grid-template-columns: minmax(0, 1fr); gap: .1rem; padding: .45rem 0; }
+    #modalBody p strong { font-size: .76rem; text-transform: uppercase; letter-spacing: .05em; }
+    #eventModal .modal-footer .btn { flex: 1; }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container my-4">
-  <h2 class="text-center mb-4">Calendario de Pagos Aprobados</h2>
-  <div id="calendar"></div>
+{% set _eventos = events_json|fromjson %}
+<div class="cal-page">
+  <div class="page-head reveal">
+    <div>
+      <div class="eyebrow"><i class="fa-solid fa-calendar-days"></i> Análisis</div>
+      <h1>Calendario de pagos aprobados</h1>
+      <p class="subtitle">Pagos aprobados según su fecha límite. Selecciona un pago para ver su detalle.</p>
+    </div>
+    <div class="page-actions">
+      <span class="cal-legend"><span class="sw"></span> Aprobado</span>
+      <span class="chip chip-brand"><i class="fa-solid fa-circle-check"></i> {{ _eventos|length }} pago{{ '' if (_eventos|length) == 1 else 's' }}</span>
+    </div>
+  </div>
+
+  <div class="card cal-card reveal reveal-2">
+    <div id="calendar"></div>
+  </div>
 </div>
 
 <!-- Modal para mostrar detalles del evento -->
@@ -12,7 +219,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="eventModalLabel">Detalles del Evento</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="modal-body" id="modalBody">
         <!-- Se llenará dinámicamente -->
@@ -29,73 +236,11 @@
 {{ events_json|safe }}
 </script>
 
-<!-- FullCalendar CSS -->
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.7/main.min.css" rel="stylesheet" />
-<!-- Bootstrap CSS -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-
-<!-- FullCalendar (versión global) y Bootstrap Bundle JS -->
+<!-- FullCalendar (versión global) y Bootstrap Bundle JS.
+     El CSS de Bootstrap ya no se carga: pisaba la barra de navegación y el tema.
+     El modal usa el JS de Bootstrap con estilos propios (ver extra_css). -->
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.7/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-<style>
-  /* Contenedor del calendario: ocupa el 80% de la altura del viewport y tiene fondo y sombra */
-  #calendar {
-      width: 100%;
-      height: 80vh;
-      margin: 0 auto;
-      padding: 20px;
-      background-color: #2C2C2C;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  }
-  /* Estilos para la toolbar de FullCalendar */
-  .fc .fc-toolbar {
-      background-color: #1F1F1F;
-      padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-  }
-  .fc .fc-toolbar-title {
-      font-size: 1.8rem;
-      font-weight: bold;
-      color: #F37C22;
-  }
-  .fc-button {
-      background-color: #F37C22;
-      border: none;
-      color: #fff;
-      font-weight: bold;
-      transition: background-color 0.3s ease;
-      margin-right: 5px;
-  }
-  .fc-button:hover {
-      background-color: #e06d17;
-  }
-  /* Estilos para los días del mes */
-  .fc-daygrid-day-number {
-      font-weight: bold;
-      color: #EAEAEA;
-  }
-  .fc-daygrid-day-frame {
-      border: 1px solid #444;
-  }
-  /* Estilos para los eventos */
-  .fc-event {
-      background-color: #F37C22;
-      border: 1px solid #F37C22;
-      color: #fff;
-      font-weight: bold;
-      padding: 2px 4px;
-      border-radius: 4px;
-      cursor: pointer;
-  }
-  /* Fuente y color global para FullCalendar */
-  .fc {
-      font-family: "Helvetica Neue", Arial, sans-serif;
-      color: #040000;
-  }
-</style>
 
 <script type="text/javascript">
 document.addEventListener('DOMContentLoaded', function() {
@@ -110,14 +255,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     console.log("Eventos:", events); // Para depuración
 
+    // En celular se abre en vista de lista (más legible en pantallas angostas)
+    var esCelular = window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+
     var calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
+        initialView: esCelular ? 'listMonth' : 'dayGridMonth',
+        height: esCelular ? 'auto' : null,
         themeSystem: 'bootstrap5',
+        locale: 'es',
+        buttonText: { today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día', list: 'Lista' },
+        allDayText: 'Todo el día',
+        moreLinkText: 'más',
+        noEventsText: 'No hay pagos aprobados en este periodo',
         dayMaxEvents: 3,
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            right: esCelular ? 'listMonth,dayGridMonth,timeGridWeek,timeGridDay' : 'dayGridMonth,timeGridWeek,timeGridDay'
         },
         events: events,
         eventClick: function(info) {

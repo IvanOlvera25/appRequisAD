@@ -1,307 +1,525 @@
 {% extends "layout.html" %}
-{% block title %}Panel Admin{% endblock %}
+{% block title %}Panel de pagos{% endblock %}
 
-{% block content %}
+{% block extra_css %}
 <style>
-  /* Estilo del badge de anticipo (naranja) */
-  .badge-anticipo {
-    display: inline-flex;
-    align-items: center;
-    gap: .35rem;
-    background: #ff8a1d;
-    color: #111;
-    font-weight: 700;
-    font-size: .75rem;
-    line-height: 1;
-    padding: .25rem .5rem;
-    border-radius: 999px;
-    border: 1px solid rgba(0,0,0,.15);
-    vertical-align: middle;
+  /* ---------- KPIs ---------- */
+  .kpi-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+  .kpi {
+    --c: var(--brand);
+    position: relative; overflow: hidden; display: flex; flex-direction: column; gap: .3rem;
+    padding: 1rem 1.1rem; border-radius: var(--radius-lg); background: var(--surface); color: var(--text);
+    border: 1px solid var(--border); box-shadow: var(--shadow-sm);
+    transition: transform .2s var(--ease), box-shadow .2s var(--ease), border-color .2s var(--ease);
   }
-  .col-monto .badge-anticipo { margin-left:.35rem; }
-
-  /* Estilos para archivos adjuntos */
-  .archivos-adjuntos-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+  .kpi::after {
+    content: ""; position: absolute; right: -40px; top: -40px; width: 130px; height: 130px; border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--c) 20%, transparent), transparent 70%); pointer-events: none;
   }
-
-  .archivo-adjunto-card {
-    padding: 0.75rem;
-    background: var(--input-bg);
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    transition: all 0.2s ease;
-  }
-
-  .archivo-adjunto-card:hover {
-    border-color: var(--primary-color);
-    background: var(--header-bg);
+  .kpi:hover { color: var(--text); transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: color-mix(in srgb, var(--c) 40%, var(--border)); }
+  .kpi.active { border-color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 18%, transparent); }
+  .kpi-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .2rem; }
+  .kpi-ico { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent); }
+  .kpi-go { color: var(--text-3); font-size: .78rem; transition: transform .2s var(--ease), color .2s; }
+  .kpi:hover .kpi-go { transform: translateX(3px); color: var(--c); }
+  .kpi-label { font-size: .8rem; font-weight: 600; color: var(--text-2); }
+  .kpi-value { font-size: 1.7rem; font-weight: 800; letter-spacing: -.025em; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .kpi-sub { font-size: .8rem; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .kpi.k-pend { --c: var(--st-pendiente); } .kpi.k-pagar { --c: var(--st-aprobado); }
+  .kpi.k-venc { --c: var(--danger); } .kpi.k-sem { --c: #ea580c; } .kpi.k-liq { --c: var(--success); }
+  html[data-theme="dark"] .kpi.k-sem { --c: #fb923c; }
+  @media (max-width: 1240px) { .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 760px) {
+    .kpi-grid { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 74%; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: .25rem; margin: 0 -1rem 1rem; padding-left: 1rem; padding-right: 1rem; scrollbar-width: none; }
+    .kpi-grid::-webkit-scrollbar { display: none; }
+    .kpi { scroll-snap-align: start; }
   }
 
-  .archivo-adjunto-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    font-size: 0.875rem;
-    color: var(--text-color);
+  /* ---------- Próximos a vencer ---------- */
+  .due-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; scroll-margin-top: calc(var(--nav-h) + 12px); }
+  @media (max-width: 960px) { .due-grid { grid-template-columns: minmax(0, 1fr); } }
+  .due-card { padding: 0; overflow: hidden; margin: 0; display: flex; flex-direction: column; min-width: 0; }
+  .due-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .9rem 1.1rem; border-bottom: 1px solid var(--border); }
+  .due-head h3 { margin: 0; font-size: .98rem; display: flex; align-items: center; gap: .55rem; }
+  .due-head h3 .ico { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-size: .85rem; color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent); }
+  .due-card.d-soon { --c: #ea580c; } .due-card.d-over { --c: var(--danger); }
+  html[data-theme="dark"] .due-card.d-soon { --c: #fb923c; }
+  .due-total { font-size: .8rem; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .due-total strong { color: var(--text); }
+  .due-list { max-height: 352px; overflow-y: auto; flex: 1; }
+  .due-item {
+    --c: var(--info);
+    display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: .85rem; align-items: center;
+    padding: .7rem 1.1rem; border-bottom: 1px solid var(--border); color: var(--text); transition: background .15s var(--ease);
+  }
+  .due-item:last-child { border-bottom: 0; }
+  .due-item:hover { background: var(--surface-hover); color: var(--text); }
+  .due-date { width: 48px; height: 48px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; color: var(--c); background: color-mix(in srgb, var(--c) 12%, transparent); border: 1px solid color-mix(in srgb, var(--c) 22%, transparent); }
+  .due-date b { font-size: 1.1rem; font-weight: 800; }
+  .due-date span { font-size: .62rem; font-weight: 700; text-transform: uppercase; margin-top: 3px; letter-spacing: .04em; }
+  .due-title { font-weight: 650; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .due-meta { font-size: .76rem; color: var(--text-2); display: flex; gap: .45rem; align-items: center; flex-wrap: wrap; margin-top: .15rem; }
+  .due-amount { text-align: right; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: .92rem; }
+  .due-amount small { display: block; font-size: .72rem; font-weight: 650; color: var(--c); }
+  .u-over { --c: var(--danger); } .u-today { --c: #ea580c; } .u-soon { --c: var(--warning); } .u-later { --c: var(--info); } .u-none { --c: var(--text-3); }
+  html[data-theme="dark"] .u-today { --c: #fb923c; }
+  .due-empty { padding: 2rem 1rem; text-align: center; color: var(--text-2); font-size: .88rem; }
+  .due-empty i { display: block; font-size: 1.6rem; color: var(--success); margin-bottom: .5rem; }
+  .due-foot { padding: .6rem 1.1rem; border-top: 1px solid var(--border); background: var(--surface-2); font-size: .82rem; font-weight: 600; }
+
+  /* ---------- Filtros ---------- */
+  .tabs-row { margin-bottom: .85rem; }
+  .filters-card { padding: .9rem; margin-bottom: 1rem; }
+  .search-row { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+  .search-box { position: relative; flex: 1 1 300px; }
+  .search-box > i { position: absolute; left: .9rem; top: 50%; transform: translateY(-50%); color: var(--text-3); pointer-events: none; }
+  .search-box input { padding-left: 2.5rem; padding-right: 2.6rem; }
+  .search-box kbd { position: absolute; right: .7rem; top: 50%; transform: translateY(-50%); font-family: inherit; font-size: .7rem; color: var(--text-3); border: 1px solid var(--border); border-radius: 6px; padding: .05rem .4rem; background: var(--surface-2); }
+  .search-row .criterio { width: auto; flex: 0 0 175px; }
+  .btn-filter .count { background: var(--brand); color: #fff; border-radius: 999px; font-size: .7rem; min-width: 18px; height: 18px; display: inline-grid; place-items: center; padding: 0 .3rem; }
+  .adv-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: .75rem; margin-top: .9rem; padding-top: .9rem; border-top: 1px dashed var(--border); animation: fadeIn .2s var(--ease); }
+  .adv-filters[hidden] { display: none; }
+  .adv-filters .form-group { margin: 0; }
+  .adv-filters label { font-size: .76rem; color: var(--text-2); }
+  .adv-actions { display: flex; gap: .5rem; align-items: flex-end; justify-content: flex-end; grid-column: 1 / -1; }
+  .active-chips { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .75rem; align-items: center; }
+  .fchip { display: inline-flex; align-items: center; gap: .35rem; padding: .28rem .35rem .28rem .7rem; border-radius: 999px; background: var(--brand-50); color: var(--brand); font-size: .78rem; font-weight: 650; border: 1px solid var(--brand-100); }
+  .fchip a { color: inherit; width: 18px; height: 18px; border-radius: 50%; display: inline-grid; place-items: center; font-size: .7rem; }
+  .fchip a:hover { background: var(--brand-100); }
+  @media (max-width: 640px) {
+    .search-row .criterio { flex: 1 1 140px; }
+    .search-row .btn { flex: 1 1 auto; }
+    .search-box kbd { display: none; }
   }
 
-  .archivo-adjunto-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    color: var(--primary-color);
-    text-decoration: none;
-    font-size: 0.875rem;
-    transition: all 0.2s ease;
-  }
+  /* ---------- Listado ---------- */
+  .list-card { padding: 0; overflow: hidden; }
+  .list-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .85rem 1.1rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .list-head h2 { margin: 0; font-size: 1rem; display: flex; align-items: center; gap: .5rem; }
+  .list-head .meta { color: var(--text-2); font-size: .84rem; }
+  .sid-banner { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .7rem 1.1rem; background: var(--brand-50); border-bottom: 1px solid var(--brand-100); font-size: .86rem; }
 
-  .archivo-adjunto-link:hover {
-    color: #e06d17;
-    text-decoration: underline;
-  }
+  .tabla-solicitudes { font-size: .875rem; }
+  .tabla-solicitudes th { position: sticky; top: 0; z-index: 1; }
+  .tabla-solicitudes td { padding: .8rem .8rem; }
+  .tabla-solicitudes .cell-check { width: 44px; padding-right: 0; }
+  .sol-fp { font-weight: 750; font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: .4rem; }
+  .sol-fp .expand-ico { font-size: .7rem; color: var(--text-3); transition: transform .2s var(--ease); }
+  tr.summary-row.is-open .expand-ico { transform: rotate(90deg); color: var(--brand); }
+  .sol-sub { font-size: .76rem; color: var(--text-2); margin-top: .1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+  .dest-name { font-weight: 600; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .col-monto { text-align: right; white-space: nowrap; }
+  .amount { font-weight: 750; font-variant-numeric: tabular-nums; font-size: .95rem; }
+  .col-monto .badge-anticipo, .col-monto .badge-comision { margin-top: .25rem; }
+  .limite { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .limite .rel { display: block; font-size: .74rem; font-weight: 650; color: var(--c); }
+  .row-actions { display: flex; align-items: center; gap: .35rem; justify-content: flex-end; flex-wrap: nowrap; }
+  .tabla-solicitudes td[data-cell="acc"] { width: 1%; white-space: nowrap; }
+  .state-form { display: flex; align-items: center; gap: .35rem; flex-wrap: nowrap; justify-content: flex-end; margin: 0; position: relative; }
+  .state-form .status-select { min-height: 34px; height: 34px; padding: .25rem 2rem .25rem .6rem; font-size: .82rem; width: 158px; border-radius: 9px; }
+  .file-box { position: absolute; top: calc(100% + 6px); right: 0; z-index: 3; display: flex; justify-content: flex-end; }
+  .file-box .custom-file-label { background: var(--surface); box-shadow: var(--shadow-md); }
+  .file-box .custom-file-label { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .details-row { display: none; }
+  .details-row.open { display: table-row; }
 
-  .sin-archivos {
-    padding: 1rem;
-    text-align: center;
-    color: #6b7280;
-    font-style: italic;
-    background: var(--input-bg);
-    border-radius: 8px;
-    border: 1px dashed var(--border-color);
-  }
+  /* Detalle */
+  .det-grid { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: .9rem; }
+  @media (max-width: 1100px) { .det-grid { grid-template-columns: 1fr 1fr; } }
+  .det-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: .9rem 1rem; min-width: 0; }
+  .det-card h4 { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-2); margin-bottom: .7rem; display: flex; align-items: center; gap: .45rem; }
+  .det-card h4 i { color: var(--brand); }
+  .kv { display: grid; grid-template-columns: minmax(96px, auto) 1fr; gap: .4rem .85rem; margin: 0; font-size: .85rem; }
+  .kv dt { color: var(--text-2); }
+  .kv dd { margin: 0; font-weight: 560; word-break: break-word; display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
+  .kv dd.big { font-size: 1rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .copy-btn { border: 1px solid var(--border); background: var(--surface-2); color: var(--text-2); border-radius: 7px; height: 24px; padding: 0 .45rem; font-size: .72rem; cursor: pointer; display: inline-flex; align-items: center; gap: .3rem; font-family: inherit; font-weight: 600; }
+  .copy-btn:hover { color: var(--brand); border-color: var(--brand); }
+  .copy-btn.ok { color: var(--success); border-color: var(--success); }
+  .timeline { list-style: none; margin: .6rem 0 0; padding: 0; }
+  .timeline li { position: relative; padding: 0 0 .55rem 1.1rem; font-size: .82rem; }
+  .timeline li::before { content: ""; position: absolute; left: 3px; top: .45rem; width: 7px; height: 7px; border-radius: 50%; background: var(--brand); }
+  .timeline li::after { content: ""; position: absolute; left: 6px; top: 1rem; bottom: 0; width: 1px; background: var(--border); }
+  .timeline li:last-child::after { display: none; }
+  .timeline small { color: var(--text-3); display: block; }
+  .det-wide { margin-top: .9rem; }
+  .det-text { font-size: .88rem; white-space: pre-wrap; word-break: break-word; margin: 0 0 .5rem; }
+  .files { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .file-chip { display: inline-flex; align-items: center; gap: .5rem; padding: .5rem .8rem; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); font-size: .84rem; font-weight: 600; color: var(--text); transition: all .15s var(--ease); }
+  .file-chip i { color: var(--brand); }
+  .file-chip:hover { border-color: var(--brand); color: var(--brand); transform: translateY(-1px); }
+  .sin-archivos { font-size: .84rem; color: var(--text-3); font-style: italic; }
 
-  /* Estilos para filas seleccionadas */
-  tr.selected {
-    background-color: rgba(255, 138, 29, 0.1) !important;
+  /* ---------- Barra de selección ---------- */
+  .bulk-bar {
+    position: fixed; left: 50%; bottom: 24px; z-index: 905; transform: translate(-50%, 160%);
+    display: flex; align-items: center; gap: .6rem; padding: .55rem .55rem .55rem 1rem; border-radius: 16px;
+    background: #0f172a; color: #f8fafc; box-shadow: 0 20px 44px -12px rgba(2, 6, 23, .55);
+    visibility: hidden; transition: transform .35s var(--ease), visibility 0s linear .35s;
+    max-width: calc(100vw - 24px);
   }
+  html[data-theme="dark"] .bulk-bar { background: #f1f5f9; color: #0f172a; }
+  .bulk-bar.show { transform: translate(-50%, 0); visibility: visible; transition: transform .35s var(--ease), visibility 0s; }
+  .bulk-bar .bb-count { font-weight: 750; white-space: nowrap; }
+  .bulk-bar .bb-sum { opacity: .7; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: .88rem; }
+  .bulk-bar .bb-sep { width: 1px; align-self: stretch; background: currentColor; opacity: .15; }
+  .bulk-bar .bb-ghost { background: transparent; color: inherit; border: 0; cursor: pointer; font-family: inherit; font-weight: 600; font-size: .86rem; padding: .5rem .7rem; border-radius: 10px; opacity: .8; }
+  .bulk-bar .bb-ghost:hover { opacity: 1; background: color-mix(in srgb, currentColor 10%, transparent); }
 
-  tr.selected td {
-    border-color: rgba(255, 138, 29, 0.3) !important;
+  /* ---------- Celular: filas → tarjetas ---------- */
+  @media (max-width: 900px) {
+    .tabla-solicitudes thead { display: none; }
+    .tabla-solicitudes, .tabla-solicitudes tbody { display: block; }
+    .tabla-solicitudes tr.summary-row {
+      display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+      grid-template-areas: "check fp estado" "check dest dest" "check pago monto" "check limite monto" "acc acc acc";
+      gap: .3rem .75rem; padding: .95rem 1rem; border-bottom: 1px solid var(--border);
+    }
+    .tabla-solicitudes tr.summary-row td { padding: 0; border: 0; }
+    .tabla-solicitudes td[data-cell="check"] { grid-area: check; width: auto; padding-top: .1rem; }
+    .tabla-solicitudes td[data-cell="fp"] { grid-area: fp; }
+    .tabla-solicitudes td[data-cell="estado"] { grid-area: estado; justify-self: end; }
+    .tabla-solicitudes td[data-cell="dest"] { grid-area: dest; }
+    .tabla-solicitudes td[data-cell="pago"] { grid-area: pago; font-size: .8rem; color: var(--text-2); }
+    .tabla-solicitudes td[data-cell="limite"] { grid-area: limite; font-size: .8rem; }
+    .tabla-solicitudes td[data-cell="monto"] { grid-area: monto; align-self: end; }
+    .tabla-solicitudes td[data-cell="acc"] { grid-area: acc; width: auto; white-space: normal; margin-top: .55rem; padding-top: .65rem; border-top: 1px dashed var(--border); }
+    .tabla-solicitudes td[data-cell="acc"] .row-actions { justify-content: stretch; flex-wrap: nowrap; }
+    .due-head { flex-wrap: wrap; row-gap: .25rem; }
+    .due-head .chip { display: none; }
+    .due-title { font-size: .86rem; }
+    .state-form { flex: 1; justify-content: stretch; flex-wrap: wrap; }
+    .state-form .status-select { flex: 1; width: auto; }
+    .file-box { position: static; flex-basis: 100%; justify-content: flex-start; }
+    .file-box .custom-file-label { box-shadow: none; }
+    .dest-name { max-width: none; white-space: normal; }
+    .tabla-solicitudes tr.details-row.open { display: block; }
+    .tabla-solicitudes tr.details-row > td { display: block; }
+    .det-grid { grid-template-columns: 1fr; }
+    .amount { font-size: 1.05rem; }
+  }
+  @media (max-width: 760px) {
+    .bulk-bar { left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom)); transform: translateY(170%); }
+    .bulk-bar.show { transform: none; }
+    .bulk-bar .bb-sum { display: none; }
+    .page-actions .btn-label { display: none; }
   }
 </style>
+{% endblock %}
 
-<div class="dashboard-container">
-  <header class="dashboard-header" style="margin-bottom:.5rem;">
-    <h1 style="font-size:1.3rem; margin:0;">Panel de Administración</h1>
-  </header>
+{% macro urg(d) -%}
+  {%- if d is none -%}u-none{%- elif d < 0 -%}u-over{%- elif d == 0 -%}u-today{%- elif d <= 3 -%}u-soon{%- else -%}u-later{%- endif -%}
+{%- endmacro %}
+{% macro rel(d) -%}
+  {%- if d is none -%}Sin fecha{%- elif d < -1 -%}Venció hace {{ -d }} días{%- elif d == -1 -%}Venció ayer{%- elif d == 0 -%}Vence hoy{%- elif d == 1 -%}Vence mañana{%- else -%}En {{ d }} días{%- endif -%}
+{%- endmacro %}
+{% macro fpl(fp) -%}{{ fp if (fp|string|upper).startswith('FP') else 'FP ' ~ fp }}{%- endmacro %}
+{% macro money(v) -%}${{ "{:,.2f}".format((v or 0)|float) }}{%- endmacro %}
 
-  {% set c = counts or {} %}
-  <nav class="card" style="margin-bottom:.5rem;">
-    <ul class="tabs-estados" style="display:flex; gap:.5rem; flex-wrap:wrap; list-style:none; padding:.5rem; margin:0;">
-      <li>
-        <a class="tab-pill {% if not estado_filtro %}active{% endif %}"
-           href="{{ url_for('admin_dashboard', estado='', busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=1, page_size=page_size) }}">
-          Todos <span class="badge">{{ total_count or 0 }}</span>
-        </a>
-      </li>
-      <li>
-        <a class="tab-pill {% if estado_filtro=='Pendiente' %}active{% endif %}"
-           href="{{ url_for('admin_dashboard', estado='Pendiente', busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=1, page_size=page_size) }}">
-          Pendientes <span class="badge">{{ c.get('pendiente',0) }}</span>
-        </a>
-      </li>
-      <li>
-        <a class="tab-pill {% if estado_filtro=='Aprobado' %}active{% endif %}"
-           href="{{ url_for('admin_dashboard', estado='Aprobado', busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=1, page_size=page_size) }}">
-          Aprobados <span class="badge">{{ c.get('aprobado',0) }}</span>
-        </a>
-      </li>
-      <li>
-        <a class="tab-pill {% if estado_filtro=='Aprobado con anticipo' %}active{% endif %}"
-           href="{{ url_for('admin_dashboard', estado='Aprobado con anticipo', busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=1, page_size=page_size) }}">
-          Aprob. c/anticipo <span class="badge">{{ c.get('aprobado con anticipo',0) }}</span>
-        </a>
-      </li>
-      <li>
-        <a class="tab-pill {% if estado_filtro=='Liquidado' %}active{% endif %}"
-           href="{{ url_for('admin_dashboard', estado='Liquidado', busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=1, page_size=page_size) }}">
-          Liquidados <span class="badge">{{ c.get('liquidado',0) }}</span>
-        </a>
-      </li>
-      <li>
-        <a class="tab-pill {% if estado_filtro=='Liquidado con anticipo' %}active{% endif %}"
-           href="{{ url_for('admin_dashboard', estado='Liquidado con anticipo', busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=1, page_size=page_size) }}">
-          Liq. c/anticipo <span class="badge">{{ c.get('liquidado con anticipo',0) }}</span>
-        </a>
-      </li>
-      <li>
-        <a class="tab-pill {% if estado_filtro=='Liquidacion total' %}active{% endif %}"
-           href="{{ url_for('admin_dashboard', estado='Liquidacion total', busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=1, page_size=page_size) }}">
-          Liquidación Total <span class="badge">{{ c.get('liquidacion total',0) }}</span>
-        </a>
-      </li>
-      <li>
-        <a class="tab-pill {% if estado_filtro=='Programado' %}active{% endif %}"
-           href="{{ url_for('admin_dashboard', estado='Programado', busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=1, page_size=page_size) }}">
-          Programados <span class="badge">{{ c.get('programado',0) }}</span>
-        </a>
-      </li>
-      <li>
-        <a class="tab-pill {% if estado_filtro=='Declinada' %}active{% endif %}"
-           href="{{ url_for('admin_dashboard', estado='Declinada', busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=1, page_size=page_size) }}">
-          Declinadas <span class="badge">{{ c.get('declinada',0) }}</span>
-        </a>
-      </li>
-    </ul>
-  </nav>
+{% block content %}
+{% set c = counts or {} %}
+{% set r = resumen %}
+{% set n_adv = [filtros.tipo_pago, filtros.departamento, filtros.desde, filtros.hasta, filtros.vence]|select|list|length %}
 
-  <div class="card filter-card" style="margin-bottom:.5rem; padding:.5rem .75rem;">
-    <form method="GET" action="{{ url_for('admin_dashboard') }}" class="filter-form">
-      <input type="hidden" name="p" value="1">
-      <input type="hidden" name="page_size" value="{{ page_size }}">
-      <div class="form-group">
-        <input type="text" name="busqueda" placeholder="Buscar..." value="{{ busqueda }}">
-      </div>
-      <div class="form-group">
-        <label for="criterio_busqueda" class="visually-hidden">Buscar por:</label>
-        <select name="criterio_busqueda" id="criterio_busqueda">
-          <option value="todos" {% if criterio_busqueda == "todos" %}selected{% endif %}>Todos</option>
-          <option value="fp" {% if criterio_busqueda == "fp" %}selected{% endif %}>FP</option>
-          <option value="monto" {% if criterio_busqueda == "monto" %}selected{% endif %}>Monto</option>
-          <option value="nombre" {% if criterio_busqueda == "nombre" %}selected{% endif %}>Nombre</option>
-          <option value="destinatario" {% if criterio_busqueda == "destinatario" %}selected{% endif %}>Destinatario</option>
-          <option value="descripcion" {% if criterio_busqueda == "descripcion" %}selected{% endif %}>Descripción</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <select name="estado">
-          <option value="">Todos los estados</option>
-          <option value="Aprobado" {% if estado_filtro == "Aprobado" %}selected{% endif %}>Aprobado</option>
-          <option value="Pendiente" {% if estado_filtro == "Pendiente" %}selected{% endif %}>Pendiente</option>
-          <option value="Programado" {% if estado_filtro == "Programado" %}selected{% endif %}>Programado</option>
-          <option value="Aprobado con anticipo" {% if estado_filtro == "Aprobado con anticipo" %}selected{% endif %}>Aprobado con Anticipo</option>
-          <option value="Liquidado con anticipo" {% if estado_filtro == "Liquidado con anticipo" %}selected{% endif %}>Liquidado con Anticipo</option>
-          <option value="Liquidacion total" {% if estado_filtro == "Liquidacion total" %}selected{% endif %}>Liquidación Total</option>
-          <option value="Declinada" {% if estado_filtro == "Declinada" %}selected{% endif %}>Declinada</option>
-          <option value="Liquidado" {% if estado_filtro == "Liquidado" %}selected{% endif %}>Liquidado</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <button type="submit" class="btn btn-secondary">Filtrar</button>
-      </div>
-    </form>
+<!-- Encabezado -->
+<div class="page-head reveal">
+  <div>
+    <div class="eyebrow"><i class="fa-solid fa-building-columns"></i> Tesorería</div>
+    <h1>Panel de pagos</h1>
+    <p class="subtitle">Hola {{ session.get('username') or '' }} · <span id="hoyLargo">{{ hoy|fecha_corta(true) }}</span></p>
   </div>
-
- <!-- Barra de acciones -->
-<div style="margin-bottom:.5rem; display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
-  <a href="{{ url_for('ver_historial') }}" class="btn btn-primary">Ver Historial</a>
-  {# Exporta TODO lo que coincide con el filtro actual (sin paginar ni límite de fechas) #}
-  <a href="{{ url_for('exportar_solicitudes', estado=estado_filtro, busqueda=busqueda, criterio_busqueda=criterio_busqueda) }}"
-     class="btn btn-success" title="Descarga en Excel todos los resultados del filtro actual">
-    📥 Exportar resultados a Excel ({{ total_count or 0 }})
-  </a>
-  <button type="button" class="btn btn-success" onclick="mostrarModalReporteConsolidado()">
-    📊 Generar Reporte Consolidado
-  </button>
-  <button type="button" class="btn btn-info" onclick="mostrarModalReporteAnual()">
-    📆 Generar Reporte Anual
-  </button>
-  <button type="button"
-          id="btnActualizacionMasiva"
-          class="btn btn-warning"
-          style="display:none;"
-          onclick="mostrarModalActualizacionMasiva()">
-    ✏️ Actualizar Seleccionados (<span id="contadorSeleccionados">0</span>)
-  </button>
-  <button type="button"
-          id="btnLimpiarSeleccion"
-          class="btn btn-secondary"
-          style="display:none;"
-          onclick="limpiarSeleccion()">
-    🗑️ Limpiar Selección
-  </button>
+  <div class="page-actions">
+    <a href="{{ panel_url('exportar_solicitudes', p=None, page_size=None, orden=None) }}" class="btn btn-secondary" title="Descarga en Excel todos los resultados del filtro actual">
+      <i class="fa-solid fa-file-excel" style="color:#16a34a"></i><span class="btn-label">Exportar Excel</span> <span class="badge">{{ total_count or 0 }}</span>
+    </a>
+    <div class="nav-dropdown">
+      <button type="button" class="btn btn-secondary nav-dropdown-toggle"><i class="fa-solid fa-chart-simple"></i><span class="btn-label">Reportes</span> <i class="fa-solid fa-chevron-down nav-caret"></i></button>
+      <div class="nav-dropdown-menu nav-dropdown-menu-right">
+        <a href="#" onclick="mostrarModalReporteConsolidado(); return false;"><i class="fa-solid fa-table-list"></i> Reporte consolidado</a>
+        <a href="#" onclick="mostrarModalReporteAnual(); return false;"><i class="fa-solid fa-calendar"></i> Reporte anual</a>
+        <a href="{{ url_for('ver_historial') }}"><i class="fa-solid fa-clock-rotate-left"></i> Ver historial</a>
+      </div>
+    </div>
+    <a href="{{ url_for('solicitar_pago') }}" class="btn btn-primary"><i class="fa-solid fa-plus"></i><span class="btn-label">Nueva solicitud</span></a>
+  </div>
 </div>
 
-  <div class="card table-card">
+<!-- KPIs -->
+<div class="kpi-grid">
+  <a class="kpi k-pend reveal reveal-1 {{ 'active' if estado_filtro == 'Pendiente' and not filtros.vence }}" href="{{ url_for('admin_dashboard', estado='Pendiente') }}">
+    <div class="kpi-top"><span class="kpi-ico"><i class="fa-solid fa-inbox"></i></span><i class="fa-solid fa-arrow-right kpi-go"></i></div>
+    <span class="kpi-label">Pendientes de aprobar</span>
+    <span class="kpi-value" data-count="{{ r.pendientes.n }}">{{ r.pendientes.n }}</span>
+    <span class="kpi-sub">{{ money(r.pendientes.total) }}</span>
+  </a>
+  <a class="kpi k-pagar reveal reveal-2 {{ 'active' if estado_filtro == 'Aprobado' }}" href="{{ url_for('admin_dashboard', estado='Aprobado') }}">
+    <div class="kpi-top"><span class="kpi-ico"><i class="fa-solid fa-money-bill-transfer"></i></span><i class="fa-solid fa-arrow-right kpi-go"></i></div>
+    <span class="kpi-label">Aprobados por pagar</span>
+    <span class="kpi-value" data-count="{{ r.por_pagar.n }}">{{ r.por_pagar.n }}</span>
+    <span class="kpi-sub">{{ money(r.por_pagar.total) }}</span>
+  </a>
+  <a class="kpi k-venc reveal reveal-3 {{ 'active' if filtros.vence == 'vencidas' }}" href="{{ url_for('admin_dashboard', vence='vencidas', orden='vence') }}">
+    <div class="kpi-top"><span class="kpi-ico"><i class="fa-solid fa-triangle-exclamation"></i></span><i class="fa-solid fa-arrow-right kpi-go"></i></div>
+    <span class="kpi-label">Vencidos sin pagar</span>
+    <span class="kpi-value" data-count="{{ r.vencidas.n }}">{{ r.vencidas.n }}</span>
+    <span class="kpi-sub">{{ money(r.vencidas.total) }}</span>
+  </a>
+  <a class="kpi k-sem reveal reveal-4 {{ 'active' if filtros.vence == 'semana' }}" href="{{ url_for('admin_dashboard', vence='semana', orden='vence') }}">
+    <div class="kpi-top"><span class="kpi-ico"><i class="fa-solid fa-hourglass-half"></i></span><i class="fa-solid fa-arrow-right kpi-go"></i></div>
+    <span class="kpi-label">Vencen en 7 días</span>
+    <span class="kpi-value" data-count="{{ r.semana.n }}">{{ r.semana.n }}</span>
+    <span class="kpi-sub">{{ money(r.semana.total) }}</span>
+  </a>
+  <a class="kpi k-liq reveal reveal-5" href="{{ url_for('admin_dashboard', estado='Liquidado') }}">
+    <div class="kpi-top"><span class="kpi-ico"><i class="fa-solid fa-circle-check"></i></span><i class="fa-solid fa-arrow-right kpi-go"></i></div>
+    <span class="kpi-label">Liquidado este mes</span>
+    <span class="kpi-value" data-count="{{ r.liquidado_mes.total }}" data-money>{{ money(r.liquidado_mes.total) }}</span>
+    <span class="kpi-sub">{{ r.liquidado_mes.n }} pago{{ '' if r.liquidado_mes.n == 1 else 's' }}</span>
+  </a>
+</div>
+
+<!-- Próximos a vencer -->
+<section class="due-grid" id="por-vencer" aria-label="Pagos próximos a vencer">
+  <div class="card due-card d-soon reveal reveal-3">
+    <div class="due-head">
+      <h3><span class="ico"><i class="fa-solid fa-hourglass-half"></i></span> Próximos a vencer <span class="chip">7 días</span></h3>
+      <span class="due-total"><strong>{{ r.semana.n }}</strong> · {{ money(r.semana.total) }}</span>
+    </div>
+    <div class="due-list">
+      {% for it in por_vencer.proximas %}
+        <a class="due-item {{ urg(it.dias) }}" href="{{ url_for('admin_dashboard', sid=it.id) }}" title="Ver solicitud">
+          <span class="due-date"><b>{{ (it.fecha_limite or '')[8:10] }}</b><span>{{ (it.fecha_limite|fecha_corta(false)).split(' ')[-1] }}</span></span>
+          <span class="due-main" style="min-width:0">
+            <span class="due-title" style="display:block">{{ it.destinatario or '—' }}</span>
+            <span class="due-meta"><span>{{ fpl(it.fp) }}</span>·<span>{{ it.nombre }}</span><span class="status-pill" data-c="{{ it.estado|lower|replace(' ', '-') }}">{{ it.estado }}</span></span>
+          </span>
+          <span class="due-amount">{{ money(it.monto) }}<small>{{ rel(it.dias) }}</small></span>
+        </a>
+      {% else %}
+        <div class="due-empty"><i class="fa-solid fa-circle-check"></i>Nada vence en los próximos 7 días.</div>
+      {% endfor %}
+    </div>
+    {% if r.semana.n %}
+      <div class="due-foot"><a href="{{ url_for('admin_dashboard', vence='semana', orden='vence') }}">Ver los {{ r.semana.n }} en el listado <i class="fa-solid fa-arrow-right"></i></a></div>
+    {% endif %}
+  </div>
+
+  <div class="card due-card d-over reveal reveal-4">
+    <div class="due-head">
+      <h3><span class="ico"><i class="fa-solid fa-triangle-exclamation"></i></span> Vencidos sin pagar</h3>
+      <span class="due-total"><strong>{{ r.vencidas.n }}</strong> · {{ money(r.vencidas.total) }}</span>
+    </div>
+    <div class="due-list">
+      {% for it in por_vencer.vencidas %}
+        <a class="due-item {{ urg(it.dias) }}" href="{{ url_for('admin_dashboard', sid=it.id) }}" title="Ver solicitud">
+          <span class="due-date"><b>{{ (it.fecha_limite or '')[8:10] }}</b><span>{{ (it.fecha_limite|fecha_corta(false)).split(' ')[-1] }}</span></span>
+          <span class="due-main" style="min-width:0">
+            <span class="due-title" style="display:block">{{ it.destinatario or '—' }}</span>
+            <span class="due-meta"><span>{{ fpl(it.fp) }}</span>·<span>{{ it.nombre }}</span><span class="status-pill" data-c="{{ it.estado|lower|replace(' ', '-') }}">{{ it.estado }}</span></span>
+          </span>
+          <span class="due-amount">{{ money(it.monto) }}<small>{{ rel(it.dias) }}</small></span>
+        </a>
+      {% else %}
+        <div class="due-empty"><i class="fa-solid fa-circle-check"></i>No hay pagos vencidos. ¡Todo al día!</div>
+      {% endfor %}
+    </div>
+    {% if r.vencidas.n %}
+      <div class="due-foot"><a href="{{ url_for('admin_dashboard', vence='vencidas', orden='vence') }}">Ver los {{ r.vencidas.n }} vencidos en el listado <i class="fa-solid fa-arrow-right"></i></a></div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- Pestañas por estado -->
+{% set tabs = [
+  ('', 'Todas', none, 'var(--text-3)'),
+  ('Pendiente', 'Pendientes', 'pendiente', 'var(--st-pendiente)'),
+  ('Aprobado', 'Aprobados', 'aprobado', 'var(--st-aprobado)'),
+  ('Aprobado con anticipo', 'Aprob. c/anticipo', 'aprobado con anticipo', 'var(--st-aprobado-anticipo)'),
+  ('Programado', 'Programados', 'programado', 'var(--st-programado)'),
+  ('Liquidado', 'Liquidados', 'liquidado', 'var(--st-liquidado)'),
+  ('Liquidado con anticipo', 'Liq. c/anticipo', 'liquidado con anticipo', 'var(--st-liquidado-anticipo)'),
+  ('Liquidacion total', 'Liquidación total', 'liquidacion total', 'var(--st-liquidacion-total)'),
+  ('Declinada', 'Declinadas', 'declinada', 'var(--st-declinada)'),
+] %}
+<nav class="seg-tabs tabs-row reveal reveal-4" aria-label="Filtrar por estado">
+  {% for val, label, key, color in tabs %}
+    <a class="seg-tab {{ 'active' if estado_filtro == val }}" style="--c: {{ color }}" href="{{ panel_url(estado=val or None, p=None, sid=None) }}">
+      {% if key %}<span class="dot"></span>{% endif %}{{ label }}
+      <span class="badge">{{ (c.values()|sum) if key is none else c.get(key, 0) }}</span>
+    </a>
+  {% endfor %}
+</nav>
+
+<!-- Búsqueda y filtros -->
+<div class="card filters-card reveal reveal-5">
+  <form method="GET" action="{{ url_for('admin_dashboard') }}" id="filterForm">
+    {% if estado_filtro %}<input type="hidden" name="estado" value="{{ estado_filtro }}">{% endif %}
+    <div class="search-row">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="search" name="busqueda" id="busqueda" placeholder="Buscar por FP, destinatario, solicitante, monto…" value="{{ busqueda }}" aria-label="Buscar">
+        <kbd>/</kbd>
+      </div>
+      <select name="criterio_busqueda" id="criterio_busqueda" class="criterio" aria-label="Buscar en">
+        <option value="todos" {% if criterio_busqueda == "todos" %}selected{% endif %}>En todos los campos</option>
+        <option value="fp" {% if criterio_busqueda == "fp" %}selected{% endif %}>FP</option>
+        <option value="monto" {% if criterio_busqueda == "monto" %}selected{% endif %}>Monto</option>
+        <option value="nombre" {% if criterio_busqueda == "nombre" %}selected{% endif %}>Solicitante</option>
+        <option value="destinatario" {% if criterio_busqueda == "destinatario" %}selected{% endif %}>Destinatario</option>
+        <option value="descripcion" {% if criterio_busqueda == "descripcion" %}selected{% endif %}>Descripción</option>
+      </select>
+      <button type="button" class="btn btn-secondary btn-filter" id="toggleAdv" aria-expanded="{{ 'true' if n_adv else 'false' }}" aria-controls="advFilters">
+        <i class="fa-solid fa-sliders"></i> Filtros {% if n_adv %}<span class="count">{{ n_adv }}</span>{% endif %}
+      </button>
+      <button type="submit" class="btn btn-dark"><i class="fa-solid fa-magnifying-glass"></i> Buscar</button>
+    </div>
+
+    <div class="adv-filters" id="advFilters" {% if not n_adv %}hidden{% endif %}>
+      <div class="form-group">
+        <label for="f_vence">Vencimiento</label>
+        <select name="vence" id="f_vence">
+          <option value="">Cualquiera</option>
+          <option value="vencidas" {% if filtros.vence == 'vencidas' %}selected{% endif %}>Vencidas sin pagar</option>
+          <option value="hoy" {% if filtros.vence == 'hoy' %}selected{% endif %}>Vencen hoy</option>
+          <option value="semana" {% if filtros.vence == 'semana' %}selected{% endif %}>Próximos 7 días</option>
+          <option value="mes" {% if filtros.vence == 'mes' %}selected{% endif %}>Próximos 30 días</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="f_tipo_pago">Tipo de pago</label>
+        <select name="tipo_pago" id="f_tipo_pago">
+          <option value="">Todos</option>
+          {% for tp in opciones.tipos_pago %}<option value="{{ tp }}" {% if filtros.tipo_pago == tp %}selected{% endif %}>{{ tp }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="f_departamento">Departamento</label>
+        <select name="departamento" id="f_departamento">
+          <option value="">Todos</option>
+          {% for d in opciones.departamentos %}<option value="{{ d }}" {% if filtros.departamento == d %}selected{% endif %}>{{ d }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="f_desde">Solicitadas desde</label>
+        <input type="date" name="desde" id="f_desde" value="{{ filtros.desde }}">
+      </div>
+      <div class="form-group">
+        <label for="f_hasta">Hasta</label>
+        <input type="date" name="hasta" id="f_hasta" value="{{ filtros.hasta }}">
+      </div>
+      <div class="form-group">
+        <label for="f_orden">Ordenar por</label>
+        <select name="orden" id="f_orden">
+          <option value="recientes" {% if orden == 'recientes' %}selected{% endif %}>Más recientes</option>
+          <option value="vence" {% if orden == 'vence' %}selected{% endif %}>Fecha límite más próxima</option>
+          <option value="monto_desc" {% if orden == 'monto_desc' %}selected{% endif %}>Monto mayor</option>
+          <option value="monto_asc" {% if orden == 'monto_asc' %}selected{% endif %}>Monto menor</option>
+          <option value="antiguas" {% if orden == 'antiguas' %}selected{% endif %}>Más antiguas</option>
+        </select>
+      </div>
+      <div class="adv-actions">
+        <a class="btn btn-ghost" href="{{ url_for('admin_dashboard') }}"><i class="fa-solid fa-rotate-left"></i> Limpiar todo</a>
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Aplicar filtros</button>
+      </div>
+    </div>
+    <input type="hidden" name="page_size" value="{{ page_size }}">
+  </form>
+
+  {% set chips = [] %}
+  {% if busqueda %}{% set _ = chips.append(('“' ~ busqueda ~ '”' ~ ('' if criterio_busqueda == 'todos' else ' en ' ~ criterio_busqueda), {'busqueda': None, 'criterio_busqueda': None})) %}{% endif %}
+  {% if estado_filtro %}{% set _ = chips.append(('Estado: ' ~ estado_filtro, {'estado': None})) %}{% endif %}
+  {% if filtros.vence %}{% set _ = chips.append(({'vencidas':'Vencidas','hoy':'Vencen hoy','semana':'Próximos 7 días','mes':'Próximos 30 días'}[filtros.vence], {'vence': None})) %}{% endif %}
+  {% if filtros.tipo_pago %}{% set _ = chips.append(('Pago: ' ~ filtros.tipo_pago, {'tipo_pago': None})) %}{% endif %}
+  {% if filtros.departamento %}{% set _ = chips.append(('Depto: ' ~ filtros.departamento, {'departamento': None})) %}{% endif %}
+  {% if filtros.desde %}{% set _ = chips.append(('Desde ' ~ (filtros.desde|fecha_corta), {'desde': None})) %}{% endif %}
+  {% if filtros.hasta %}{% set _ = chips.append(('Hasta ' ~ (filtros.hasta|fecha_corta), {'hasta': None})) %}{% endif %}
+  {% if chips %}
+    <div class="active-chips">
+      {% for label, quitar in chips %}
+        <span class="fchip">{{ label }}<a href="{{ panel_url(p=None, sid=None, **quitar) }}" aria-label="Quitar filtro"><i class="fa-solid fa-xmark"></i></a></span>
+      {% endfor %}
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_dashboard') }}">Limpiar</a>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Listado -->
+<div class="card list-card reveal reveal-6">
+  <div class="list-head">
+    <h2><i class="fa-solid fa-list-ul" style="color:var(--brand)"></i> Solicitudes</h2>
+    <span class="meta">
+      {% if total_count %}
+        {{ (page - 1) * page_size + 1 }}–{{ (page - 1) * page_size + solicitudes|length }} de <strong>{{ total_count }}</strong>
+      {% else %}Sin resultados{% endif %}
+      {% if estado_filtro %} · {{ estado_filtro }}{% endif %}
+    </span>
+  </div>
+
+  {% if filtros.sid %}
+    <div class="sid-banner">
+      <span><i class="fa-solid fa-thumbtack"></i> Mostrando una solicitud específica</span>
+      <a class="btn btn-secondary btn-sm" href="{{ url_for('admin_dashboard') }}">Ver todas</a>
+    </div>
+  {% endif %}
+
+  {% if solicitudes %}
+  <div class="table-wrap">
     <table class="tabla-solicitudes">
       <thead>
         <tr>
-          <th style="width: 40px;">
-            <input type="checkbox" id="selectAll" onclick="toggleSelectAll()" title="Seleccionar todos">
-          </th>
-          <th>Solicitado por:</th>
-          <th>FP</th>
-          <th>Fecha creación</th>
+          <th class="cell-check"><input type="checkbox" id="selectAll" onclick="toggleSelectAll()" title="Seleccionar todas las de esta página" aria-label="Seleccionar todas"></th>
+          <th>Solicitud</th>
           <th>Destinatario</th>
-          <th>Tipo Solicitud</th>
-          <th>Tipo Pago</th>
-          <th>Monto Total</th>
+          <th>Tipo de pago</th>
+          <th>Fecha límite</th>
+          <th style="text-align:right">Monto</th>
           <th>Estado</th>
-          <th>Acciones</th>
+          <th style="text-align:right">Acciones</th>
         </tr>
       </thead>
       <tbody>
         {% for solicitud in solicitudes %}
-          {% set clase_estado = solicitud.estado|lower|replace(' ', '-') %}
-          <tr class="summary-row" data-details-id="details-{{ solicitud.id }}">
-            <td class="cell-check" onclick="event.stopPropagation();">
-              <input type="checkbox"
-                     class="select-solicitud"
-                     value="{{ solicitud.id }}"
-                     data-fp="{{ solicitud.fp }}"
-                     data-nombre="{{ solicitud.nombre }}"
-                     data-anticipo="{{ solicitud.anticipo }}"
-                     onchange="updateSelectedCount()">
+          {% set slug = (solicitud.estado or '')|lower|replace(' ', '-') %}
+          {% set con_anticipo = solicitud.anticipo and solicitud.anticipo|lower == "si" %}
+          <tr class="summary-row" data-details-id="details-{{ solicitud.id }}" aria-expanded="false">
+            <td class="cell-check" data-cell="check" onclick="event.stopPropagation();">
+              <input type="checkbox" class="select-solicitud" value="{{ solicitud.id }}"
+                     data-fp="{{ solicitud.fp }}" data-nombre="{{ solicitud.nombre }}" data-anticipo="{{ solicitud.anticipo }}"
+                     data-monto="{{ solicitud.monto }}" aria-label="Seleccionar FP {{ solicitud.fp }}">
             </td>
-            <td data-label="Solicitado por">{{ solicitud.nombre }}</td>
-            <td data-label="FP">{{ solicitud.fp }}</td>
-            <td data-label="Fecha">{{ solicitud.fecha.split(' ')[0] if solicitud.fecha else '' }}</td>
-            <td data-label="Destinatario">{{ solicitud.destinatario }}</td>
-
-            <!-- Tipo Solicitud (sin badge aquí) -->
-            <td data-label="Tipo Solicitud">{{ solicitud.tipo_solicitud }}</td>
-
-            <td data-label="Tipo Pago">
+            <td data-cell="fp">
+              <div class="sol-fp"><i class="fa-solid fa-chevron-right expand-ico"></i>{{ fpl(solicitud.fp) }}</div>
+              <div class="sol-sub">{{ solicitud.fecha|fecha_corta }} · {{ solicitud.tipo_solicitud }}</div>
+            </td>
+            <td data-cell="dest">
+              <div class="dest-name" title="{{ solicitud.destinatario }}">{{ solicitud.destinatario }}</div>
+              <div class="sol-sub"><i class="fa-regular fa-user"></i> {{ solicitud.nombre }}</div>
+            </td>
+            <td data-cell="pago">
               {{ solicitud.tipo_pago }}
-              {% if solicitud.tiene_comision == 1 %}
-                <span class="badge-comision" title="Comisión del {{ solicitud.porcentaje_comision }}%">
-                  +{{ solicitud.porcentaje_comision }}% com.
-                </span>
-              {% endif %}
+              {% if solicitud.tiene_comision == 1 %}<span class="badge-comision" title="Comisión del {{ solicitud.porcentaje_comision }}%">+{{ solicitud.porcentaje_comision }}%</span>{% endif %}
             </td>
-
-            <!-- === MONTO TOTAL + BADGE DE ANTICIPO (NARANJA) === -->
-            <td class="col-monto" data-label="Monto Total">
-              ${{ "{:,.2f}".format(solicitud.monto) }}
-              {% if solicitud.anticipo and solicitud.anticipo|lower == "si" %}
-                {% set porc_tmp =
-                    (solicitud.porcentaje_anticipo if solicitud.porcentaje_anticipo is not none and solicitud.porcentaje_anticipo|float > 0
+            <td data-cell="limite" class="limite {{ urg(solicitud.dias_limite) if solicitud.abierta else 'u-none' }}">
+              {{ solicitud.fecha_limite|fecha_corta if solicitud.fecha_limite else '—' }}
+              {% if solicitud.abierta and solicitud.dias_limite is not none and solicitud.dias_limite <= 7 %}<span class="rel">{{ rel(solicitud.dias_limite) }}</span>{% endif %}
+            </td>
+            <td data-cell="monto" class="col-monto">
+              <div class="amount">{{ money(solicitud.monto) }}</div>
+              {% if con_anticipo %}
+                {% set porc_tmp = (solicitud.porcentaje_anticipo if solicitud.porcentaje_anticipo is not none and solicitud.porcentaje_anticipo|float > 0
                     else ((solicitud.monto_anticipo|float / solicitud.monto|float) * 100 if solicitud.monto and solicitud.monto|float > 0 and solicitud.monto_anticipo is not none else 0)) %}
-                {% set porc = porc_tmp|round(0, 'floor') %}
-                {% set pie = "○" %}
-                {% if porc >= 88 %}{% set pie = "●" %}
-                {% elif porc >= 63 %}{% set pie = "◕" %}
-                {% elif porc >= 38 %}{% set pie = "◑" %}
-                {% elif porc >= 13 %}{% set pie = "◔" %}
-                {% endif %}
-                <span class="badge-anticipo" title="Anticipo pagado">
-                  {{ pie }} {{ porc|int }}%
-                </span>
+                <span class="badge-anticipo" title="Anticipo pagado"><i class="fa-solid fa-circle-half-stroke"></i> Anticipo {{ porc_tmp|round(0, 'floor')|int }}%</span>
               {% endif %}
-              {% if solicitud.tiene_comision == 1 %}
-                <br><small class="text-muted">Sin com: ${{ "{:,.2f}".format(solicitud.monto_sin_comision) }}</small>
-              {% endif %}
+              {% if solicitud.tiene_comision == 1 %}<div class="sol-sub">Sin com. {{ money(solicitud.monto_sin_comision) }}</div>{% endif %}
             </td>
-
-            <td data-label="Estado">
-              <span class="estado-{{ clase_estado }}"
-                    title="{% if solicitud.fecha_ultimo_cambio %}Último cambio: {{ solicitud.fecha_ultimo_cambio }}{% endif %}">
-                {{ solicitud.estado }}
-              </span>
+            <td data-cell="estado">
+              <span class="status-pill" data-c="{{ slug }}" title="{% if solicitud.fecha_ultimo_cambio %}Último cambio: {{ solicitud.fecha_ultimo_cambio }}{% endif %}">{{ solicitud.estado }}</span>
             </td>
-
-            <td data-label="Acciones">
-              <div class="action-buttons">
-                <a href="{{ url_for('editar_solicitud', solicitud_id=solicitud.id) }}" class="btn btn-info">Editar</a>
-                <form method="POST" action="{{ url_for('actualizar_estado', solicitud_id=solicitud.id) }}" class="inline-form" enctype="multipart/form-data">
-                  <select id="nuevo_estado_{{ solicitud.id }}" name="nuevo_estado" class="status-select" required onchange="toggleLiquidadoFile(this, '{{ solicitud.id }}')">
-                    <option value="">--Selecciona--</option>
+            <td data-cell="acc">
+              <div class="row-actions action-buttons">
+                <form method="POST" action="{{ url_for('actualizar_estado', solicitud_id=solicitud.id) }}" class="state-form inline-form" enctype="multipart/form-data">
+                  <select id="nuevo_estado_{{ solicitud.id }}" name="nuevo_estado" class="status-select" required onchange="toggleLiquidadoFile(this, '{{ solicitud.id }}')" aria-label="Nuevo estado">
+                    <option value="">Cambiar estado…</option>
                     {% if solicitud.estado|lower == "programado" %}
                       <option value="Pendiente">Pendiente</option>
                       {% if solicitud.anticipo|lower == "si" %}
@@ -323,200 +541,112 @@
                     <option value="Programado">Programado</option>
                     <option value="Declinada">Declinada</option>
                   </select>
-                  <div id="file-container-{{ solicitud.id }}" style="display:none;">
+                  <button type="submit" class="btn btn-success btn-sm btn-icon" title="Actualizar estado" aria-label="Actualizar estado"><i class="fa-solid fa-check"></i></button>
+                  <div class="file-box" id="file-container-{{ solicitud.id }}" style="display:none;">
                     <input type="file" name="liquidado_file" id="liquidado_file_{{ solicitud.id }}" class="custom-file-input" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar">
-                    <label for="liquidado_file_{{ solicitud.id }}" class="custom-file-label">Seleccionar Archivo</label>
+                    <label for="liquidado_file_{{ solicitud.id }}" class="custom-file-label"><i class="fa-solid fa-paperclip"></i> <span>Adjuntar comprobante</span></label>
                   </div>
-                  <button type="submit" class="btn btn-success">Actualizar</button>
                 </form>
-                <form method="POST" action="{{ url_for('eliminar_solicitud', solicitud_id=solicitud.id) }}" class="inline-form" onsubmit="return confirm('¿Seguro que deseas eliminar esta solicitud?');">
-                  <button type="submit" class="btn btn-danger">Eliminar</button>
+                <a href="{{ url_for('editar_solicitud', solicitud_id=solicitud.id) }}" class="btn btn-secondary btn-sm btn-icon" title="Editar" aria-label="Editar"><i class="fa-solid fa-pen"></i></a>
+                <form method="POST" action="{{ url_for('eliminar_solicitud', solicitud_id=solicitud.id) }}" class="inline-form" onsubmit="return confirm('¿Seguro que deseas eliminar la solicitud FP {{ solicitud.fp }}? Esta acción no se puede deshacer.');">
+                  <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Eliminar" aria-label="Eliminar"><i class="fa-solid fa-trash-can"></i></button>
                 </form>
               </div>
             </td>
           </tr>
 
-          <!-- DETALLES -->
-          <tr id="details-{{ solicitud.id }}" class="details-row" style="display: none;">
-            <td colspan="10">
+          <!-- DETALLE -->
+          <tr id="details-{{ solicitud.id }}" class="details-row">
+            <td colspan="8">
               <div class="details-content">
-                <div class="details-grid">
-                  <div class="details-section">
-                    <h4>📋 Información General</h4>
-                    <p><strong>Nombre:</strong> {{ solicitud.nombre }}</p>
-                    <p><strong>Correo(s):</strong> {{ solicitud.correo }}</p>
-                    <p><strong>Departamento:</strong> {{ solicitud.departamento }}</p>
-                    <p><strong>Fecha de Solicitud:</strong> {{ solicitud.fecha }}</p>
-                    {% if solicitud.creado_por or solicitud.ip_origen %}
-                      <p><strong>Capturada por:</strong> {{ solicitud.creado_por or 'Formulario público' }}{% if solicitud.ip_origen %} <span style="color:#9ca3af">(IP {{ solicitud.ip_origen }})</span>{% endif %}</p>
-                    {% endif %}
-                    {% if solicitud.fecha_limite %}
-                      <p><strong>Fecha Límite:</strong> {{ solicitud.fecha_limite }}</p>
-                    {% endif %}
+                <div class="det-grid">
+                  <div class="det-card">
+                    <h4><i class="fa-solid fa-building-columns"></i> Datos para el pago</h4>
+                    <dl class="kv">
+                      <dt>Monto total</dt><dd class="big">{{ money(solicitud.monto) }} <button type="button" class="copy-btn" data-copy="{{ '%.2f'|format(solicitud.monto|float) }}"><i class="fa-regular fa-copy"></i> Copiar</button></dd>
+                      <dt>Beneficiario</dt><dd>{{ solicitud.beneficiario or 'No especificado' }}</dd>
+                      <dt>Banco</dt><dd>{{ solicitud.banco or '—' }}</dd>
+                      <dt>CLABE</dt><dd><span class="tabular">{{ solicitud.clabe or '—' }}</span>{% if solicitud.clabe %} <button type="button" class="copy-btn" data-copy="{{ solicitud.clabe }}"><i class="fa-regular fa-copy"></i> Copiar</button>{% endif %}</dd>
+                      <dt>Referencia</dt><dd>{{ solicitud.referencia or 'No especificada' }}</dd>
+                      {% if solicitud.tiene_comision == 1 %}
+                        <dt>Sin comisión</dt><dd>{{ money(solicitud.monto_sin_comision) }}</dd>
+                        <dt>Comisión ({{ solicitud.porcentaje_comision }}%)</dt><dd>{{ money(solicitud.monto_comision) }}</dd>
+                      {% endif %}
+                      {% if con_anticipo %}
+                        {% set porc_tmp2 = (solicitud.porcentaje_anticipo if solicitud.porcentaje_anticipo is not none and solicitud.porcentaje_anticipo|float > 0
+                            else ((solicitud.monto_anticipo|float / solicitud.monto|float) * 100 if solicitud.monto and solicitud.monto|float > 0 and solicitud.monto_anticipo is not none else 0)) %}
+                        <dt>Anticipo</dt><dd>{{ money(solicitud.monto_anticipo) }} ({{ porc_tmp2|round(2) }}%)</dd>
+                        <dt>Restante</dt><dd>{{ money(solicitud.monto_restante) }}</dd>
+                      {% endif %}
+                    </dl>
                   </div>
 
-                  <div class="details-section">
-                    <h4>📅 Historial de Estados</h4>
-                    {% if solicitud.fecha_aprobado %}
-                      <p><strong>Fecha Aprobado:</strong> {{ solicitud.fecha_aprobado }}</p>
-                    {% endif %}
-                    {% if solicitud.fecha_liquidado %}
-                      <p><strong>Fecha Liquidado:</strong> {{ solicitud.fecha_liquidado }}</p>
-                    {% endif %}
-                    {% if solicitud.fecha_ultimo_cambio %}
-                      <p><strong>Último Cambio:</strong> {{ solicitud.fecha_ultimo_cambio }}</p>
-                    {% endif %}
+                  <div class="det-card">
+                    <h4><i class="fa-solid fa-circle-info"></i> Información general</h4>
+                    <dl class="kv">
+                      <dt>Solicitante</dt><dd>{{ solicitud.nombre }}</dd>
+                      <dt>Departamento</dt><dd>{{ solicitud.departamento or '—' }}</dd>
+                      <dt>Correo(s)</dt><dd>{{ solicitud.correo or '—' }}</dd>
+                      <dt>Solicitada</dt><dd>{{ solicitud.fecha }}</dd>
+                      {% if solicitud.fecha_limite %}<dt>Fecha límite</dt><dd>{{ solicitud.fecha_limite }}</dd>{% endif %}
+                      {% if solicitud.creado_por or solicitud.ip_origen %}
+                        <dt>Capturada por</dt><dd>{{ solicitud.creado_por or 'Formulario público' }}{% if solicitud.ip_origen %} <span class="text-subtle">(IP {{ solicitud.ip_origen }})</span>{% endif %}</dd>
+                      {% endif %}
+                    </dl>
+                  </div>
 
+                  <div class="det-card">
+                    <h4><i class="fa-solid fa-clock-rotate-left"></i> Historial de estados</h4>
+                    <dl class="kv">
+                      {% if solicitud.fecha_aprobado %}<dt>Aprobado</dt><dd>{{ solicitud.fecha_aprobado }}</dd>{% endif %}
+                      {% if solicitud.fecha_liquidado %}<dt>Liquidado</dt><dd>{{ solicitud.fecha_liquidado }}</dd>{% endif %}
+                      {% if solicitud.fecha_ultimo_cambio %}<dt>Último cambio</dt><dd>{{ solicitud.fecha_ultimo_cambio }}</dd>{% endif %}
+                    </dl>
                     {% if solicitud.historial_estados and solicitud.historial_estados != '[]' %}
-                      <div class="historial-mini">
-                        <strong>Cambios recientes:</strong>
-                        {% set historial = solicitud.historial_estados|fromjson %}
-                        {% for cambio in historial[-3:] %}
-                          <div class="historial-item">
-                            {{ cambio.estado_anterior }} → {{ cambio.estado_nuevo }}
-                            <span class="historial-fecha">({{ cambio.fecha }})</span>
-                          </div>
+                      {% set historial = solicitud.historial_estados|fromjson %}
+                      <ul class="timeline">
+                        {% for cambio in historial[-3:]|reverse %}
+                          <li>{{ cambio.estado_anterior }} → <strong>{{ cambio.estado_nuevo }}</strong><small>{{ cambio.fecha }}</small></li>
                         {% endfor %}
-                      </div>
-                    {% endif %}
-                  </div>
-
-                  <!-- INFORMACIÓN FINANCIERA -->
-                  <div class="details-section">
-                    <h4>💰 Información Financiera</h4>
-                    <p><strong>Beneficiario:</strong> {{ solicitud.beneficiario or 'No especificado' }}</p>
-                    <p><strong>Banco:</strong> {{ solicitud.banco }}</p>
-                    <p><strong>CLABE:</strong> {{ solicitud.clabe }}</p>
-                    <p><strong>Referencia:</strong> {{ solicitud.referencia or 'No especificada' }}</p>
-
-                    {% if solicitud.tiene_comision == 1 %}
-                      <p><strong>Monto sin comisión:</strong> ${{ "{:,.2f}".format(solicitud.monto_sin_comision) }}</p>
-                      <p><strong>Comisión ({{ solicitud.porcentaje_comision }}%):</strong> ${{ "{:,.2f}".format(solicitud.monto_comision) }}</p>
-                    {% endif %}
-
-                    <p><strong>Monto Total:</strong> ${{ "{:,.2f}".format(solicitud.monto) }}</p>
-
-                    {% if solicitud.anticipo and solicitud.anticipo|lower == "si" %}
-                      {% set porc_tmp2 =
-                          (solicitud.porcentaje_anticipo if solicitud.porcentaje_anticipo is not none and solicitud.porcentaje_anticipo|float > 0
-                          else ((solicitud.monto_anticipo|float / solicitud.monto|float) * 100 if solicitud.monto and solicitud.monto|float > 0 and solicitud.monto_anticipo is not none else 0)) %}
-                      {% set porc2 = porc_tmp2|round(2) %}
-                      <p>
-                        <strong>Anticipo:</strong>
-                        ${{ "{:,.2f}".format(solicitud.monto_anticipo|float) }}
-                        ({{ porc2 }}%)<br>
-                        <strong>Monto restante:</strong>
-                        ${{ "{:,.2f}".format(solicitud.monto_restante|float) }}
-                      </p>
+                      </ul>
+                    {% elif not (solicitud.fecha_aprobado or solicitud.fecha_liquidado or solicitud.fecha_ultimo_cambio) %}
+                      <p class="sin-archivos">Sin cambios registrados.</p>
                     {% endif %}
                   </div>
                 </div>
 
-                <div class="details-full-width">
-                  {% if solicitud.tipo_solicitud == "Viáticos" and "Detalle de Viáticos:" in solicitud.descripcion %}
+                <div class="det-card det-wide">
+                  <h4><i class="fa-solid fa-align-left"></i> Descripción</h4>
+                  {% if solicitud.tipo_solicitud == "Viáticos" and "Detalle de Viáticos:" in (solicitud.descripcion or '') %}
                     {% set parts = solicitud.descripcion.split("Detalle de Viáticos:") %}
-                    {% set descripcion_principal = parts[0]|trim %}
-                    <p><strong>Descripción:</strong> {{ descripcion_principal }}</p>
-                    <p><strong>Detalle de Viáticos:</strong></p>
-                    {% set detalle_json = parts[1]|trim %}
-                    {% set detalle_data = detalle_json|fromjson %}
-                    <table class="detalle-viaticos">
-                      <thead>
-                        <tr>
-                          <th>Nombre</th>
-                          <th>Monto</th>
-                          <th>CLABE</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {% for persona in detalle_data %}
-                          <tr>
-                            <td>{{ persona.nombre }}</td>
-                            <td>${{ "{:,.2f}".format(persona.monto|float) }}</td>
-                            <td>{{ persona.clabe }}</td>
-                          </tr>
-                        {% endfor %}
-                      </tbody>
-                    </table>
+                    <p class="det-text">{{ parts[0]|trim }}</p>
+                    {% set detalle_data = parts[1]|trim|fromjson %}
+                    <div class="table-wrap">
+                      <table class="detalle-viaticos">
+                        <thead><tr><th>Nombre</th><th>Monto</th><th>CLABE</th></tr></thead>
+                        <tbody>
+                          {% for persona in detalle_data %}
+                            <tr><td>{{ persona.nombre }}</td><td>{{ money(persona.monto) }}</td><td class="tabular">{{ persona.clabe }} {% if persona.clabe %}<button type="button" class="copy-btn" data-copy="{{ persona.clabe }}"><i class="fa-regular fa-copy"></i></button>{% endif %}</td></tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
                   {% else %}
-                    <p><strong>Descripción:</strong> {{ solicitud.descripcion }}</p>
+                    <p class="det-text">{{ solicitud.descripcion or 'Sin descripción' }}</p>
                   {% endif %}
+                  {% if solicitud.datos_deposito %}<p class="det-text"><strong>Datos de depósito:</strong> {{ solicitud.datos_deposito }}</p>{% endif %}
 
-                  <p><strong>Datos de Depósito:</strong> {{ solicitud.datos_deposito }}</p>
-
-                  <!-- SECCIÓN DE ARCHIVOS ADJUNTOS ACTUALIZADA -->
-                  <div style="margin-top: 1.5rem;">
-                    <strong style="font-size: 1rem; display: block; margin-bottom: 0.75rem;">📎 Archivos Adjuntos:</strong>
-
-                    {% set tiene_archivos = false %}
-                    {% if solicitud.archivo_factura or solicitud.archivo_recibo or solicitud.archivo_orden_compra or solicitud.archivo_adjunto %}
-                      {% set tiene_archivos = true %}
-                    {% endif %}
-
-                    {% if tiene_archivos %}
-                      <div class="archivos-adjuntos-grid">
-                        {% if solicitud.archivo_factura %}
-                          <div class="archivo-adjunto-card">
-                            <div class="archivo-adjunto-header">
-                              <span>🧾</span>
-                              <span>Factura</span>
-                            </div>
-                            <a href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_factura) }}"
-                               target="_blank"
-                               class="archivo-adjunto-link">
-                              📥 Descargar
-                            </a>
-                          </div>
-                        {% endif %}
-
-                        {% if solicitud.archivo_recibo %}
-                          <div class="archivo-adjunto-card">
-                            <div class="archivo-adjunto-header">
-                              <span>🧾</span>
-                              <span>Recibo</span>
-                            </div>
-                            <a href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_recibo) }}"
-                               target="_blank"
-                               class="archivo-adjunto-link">
-                              📥 Descargar
-                            </a>
-                          </div>
-                        {% endif %}
-
-                        {% if solicitud.archivo_orden_compra %}
-                          <div class="archivo-adjunto-card">
-                            <div class="archivo-adjunto-header">
-                              <span>📋</span>
-                              <span>Orden de Compra</span>
-                            </div>
-                            <a href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_orden_compra) }}"
-                               target="_blank"
-                               class="archivo-adjunto-link">
-                              📥 Descargar
-                            </a>
-                          </div>
-                        {% endif %}
-
-                        {% if solicitud.archivo_adjunto %}
-                          <div class="archivo-adjunto-card">
-                            <div class="archivo-adjunto-header">
-                              <span>📎</span>
-                              <span>Otro Adjunto</span>
-                            </div>
-                            <a href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_adjunto) }}"
-                               target="_blank"
-                               class="archivo-adjunto-link">
-                              📥 Descargar
-                            </a>
-                          </div>
-                        {% endif %}
-                      </div>
-                    {% else %}
-                      <div class="sin-archivos">
-                        No hay archivos adjuntos
-                      </div>
-                    {% endif %}
-                  </div>
+                  <h4 style="margin-top:1rem"><i class="fa-solid fa-paperclip"></i> Archivos adjuntos</h4>
+                  {% if solicitud.archivo_factura or solicitud.archivo_recibo or solicitud.archivo_orden_compra or solicitud.archivo_adjunto %}
+                    <div class="files">
+                      {% if solicitud.archivo_factura %}<a class="file-chip" href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_factura) }}" target="_blank"><i class="fa-solid fa-file-invoice"></i> Factura</a>{% endif %}
+                      {% if solicitud.archivo_recibo %}<a class="file-chip" href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_recibo) }}" target="_blank"><i class="fa-solid fa-receipt"></i> Recibo</a>{% endif %}
+                      {% if solicitud.archivo_orden_compra %}<a class="file-chip" href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_orden_compra) }}" target="_blank"><i class="fa-solid fa-file-contract"></i> Orden de compra</a>{% endif %}
+                      {% if solicitud.archivo_adjunto %}<a class="file-chip" href="{{ url_for('descargar_adjunto', filename=solicitud.archivo_adjunto) }}" target="_blank"><i class="fa-solid fa-paperclip"></i> Otro adjunto</a>{% endif %}
+                    </div>
+                  {% else %}
+                    <p class="sin-archivos">No hay archivos adjuntos.</p>
+                  {% endif %}
                 </div>
               </div>
             </td>
@@ -525,105 +655,109 @@
       </tbody>
     </table>
   </div>
-
+  {% else %}
+    <div class="empty-state">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <p><strong>No hay solicitudes con estos filtros.</strong></p>
+      <a class="btn btn-secondary btn-sm" href="{{ url_for('admin_dashboard') }}">Quitar filtros</a>
+    </div>
+  {% endif %}
 
   <!-- Paginación -->
-  <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:.5rem; padding:.5rem .75rem; margin-top:.5rem;">
-    <div>
-      Mostrando {{ solicitudes|length }} de {{ total_count }} registro(s)
-      {% if estado_filtro %} en <strong>{{ estado_filtro }}</strong>{% endif %}.
+  <div class="pager">
+    <span class="pager-info">Página <strong>{{ page }}</strong> de <strong>{{ total_pages }}</strong></span>
+    <div class="pager-pages">
+      <a class="pg {{ 'disabled' if page <= 1 }}" href="{{ panel_url(p=1) }}" aria-label="Primera página"><i class="fa-solid fa-angles-left"></i></a>
+      <a class="pg {{ 'disabled' if page <= 1 }}" href="{{ panel_url(p=(page - 1 if page > 1 else 1)) }}" aria-label="Anterior"><i class="fa-solid fa-angle-left"></i></a>
+      {% for pnum in range([1, page - 2]|max, [total_pages, page + 2]|min + 1) %}
+        <a class="pg {{ 'active' if pnum == page }}" href="{{ panel_url(p=pnum) }}">{{ pnum }}</a>
+      {% endfor %}
+      <a class="pg {{ 'disabled' if page >= total_pages }}" href="{{ panel_url(p=(page + 1 if page < total_pages else total_pages)) }}" aria-label="Siguiente"><i class="fa-solid fa-angle-right"></i></a>
+      <a class="pg {{ 'disabled' if page >= total_pages }}" href="{{ panel_url(p=total_pages) }}" aria-label="Última página"><i class="fa-solid fa-angles-right"></i></a>
     </div>
-    <div class="pagination" style="display:flex; gap:.5rem; align-items:center;">
-      <a class="btn btn-light {% if page<=1 %}disabled{% endif %}"
-         href="{{ url_for('admin_dashboard', estado=estado_filtro, busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=1, page_size=page_size) }}">« Primera</a>
-      <a class="btn btn-light {% if page<=1 %}disabled{% endif %}"
-         href="{{ url_for('admin_dashboard', estado=estado_filtro, busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=(page-1 if page>1 else 1), page_size=page_size) }}">‹ Anterior</a>
-      <span>Página <strong>{{ page }}</strong> de <strong>{{ total_pages }}</strong></span>
-      <a class="btn btn-light {% if page>=total_pages %}disabled{% endif %}"
-         href="{{ url_for('admin_dashboard', estado=estado_filtro, busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=(page+1 if page<total_pages else total_pages), page_size=page_size) }}">Siguiente ›</a>
-      <a class="btn btn-light {% if page>=total_pages %}disabled{% endif %}"
-         href="{{ url_for('admin_dashboard', estado=estado_filtro, busqueda=busqueda, criterio_busqueda=criterio_busqueda, p=total_pages, page_size=page_size) }}">Última »</a>
-    </div>
+    <select aria-label="Resultados por página" onchange="location.href=this.value">
+      {% for n in [15, 30, 50, 100] %}
+        <option value="{{ panel_url(page_size=n, p=None) }}" {% if page_size == n %}selected{% endif %}>{{ n }} por página</option>
+      {% endfor %}
+    </select>
   </div>
+</div>
 
-  <!-- Volver -->
-  <div class="card" style="text-align:center;">
-    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">Volver al Panel</a>
-  </div>
+<!-- Barra flotante de selección -->
+<div class="bulk-bar" id="bulkBar" role="region" aria-label="Acciones sobre la selección">
+  <span class="bb-count"><span id="contadorSeleccionados">0</span> seleccionada(s)</span>
+  <span class="bb-sum" id="bulkSum"></span>
+  <span class="bb-sep"></span>
+  <button type="button" class="bb-ghost" id="btnLimpiarSeleccion" onclick="limpiarSeleccion()">Limpiar</button>
+  <button type="button" class="btn btn-primary btn-sm" id="btnActualizacionMasiva" onclick="mostrarModalActualizacionMasiva()"><i class="fa-solid fa-pen-to-square"></i> Cambiar estado</button>
 </div>
 
 <!-- Modal Reporte Consolidado -->
 <div id="modalReporteConsolidado" class="modal" style="display: none;">
-  <div class="modal-content" style="max-width: 400px;">
+  <div class="modal-content" style="max-width: 440px;">
     <div class="modal-header">
-      <h3>Generar Reporte Consolidado</h3>
-      <span class="close" onclick="cerrarModalReporteConsolidado()">&times;</span>
+      <h3><i class="fa-solid fa-table-list" style="color:var(--brand)"></i> Reporte consolidado</h3>
+      <button type="button" class="close" onclick="cerrarModalReporteConsolidado()" aria-label="Cerrar">&times;</button>
     </div>
-    <div class="modal-body">
-      <form id="formReporteConsolidado" method="GET" action="{{ url_for('exportar_reporte_consolidado') }}">
+    <form id="formReporteConsolidado" method="GET" action="{{ url_for('exportar_reporte_consolidado') }}">
+      <div class="modal-body">
         <div class="form-group">
-          <label for="fecha_inicio_consolidado">Seleccione la semana (cualquier día de la semana):</label>
+          <label for="fecha_inicio_consolidado">Semana (elige cualquier día de la semana)</label>
           <input type="date" id="fecha_inicio_consolidado" name="fecha_inicio" class="form-control" value="">
         </div>
-        <div class="form-actions" style="margin-top: 1rem;">
-          <button type="submit" class="btn btn-success">📥 Descargar Reporte</button>
-          <button type="button" class="btn btn-secondary" onclick="cerrarModalReporteConsolidado()">Cancelar</button>
-        </div>
-      </form>
-    </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModalReporteConsolidado()">Cancelar</button>
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-download"></i> Descargar</button>
+      </div>
+    </form>
   </div>
 </div>
 
 <!-- Modal Reporte Anual -->
 <div id="modalReporteAnual" class="modal" style="display: none;">
-  <div class="modal-content" style="max-width: 420px;">
+  <div class="modal-content" style="max-width: 440px;">
     <div class="modal-header">
-      <h3>Generar Reporte Anual</h3>
-      <span class="close" onclick="cerrarModalReporteAnual()">&times;</span>
+      <h3><i class="fa-solid fa-calendar" style="color:var(--brand)"></i> Reporte anual</h3>
+      <button type="button" class="close" onclick="cerrarModalReporteAnual()" aria-label="Cerrar">&times;</button>
     </div>
-    <div class="modal-body">
-      <form id="formReporteAnual" method="GET" action="{{ url_for('exportar_reporte_anual') }}">
+    <form id="formReporteAnual" method="GET" action="{{ url_for('exportar_reporte_anual') }}">
+      <div class="modal-body">
         <div class="form-group">
-          <label for="anio_reporte_anual">Seleccione el año:</label>
-          <input type="number"
-                 id="anio_reporte_anual"
-                 name="anio"
-                 min="2019"
-                 max="2100"
-                 class="form-control"
-                 placeholder="YYYY">
+          <label for="anio_reporte_anual">Año</label>
+          <input type="number" id="anio_reporte_anual" name="anio" min="2019" max="2100" class="form-control" placeholder="AAAA">
         </div>
-        <div class="form-actions" style="margin-top: 1rem;">
-          <button type="submit" class="btn btn-success">📥 Descargar Reporte</button>
-          <button type="button" class="btn btn-secondary" onclick="cerrarModalReporteAnual()">Cancelar</button>
-        </div>
-      </form>
-    </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModalReporteAnual()">Cancelar</button>
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-download"></i> Descargar</button>
+      </div>
+    </form>
   </div>
 </div>
 
 <!-- Modal Actualización Masiva -->
 <div id="modalActualizacionMasiva" class="modal" style="display: none;">
-  <div class="modal-content" style="max-width: 800px;">
+  <div class="modal-content" style="max-width: 720px;">
     <div class="modal-header">
-      <h3>Actualización Masiva de Estados</h3>
-      <span class="close" onclick="cerrarModalActualizacionMasiva()">&times;</span>
+      <h3><i class="fa-solid fa-pen-to-square" style="color:var(--brand)"></i> Cambiar estado de varias solicitudes</h3>
+      <button type="button" class="close" onclick="cerrarModalActualizacionMasiva()" aria-label="Cerrar">&times;</button>
     </div>
-    <div class="modal-body">
-      <div class="info-section">
-        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.5rem; margin-bottom:.5rem;">
-          <p style="margin:0"><strong>Solicitudes seleccionadas:</strong> <span id="cantidadSeleccionadas">0</span></p>
-          <div id="montoTotalSeleccionadas" style="display:none; background:linear-gradient(135deg,#1a3a2a,#0d5c35); color:#fff; border-radius:10px; padding:.4rem 1rem; font-size:1rem; font-weight:700; letter-spacing:.02em; box-shadow:0 2px 8px rgba(0,0,0,.25);">
-            💰 Total: <span id="valorMontoTotal">$0.00</span>
+    <form id="formActualizacionMasiva" enctype="multipart/form-data">
+      <div class="modal-body">
+        <div class="info-section">
+          <div class="flex items-center justify-between wrap gap-2">
+            <p class="mb-0"><strong>Seleccionadas:</strong> <span id="cantidadSeleccionadas">0</span></p>
+            <span id="montoTotalSeleccionadas" class="chip chip-success" style="display:none; font-size:.9rem; padding:.35rem .8rem;">
+              <i class="fa-solid fa-sack-dollar"></i> Total: <span id="valorMontoTotal">$0.00</span>
+            </span>
           </div>
+          <div id="listaSeleccionadas" class="selected-list"></div>
         </div>
-        <div id="listaSeleccionadas" class="selected-list"></div>
-      </div>
-      <form id="formActualizacionMasiva" enctype="multipart/form-data">
         <div class="form-group">
-          <label for="nuevo_estado_masivo">Nuevo Estado <span class="required">*</span></label>
+          <label for="nuevo_estado_masivo">Nuevo estado <span class="required">*</span></label>
           <select id="nuevo_estado_masivo" name="nuevo_estado_masivo" class="form-control" required onchange="toggleArchivosMasivos()">
-            <option value="">--Seleccione un estado--</option>
+            <option value="">Selecciona un estado…</option>
             <option value="Aprobado">Aprobado</option>
             <option value="Aprobado con anticipo">Aprobado con Anticipo</option>
             <option value="Liquidado">Liquidado</option>
@@ -636,218 +770,163 @@
         </div>
         <div id="archivos-masivos-container" style="display: none;">
           <div class="alert alert-info">
-            <strong>📎 Archivos de comprobante:</strong>
-            <p>Puede subir un archivo por cada solicitud que lo requiera (opcional).</p>
+            <i class="fa-solid fa-paperclip" style="color:var(--info)"></i>
+            <div><strong>Comprobantes de pago (opcional)</strong><p>Puedes subir un archivo por cada solicitud.</p></div>
           </div>
           <div id="archivos-list"></div>
         </div>
-        <div class="form-actions">
-          <button type="submit" class="btn btn-success">✅ Actualizar Estados</button>
-          <button type="button" class="btn btn-secondary" onclick="cerrarModalActualizacionMasiva()">Cancelar</button>
-        </div>
-      </form>
-    </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModalActualizacionMasiva()">Cancelar</button>
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Actualizar estados</button>
+      </div>
+    </form>
   </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-/* ========= CLAVE ÚNICA DE STORAGE (sin filtros, global para toda la sesión) ========= */
+/* ========= Selección persistente (misma clave que antes: sobrevive a filtros y páginas) ========= */
 const SEL_KEY = 'adminSelGlobal';
+const SEL_MONTOS_KEY = 'adminSelMontos';
 
-/* ========= Gestión de localStorage ========= */
-function getStoredSelection(){
-  try { return new Set(JSON.parse(localStorage.getItem(SEL_KEY) || '[]')); }
-  catch { return new Set(); }
+function getStoredSelection() {
+  try { return new Set(JSON.parse(localStorage.getItem(SEL_KEY) || '[]')); } catch (e) { return new Set(); }
 }
-function saveStoredSelection(set){
-  localStorage.setItem(SEL_KEY, JSON.stringify(Array.from(set)));
+function saveStoredSelection(set) {
+  try { localStorage.setItem(SEL_KEY, JSON.stringify(Array.from(set))); } catch (e) {}
 }
-function clearStoredSelection(){
-  localStorage.removeItem(SEL_KEY);
+function getMontos() {
+  try { return JSON.parse(localStorage.getItem(SEL_MONTOS_KEY) || '{}'); } catch (e) { return {}; }
+}
+function saveMontos(m) { try { localStorage.setItem(SEL_MONTOS_KEY, JSON.stringify(m)); } catch (e) {} }
+function clearStoredSelection() {
+  try { localStorage.removeItem(SEL_KEY); localStorage.removeItem(SEL_MONTOS_KEY); } catch (e) {}
 }
 
 let solicitudesSeleccionadas = getStoredSelection();
 let solicitudesInfo = {};
 
-/* ========= Sincronizar checkboxes al cargar página ========= */
-function syncCheckboxesFromStorage(){
-  document.querySelectorAll('.select-solicitud').forEach(cb => {
-    const id = cb.value;
-    const checked = solicitudesSeleccionadas.has(id);
-    cb.checked = checked;
-    cb.closest('tr').classList.toggle('selected', checked);
-  });
-  const visibles = Array.from(document.querySelectorAll('.select-solicitud'));
-  const todosVisiblesSeleccionados = visibles.length > 0 && visibles.every(cb => cb.checked);
-  const selectAll = document.getElementById('selectAll');
-  if (selectAll) selectAll.checked = todosVisiblesSeleccionados;
-  updateSelectedCount();
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+const fpLabel = fp => { const t = String(fp == null ? '' : fp); return esc(/^fp/i.test(t) ? t : 'FP ' + t); };
+const fmtMoney = n => (Number(n) || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 });
+
+function setRowSelected(cb, checked) {
+  const montos = getMontos();
+  cb.checked = checked;
+  cb.closest('tr').classList.toggle('selected', checked);
+  if (checked) { solicitudesSeleccionadas.add(cb.value); montos[cb.value] = parseFloat(cb.dataset.monto) || 0; }
+  else { solicitudesSeleccionadas.delete(cb.value); delete montos[cb.value]; }
+  saveMontos(montos);
 }
 
-/* ========= Actualizar contador de seleccionados ========= */
 window.updateSelectedCount = function () {
   const count = solicitudesSeleccionadas.size;
-  const btnMasivo = document.getElementById('btnActualizacionMasiva');
-  const btnLimpiar = document.getElementById('btnLimpiarSeleccion');
   const el1 = document.getElementById('contadorSeleccionados');
   const el2 = document.getElementById('cantidadSeleccionadas');
-
   if (el1) el1.textContent = count;
   if (el2) el2.textContent = count;
-  if (btnMasivo) btnMasivo.style.display = count > 0 ? 'inline-flex' : 'none';
-  if (btnLimpiar) btnLimpiar.style.display = count > 0 ? 'inline-flex' : 'none';
+  const montos = getMontos();
+  let total = 0, conocidos = 0;
+  solicitudesSeleccionadas.forEach(id => { if (id in montos) { total += montos[id]; conocidos++; } });
+  const sum = document.getElementById('bulkSum');
+  if (sum) sum.textContent = conocidos ? fmtMoney(total) + (conocidos < count ? ' +' : '') : '';
+  const bar = document.getElementById('bulkBar');
+  if (bar) bar.classList.toggle('show', count > 0);
+  const visibles = Array.from(document.querySelectorAll('.select-solicitud'));
+  const selectAll = document.getElementById('selectAll');
+  if (selectAll) selectAll.checked = visibles.length > 0 && visibles.every(cb => cb.checked);
 };
 
-/* ========= Función para limpiar selección ========= */
-window.limpiarSeleccion = function() {
-  if (!confirm('¿Desea limpiar toda la selección actual?')) return;
-
+window.limpiarSeleccion = function () {
+  if (!confirm('¿Quitar toda la selección?')) return;
   clearStoredSelection();
   solicitudesSeleccionadas = new Set();
-
-  // Desmarcar todos los checkboxes visibles
-  document.querySelectorAll('.select-solicitud').forEach(cb => {
-    cb.checked = false;
-    cb.closest('tr').classList.remove('selected');
-  });
-
-  const selectAll = document.getElementById('selectAll');
-  if (selectAll) selectAll.checked = false;
-
+  document.querySelectorAll('.select-solicitud').forEach(cb => { cb.checked = false; cb.closest('tr').classList.remove('selected'); });
   updateSelectedCount();
 };
 
-/* ========= Toggle select all ========= */
 window.toggleSelectAll = function () {
   const selectAll = document.getElementById('selectAll');
-  const checkboxes = document.querySelectorAll('.select-solicitud');
-
-  checkboxes.forEach(cb => {
-    cb.checked = selectAll.checked;
-    const id = cb.value;
-    if (selectAll.checked) {
-      solicitudesSeleccionadas.add(id);
-      cb.closest('tr').classList.add('selected');
-    } else {
-      solicitudesSeleccionadas.delete(id);
-      cb.closest('tr').classList.remove('selected');
-    }
-  });
-
+  document.querySelectorAll('.select-solicitud').forEach(cb => setRowSelected(cb, selectAll.checked));
   saveStoredSelection(solicitudesSeleccionadas);
   updateSelectedCount();
 };
 
-/* ========= Modales de Reporte ========= */
-window.mostrarModalReporteConsolidado = function () {
-  const modal = document.getElementById('modalReporteConsolidado');
-  if (!modal) return;
-  modal.style.display = 'block';
-  const content = modal.querySelector('.modal-content');
-  if (content) content.style.animation = 'slideDown 0.4s ease-out';
-};
+/* ========= Modales ========= */
+function abrirModal(id) {
+  const m = document.getElementById(id);
+  if (!m) return;
+  m.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  const f = m.querySelector('input, select');
+  if (f && window.innerWidth > 640) setTimeout(() => f.focus(), 120);
+}
+function cerrarModal(id) {
+  const m = document.getElementById(id);
+  if (!m) return;
+  m.style.display = 'none';
+  document.body.style.overflow = '';
+}
+window.mostrarModalReporteConsolidado = () => abrirModal('modalReporteConsolidado');
+window.cerrarModalReporteConsolidado = () => cerrarModal('modalReporteConsolidado');
+window.mostrarModalReporteAnual = () => abrirModal('modalReporteAnual');
+window.cerrarModalReporteAnual = () => cerrarModal('modalReporteAnual');
 
-window.cerrarModalReporteConsolidado = function () {
-  const modal = document.getElementById('modalReporteConsolidado');
-  if (!modal) return;
-  const content = modal.querySelector('.modal-content');
-  if (content) {
-    content.style.animation = 'slideDown 0.3s ease-out reverse';
-    setTimeout(() => modal.style.display = 'none', 300);
-  } else {
-    modal.style.display = 'none';
-  }
-};
-
-window.mostrarModalReporteAnual = function () {
-  const modal = document.getElementById('modalReporteAnual');
-  if (!modal) return;
-  modal.style.display = 'block';
-  const content = modal.querySelector('.modal-content');
-  if (content) content.style.animation = 'slideDown 0.4s ease-out';
-};
-
-window.cerrarModalReporteAnual = function () {
-  const modal = document.getElementById('modalReporteAnual');
-  if (!modal) return;
-  const content = modal.querySelector('.modal-content');
-  if (content) {
-    content.style.animation = 'slideDown 0.3s ease-out reverse';
-    setTimeout(() => modal.style.display = 'none', 300);
-  } else {
-    modal.style.display = 'none';
-  }
-};
-
-/* ========= Toggle archivo liquidado ========= */
+/* ========= Comprobante al liquidar (por fila) ========= */
 window.toggleLiquidadoFile = function (selectElem, id) {
   const container = document.getElementById('file-container-' + id);
   if (!container) return;
   const val = (selectElem.value || '').toLowerCase();
   const show = val.includes('liquidado') || val === 'liquidacion total';
-  container.style.display = show ? 'block' : 'none';
+  container.style.display = show ? 'flex' : 'none';
   if (show) container.style.animation = 'fadeIn .25s ease-out';
 };
 
-/* ========= Modal Actualización Masiva ========= */
+/* ========= Actualización masiva ========= */
 function mostrarListaSeleccionadas(solicitudes) {
   const lista = document.getElementById('listaSeleccionadas');
   if (!lista) return;
   lista.innerHTML = '';
-
   let totalMonto = 0;
-
   solicitudes.forEach(sol => {
     const monto = parseFloat(sol.monto) || 0;
     totalMonto += monto;
-
     const item = document.createElement('div');
     item.className = 'selected-item';
-    item.innerHTML = `
-      <span><strong>FP ${sol.fp}</strong> - ${sol.nombre} ${sol.anticipo === 'Si' ? '<span class="badge-anticipo">Con anticipo</span>' : ''}</span>
-      <span class="monto">$${monto.toLocaleString('es-MX',{minimumFractionDigits:2})}</span>`;
+    item.innerHTML = `<span><strong>${fpLabel(sol.fp)}</strong> · ${esc(sol.nombre)} ${sol.anticipo === 'Si' ? '<span class="badge-anticipo">Con anticipo</span>' : ''}</span>
+      <span class="monto">${fmtMoney(monto)}</span>`;
     lista.appendChild(item);
   });
-
-  // Mostrar monto total
   const contenedorTotal = document.getElementById('montoTotalSeleccionadas');
   const valorTotal = document.getElementById('valorMontoTotal');
   if (contenedorTotal && valorTotal) {
-    if (solicitudes.length > 0) {
-      valorTotal.textContent = '$' + totalMonto.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      contenedorTotal.style.display = 'block';
-    } else {
-      contenedorTotal.style.display = 'none';
-    }
+    valorTotal.textContent = fmtMoney(totalMonto);
+    contenedorTotal.style.display = solicitudes.length ? 'inline-flex' : 'none';
   }
 }
 
 window.mostrarModalActualizacionMasiva = function () {
   solicitudesSeleccionadas = getStoredSelection();
-  if (solicitudesSeleccionadas.size === 0) {
-    alert('Por favor seleccione al menos una solicitud.');
-    return;
-  }
-
+  if (solicitudesSeleccionadas.size === 0) { UI.toast('Selecciona al menos una solicitud.', 'warning'); return; }
   fetch('/obtener_solicitudes_seleccionadas', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ solicitudes_ids: Array.from(solicitudesSeleccionadas) })
   })
-  .then(r => r.json())
-  .then(data => {
-    if (!data.success) throw new Error('Error al obtener información');
-    solicitudesInfo = {};
-    data.solicitudes.forEach(sol => solicitudesInfo[sol.id] = sol);
-    mostrarListaSeleccionadas(data.solicitudes);
-    document.getElementById('modalActualizacionMasiva').style.display = 'block';
-  })
-  .catch(err => {
-    console.error(err);
-    alert('Error al procesar la solicitud.');
-  });
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) throw new Error('Error al obtener información');
+      solicitudesInfo = {};
+      data.solicitudes.forEach(sol => solicitudesInfo[sol.id] = sol);
+      mostrarListaSeleccionadas(data.solicitudes);
+      updateSelectedCount();
+      abrirModal('modalActualizacionMasiva');
+    })
+    .catch(err => { console.error(err); UI.toast('No se pudo cargar la selección. Intenta de nuevo.', 'error'); });
 };
 
 window.toggleArchivosMasivos = function () {
@@ -855,24 +934,20 @@ window.toggleArchivosMasivos = function () {
   const container = document.getElementById('archivos-masivos-container');
   const archivosList = document.getElementById('archivos-list');
   if (!container || !archivosList) return;
-
   if (estado.includes('liquidado') || estado === 'liquidacion total') {
     container.style.display = 'block';
-    container.style.animation = 'fadeIn .25s ease-out';
     archivosList.innerHTML = '';
-
     Array.from(solicitudesSeleccionadas).forEach(id => {
       const sol = solicitudesInfo[id];
       if (!sol) return;
-      const montoFmt = parseFloat(sol.monto).toLocaleString('es-MX',{style:'currency',currency:'MXN',minimumFractionDigits:2});
       const div = document.createElement('div');
       div.className = 'archivo-item';
       div.innerHTML = `
-        <label for="liquidado_file_${sol.id}">
-          <div><strong>FP ${sol.fp}</strong> - ${sol.destinatario} ${sol.anticipo === 'Si' ? '<span class="badge-anticipo">Anticipo</span>' : ''}</div>
-          <div class="solicitud-monto">💰 ${montoFmt}</div>
+        <label for="liquidado_file_${esc(sol.id)}">
+          <span><strong>${fpLabel(sol.fp)}</strong> · ${esc(sol.destinatario)} ${sol.anticipo === 'Si' ? '<span class="badge-anticipo">Anticipo</span>' : ''}</span>
+          <span class="solicitud-monto">${fmtMoney(sol.monto)}</span>
         </label>
-        <input type="file" id="liquidado_file_${sol.id}" name="liquidado_file_${sol.id}" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar" class="form-control">`;
+        <input type="file" id="liquidado_file_${esc(sol.id)}" name="liquidado_file_${esc(sol.id)}" accept=".pdf,.png,.jpg,.jpeg,.zip,.rar">`;
       archivosList.appendChild(div);
     });
   } else {
@@ -881,83 +956,132 @@ window.toggleArchivosMasivos = function () {
 };
 
 window.cerrarModalActualizacionMasiva = function () {
-  document.getElementById('modalActualizacionMasiva').style.display = 'none';
+  cerrarModal('modalActualizacionMasiva');
   const form = document.getElementById('formActualizacionMasiva');
   if (form) form.reset();
   const cont = document.getElementById('archivos-masivos-container');
   if (cont) cont.style.display = 'none';
 };
 
-/* ========= DOMContentLoaded ========= */
+/* ========= Inicio ========= */
 document.addEventListener('DOMContentLoaded', function () {
-  // Configurar fechas por defecto
+  // Aviso pendiente de una recarga anterior (actualización masiva)
+  try {
+    const pend = sessionStorage.getItem('panel-toast');
+    if (pend) { sessionStorage.removeItem('panel-toast'); const t = JSON.parse(pend); UI.toast(t.msg, t.type); }
+  } catch (e) {}
+
+  // Fecha larga en el encabezado
+  const hoyEl = document.getElementById('hoyLargo');
+  if (hoyEl) {
+    const s = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+    hoyEl.textContent = s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  // Valores por defecto de los reportes
   const inputFecha = document.getElementById('fecha_inicio_consolidado');
   if (inputFecha) {
-    const d = new Date(), mm = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
+    const d = new Date(), mm = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0');
     inputFecha.value = `${d.getFullYear()}-${mm}-${dd}`;
   }
   const inputAnio = document.getElementById('anio_reporte_anual');
   if (inputAnio && !inputAnio.value) inputAnio.value = new Date().getFullYear();
 
-  // Hooks para cerrar modales
-  const hookModal = (idModal, closeFn) => {
-    const modal = document.getElementById(idModal);
+  // Cerrar modales con clic fuera / Esc
+  const modales = { modalReporteConsolidado: cerrarModalReporteConsolidado, modalReporteAnual: cerrarModalReporteAnual, modalActualizacionMasiva: cerrarModalActualizacionMasiva };
+  Object.keys(modales).forEach(id => {
+    const modal = document.getElementById(id);
     if (!modal) return;
-    modal.addEventListener('click', e => { if (e.target === modal) closeFn(); });
-    const mc = modal.querySelector('.modal-content');
-    if (mc) mc.addEventListener('click', e => e.stopPropagation());
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFn(); });
-  };
-  hookModal('modalReporteConsolidado', cerrarModalReporteConsolidado);
-  hookModal('modalReporteAnual', cerrarModalReporteAnual);
-  hookModal('modalActualizacionMasiva', cerrarModalActualizacionMasiva);
+    modal.addEventListener('click', e => { if (e.target === modal) modales[id](); });
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') Object.keys(modales).forEach(id => { const m = document.getElementById(id); if (m && m.style.display === 'block') modales[id](); });
+  });
 
-  // Event listeners para checkboxes
+  // Filtros avanzados
+  const tAdv = document.getElementById('toggleAdv');
+  const adv = document.getElementById('advFilters');
+  if (tAdv && adv) tAdv.addEventListener('click', () => {
+    adv.hidden = !adv.hidden;
+    tAdv.setAttribute('aria-expanded', String(!adv.hidden));
+  });
+
+  // "/" enfoca la búsqueda
+  document.addEventListener('keydown', e => {
+    if (e.key === '/' && !e.ctrlKey && !e.metaKey && !/input|textarea|select/i.test(document.activeElement.tagName)) {
+      e.preventDefault();
+      document.getElementById('busqueda')?.focus();
+    }
+  });
+
+  // Checkboxes de selección
   document.querySelectorAll('.select-solicitud').forEach(cb => {
+    cb.checked = solicitudesSeleccionadas.has(cb.value);
+    cb.closest('tr').classList.toggle('selected', cb.checked);
     cb.addEventListener('click', e => e.stopPropagation());
     cb.addEventListener('change', () => {
-      const id = cb.value;
-      if (cb.checked) {
-        solicitudesSeleccionadas.add(id);
-        cb.closest('tr').classList.add('selected');
-      } else {
-        solicitudesSeleccionadas.delete(id);
-        cb.closest('tr').classList.remove('selected');
-      }
+      setRowSelected(cb, cb.checked);
       saveStoredSelection(solicitudesSeleccionadas);
       updateSelectedCount();
     });
   });
+  updateSelectedCount();
 
-  // Sincronizar selección desde storage
-  syncCheckboxesFromStorage();
+  // Mostrar nombre del comprobante elegido por fila
+  document.querySelectorAll('.state-form .custom-file-input').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const lbl = document.querySelector(`label[for="${inp.id}"] span`);
+      if (lbl) lbl.textContent = inp.files[0] ? inp.files[0].name : 'Adjuntar comprobante';
+    });
+  });
 
-  // Click en filas para expandir detalles
+  // Evitar doble envío al actualizar estado por fila
+  document.querySelectorAll('.state-form').forEach(f => {
+    f.addEventListener('submit', () => {
+      const b = f.querySelector('button[type="submit"]');
+      if (b) { b.disabled = true; b.innerHTML = '<span class="spinner" style="width:14px;height:14px"></span>'; }
+    });
+  });
+
+  // Copiar CLABE / monto
+  document.addEventListener('click', e => {
+    const b = e.target.closest('.copy-btn');
+    if (!b) return;
+    e.stopPropagation();
+    const txt = b.getAttribute('data-copy') || '';
+    const done = () => { b.classList.add('ok'); UI.toast('Copiado: ' + txt, 'success', 2200); setTimeout(() => b.classList.remove('ok'), 1500); };
+    if (navigator.clipboard) navigator.clipboard.writeText(txt).then(done, () => UI.toast('No se pudo copiar', 'error'));
+    else { const t = document.createElement('textarea'); t.value = txt; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); done(); }
+  });
+
+  // Expandir detalle al hacer clic en la fila
   const tbody = document.querySelector('.tabla-solicitudes tbody');
   if (tbody) {
-    function closeAll() {
-      document.querySelectorAll('tr.details-row').forEach(r => r.style.display = 'none');
-      document.querySelectorAll('tr.summary-row[aria-expanded="true"]').forEach(r => r.setAttribute('aria-expanded','false'));
-    }
-
-    tbody.addEventListener('click', function (e) {
+    const toggleRow = (summary, forceOpen) => {
+      const details = document.getElementById(summary.getAttribute('data-details-id'));
+      if (!details) return;
+      const isOpen = details.classList.contains('open');
+      document.querySelectorAll('tr.details-row.open').forEach(r => r.classList.remove('open'));
+      document.querySelectorAll('tr.summary-row.is-open').forEach(r => { r.classList.remove('is-open'); r.setAttribute('aria-expanded', 'false'); });
+      if (!isOpen || forceOpen) {
+        details.classList.add('open');
+        summary.classList.add('is-open');
+        summary.setAttribute('aria-expanded', 'true');
+      }
+    };
+    tbody.addEventListener('click', e => {
       if (e.target.closest('.cell-check, a, button, select, input, textarea, label, form, .action-buttons')) return;
       const summary = e.target.closest('tr.summary-row');
-      if (!summary) return;
-      const detailsId = summary.getAttribute('data-details-id');
-      const details = document.getElementById(detailsId) || summary.nextElementSibling;
-      if (!details || !details.classList.contains('details-row')) return;
-      const isOpen = details.style.display === 'table-row';
-      closeAll();
-      if (!isOpen) {
-        summary.setAttribute('aria-expanded','true');
-        details.style.display = 'table-row';
-        details.style.animation = 'fadeIn .25s ease-out';
-      }
-    }, false);
+      if (summary) toggleRow(summary);
+    });
+    // Si se abrió una solicitud específica (desde "Próximos a vencer"), mostrar su detalle
+    if (document.querySelector('.sid-banner')) {
+      const unica = tbody.querySelector('tr.summary-row');
+      if (unica) toggleRow(unica, true);
+    }
   }
 
-  // Form de actualización masiva
+  // Envío de actualización masiva
   const formMasivo = document.getElementById('formActualizacionMasiva');
   if (formMasivo) {
     formMasivo.addEventListener('submit', function (e) {
@@ -965,38 +1089,30 @@ document.addEventListener('DOMContentLoaded', function () {
       solicitudesSeleccionadas = getStoredSelection();
       const formData = new FormData(this);
       Array.from(solicitudesSeleccionadas).forEach(id => formData.append('solicitudes_ids[]', id));
-
       const btn = this.querySelector('button[type="submit"]');
       const original = btn.innerHTML;
-      btn.innerHTML = '⏳ Procesando...';
+      btn.innerHTML = '<span class="spinner"></span> Procesando…';
       btn.disabled = true;
-
-      fetch('/actualizar_estado_masivo', { method:'POST', body: formData })
+      fetch('/actualizar_estado_masivo', { method: 'POST', body: formData })
         .then(r => r.json())
         .then(data => {
           if (!data.success) throw new Error(data.message || 'Error al actualizar');
-          alert(data.message || 'Actualización completada.');
-
-          // Limpiar selección después de actualización exitosa
           clearStoredSelection();
           solicitudesSeleccionadas = new Set();
-          document.querySelectorAll('.select-solicitud').forEach(cb => cb.checked = false);
-          const selAll = document.getElementById('selectAll');
-          if (selAll) selAll.checked = false;
-          updateSelectedCount();
-
+          try { sessionStorage.setItem('panel-toast', JSON.stringify({ msg: data.message || 'Actualización completada.', type: 'success' })); } catch (err) {}
           window.location.reload();
         })
         .catch(err => {
           console.error(err);
-          alert('Error: ' + err.message);
-        })
-        .finally(() => {
+          UI.toast('Error: ' + err.message, 'error');
           btn.innerHTML = original;
           btn.disabled = false;
         });
     });
   }
+
+  // Ir directo a "Próximos a vencer" si viene en el hash
+  if (location.hash === '#por-vencer') document.getElementById('por-vencer')?.scrollIntoView({ behavior: 'smooth' });
 });
 </script>
 {% endblock %}

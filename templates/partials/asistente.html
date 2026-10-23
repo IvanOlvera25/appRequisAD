@@ -1,0 +1,50 @@
+{# Asistente IA — solo administradores. Interfaz lista; requiere conectar OpenAI (ver /asistente/* en app.py). #}
+<button type="button" class="ai-fab" data-ai-open aria-label="Abrir asistente IA" title="Asistente IA (Ctrl/⌘ + K)">
+  <i class="fa-solid fa-wand-magic-sparkles"></i>
+</button>
+
+<div class="ai-backdrop" data-ai-close></div>
+<aside class="ai-panel" id="aiPanel" role="dialog" aria-modal="true" aria-label="Asistente IA" aria-hidden="true">
+  <div class="ai-head">
+    <div class="ai-orb"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+    <div>
+      <h3>Asistente AD17</h3>
+      <span class="ai-status" id="aiStatus"><span class="dot"></span><span class="ai-status-text">Comprobando conexión…</span></span>
+    </div>
+    <div class="ai-head-actions">
+      <button type="button" class="icon-btn" id="aiReset" title="Nueva conversación" aria-label="Nueva conversación"><i class="fa-solid fa-rotate-left"></i></button>
+      <button type="button" class="icon-btn" data-ai-close title="Cerrar (Esc)" aria-label="Cerrar asistente"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </div>
+
+  <div class="ai-body" id="aiBody">
+    <div class="ai-welcome" id="aiWelcome">
+      <div class="ai-orb"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+      <h4>Hola {{ (session.get('username') or '')|e }}, ¿en qué te ayudo?</h4>
+      <p>Pregunta lo que necesites sobre las solicitudes de pago o pide que cambie estados. Antes de modificar algo siempre te pediré confirmación.</p>
+      <div class="ai-notice" id="aiNotice" hidden>
+        <i class="fa-solid fa-plug-circle-xmark"></i>
+        <div><strong>Aún no está conectado a la IA.</strong> La interfaz está lista; falta configurar la clave de OpenAI en el servidor para que pueda responder.</div>
+      </div>
+    </div>
+
+    <div id="aiSuggestWrap">
+      <div class="ai-suggest-title">Prueba con</div>
+      <div class="ai-suggestions">
+        <button type="button" class="ai-suggestion" data-prompt="¿Qué pagos vencen esta semana y cuánto suman?"><i class="fa-solid fa-hourglass-half"></i>¿Qué pagos vencen esta semana y cuánto suman?</button>
+        <button type="button" class="ai-suggestion" data-prompt="Dame un resumen de los pendientes agrupados por destinatario."><i class="fa-solid fa-list-check"></i>Resumen de pendientes por destinatario</button>
+        <button type="button" class="ai-suggestion" data-prompt="¿Cuánto se ha liquidado este mes?"><i class="fa-solid fa-chart-column"></i>¿Cuánto se ha liquidado este mes?</button>
+        <button type="button" class="ai-suggestion" data-prompt="Marca como Aprobado el FP 10622 de Karla Baltierrez."><i class="fa-solid fa-circle-check"></i>Marca como Aprobado el FP 10622 de Karla</button>
+        <button type="button" class="ai-suggestion" data-prompt="¿Hay solicitudes duplicadas o sospechosas esta semana?"><i class="fa-solid fa-magnifying-glass-dollar"></i>¿Hay solicitudes duplicadas esta semana?</button>
+      </div>
+    </div>
+  </div>
+
+  <form class="ai-compose" id="aiForm" autocomplete="off">
+    <div class="ai-input-wrap">
+      <textarea id="aiInput" rows="1" placeholder="Pregunta o pide una acción…" aria-label="Mensaje para el asistente"></textarea>
+      <button type="submit" class="ai-send" id="aiSend" aria-label="Enviar" disabled><i class="fa-solid fa-arrow-up"></i></button>
+    </div>
+    <div class="ai-compose-hint"><span>Enter envía · Shift+Enter salto de línea</span><span><i class="fa-solid fa-shield-halved"></i> Cambios con confirmación</span></div>
+  </form>
+</aside>

@@ -1,771 +1,287 @@
 {% extends "layout.html" %}
 {% block title %}Gestión de Proveedores | AD17 Solutions{% endblock %}
-{% block content %}
+
+{% block extra_css %}
 <style>
-    /* ==========================================================================
-       Variables & Base Design Tokens
-       ========================================================================== */
-    :root {
-        --color-primary: #ff9800;
-        --color-primary-hover: #ffa726;
-        --color-primary-dark: #e65100;
-        --color-bg-panel: #161a22;
-        --color-bg-card: #1f242e;
-        --color-bg-hover: rgba(255, 152, 0, 0.04);
-        --color-border: #2e3545;
-        --color-text-muted: #94a3b8;
-        --color-text-light: #f1f5f9;
-        --color-text-white: #ffffff;
-        --border-radius-lg: 16px;
-        --border-radius-md: 10px;
-        --border-radius-sm: 6px;
-        --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        --glass-bg: rgba(31, 36, 46, 0.7);
-        --glass-border: rgba(255, 255, 255, 0.05);
-        --shadow-premium: 0 10px 30px rgba(0, 0, 0, 0.4);
-    }
-
-    .proveedores-container {
-        color: var(--color-text-light);
-        padding: 10px 0 40px 0;
-        animation: pageFadeIn 0.5s ease-out;
-    }
-
-    @keyframes pageFadeIn {
-        from { opacity: 0; transform: translateY(15px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ==========================================================================
-       Header Section
-       ========================================================================== */
-    .header-panel {
-        background: linear-gradient(135deg, var(--color-bg-card) 0%, rgba(31, 36, 46, 0.4) 100%);
-        border: 1px solid var(--color-border);
-        border-radius: var(--border-radius-lg);
-        padding: 24px 30px;
-        margin-bottom: 25px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 20px;
-        box-shadow: var(--shadow-premium);
-        backdrop-filter: blur(10px);
-    }
-
-    .header-info h2 {
-        font-size: 2rem;
-        font-weight: 700;
-        background: linear-gradient(135deg, var(--color-text-white) 30%, var(--color-text-muted) 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin: 0 0 6px 0;
-    }
-
-    .header-info p {
-        margin: 0;
-        color: var(--color-text-muted);
-        font-size: 0.95rem;
-    }
-
-    .header-actions {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-    }
-
-    /* Toggle de visualización */
-    .view-toggle-wrapper {
-        background-color: rgba(0, 0, 0, 0.25);
-        border: 1px solid var(--color-border);
-        border-radius: var(--border-radius-md);
-        padding: 4px;
-        display: flex;
-        gap: 2px;
-    }
-
-    .btn-toggle-view {
-        background: none;
-        border: none;
-        color: var(--color-text-muted);
-        width: 38px;
-        height: 38px;
-        border-radius: var(--border-radius-sm);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.1rem;
-        transition: var(--transition-smooth);
-    }
-
-    .btn-toggle-view:hover {
-        color: var(--color-text-light);
-        background-color: rgba(255, 255, 255, 0.05);
-    }
-
-    .btn-toggle-view.active {
-        background-color: var(--color-primary);
-        color: var(--color-text-white);
-        box-shadow: 0 4px 10px rgba(255, 152, 0, 0.3);
-    }
-
-    .btn-nuevo-prov {
-        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-        border: none;
-        color: var(--color-text-white);
-        padding: 10px 22px;
-        font-size: 0.95rem;
-        font-weight: 600;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        border-radius: var(--border-radius-md);
-        box-shadow: 0 4px 15px rgba(230, 81, 0, 0.3);
-        transition: var(--transition-smooth);
-    }
-
-    .btn-nuevo-prov:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(230, 81, 0, 0.45);
-        background: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary) 100%);
-        color: var(--color-text-white);
-    }
-
-    /* ==========================================================================
-       Search Section
-       ========================================================================== */
-    .search-panel {
-        background-color: var(--glass-bg);
-        border: 1px solid var(--glass-border);
-        border-radius: var(--border-radius-lg);
-        padding: 18px 24px;
-        margin-bottom: 25px;
-        box-shadow: var(--shadow-premium);
-        backdrop-filter: blur(10px);
-    }
-
-    .search-form-control {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        flex-wrap: wrap;
-    }
-
-    .search-input-container {
-        position: relative;
-        flex-grow: 1;
-        min-width: 280px;
-        max-width: 600px;
-    }
-
-    .search-input-container i {
-        position: absolute;
-        left: 16px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--color-text-muted);
-        transition: var(--transition-smooth);
-        font-size: 1.05rem;
-    }
-
-    .search-bar-input {
-        background-color: rgba(0, 0, 0, 0.3);
-        color: var(--color-text-light);
-        border: 1px solid var(--color-border);
-        border-radius: var(--border-radius-md);
-        padding: 12px 16px 12px 46px;
-        font-size: 0.95rem;
-        width: 100%;
-        transition: var(--transition-smooth);
-    }
-
-    .search-bar-input:focus {
-        outline: none;
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.15);
-        background-color: rgba(0, 0, 0, 0.45);
-    }
-
-    .search-bar-input:focus + i {
-        color: var(--color-primary);
-    }
-
-    .btn-exec-search {
-        background-color: #272d3b;
-        border: 1px solid var(--color-border);
-        color: var(--color-text-light);
-        padding: 12px 26px;
-        cursor: pointer;
-        font-size: 0.95rem;
-        font-weight: 600;
-        border-radius: var(--border-radius-md);
-        transition: var(--transition-smooth);
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .btn-exec-search:hover {
-        background-color: var(--color-primary);
-        border-color: var(--color-primary);
-        color: var(--color-text-white);
-        box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
-    }
-
-    .btn-clear-search {
-        color: var(--color-primary);
-        text-decoration: none;
-        font-size: 0.95rem;
-        font-weight: 600;
-        transition: var(--transition-smooth);
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 10px 16px;
-        border-radius: var(--border-radius-md);
-    }
-
-    .btn-clear-search:hover {
-        color: var(--color-primary-hover);
-        background-color: rgba(255, 152, 0, 0.08);
-    }
-
-    /* ==========================================================================
-       Vista 1: Tabla Fluida Responsiva
-       ========================================================================== */
-    .view-table-mode {
-        display: none; /* Controlado por JS */
-        width: 100%;
-        background-color: var(--color-bg-card);
-        border: 1px solid var(--color-border);
-        border-radius: var(--border-radius-lg);
-        box-shadow: var(--shadow-premium);
-        overflow: hidden;
-    }
-
-    .responsive-table {
-        width: 100%;
-        border-collapse: collapse;
-        text-align: left;
-        table-layout: fixed;
-    }
-
-    .responsive-table th {
-        background-color: #171c26;
-        color: var(--color-primary);
-        font-weight: 700;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        padding: 18px 24px;
-        border-bottom: 2px solid var(--color-border);
-    }
-
-    .responsive-table td {
-        padding: 16px 24px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-        font-size: 0.92rem;
-        color: var(--color-text-light);
-        vertical-align: middle;
-        transition: var(--transition-smooth);
-    }
-
-    .responsive-table tbody tr {
-        transition: var(--transition-smooth);
-    }
-
-    .responsive-table tbody tr:hover {
-        background-color: var(--color-bg-hover);
-    }
-
-    /* Celdas personalizadas */
-    .prov-meta-cell {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .prov-title-line {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .prov-id-pill {
-        background: rgba(255, 152, 0, 0.08);
-        border: 1px solid rgba(255, 152, 0, 0.2);
-        color: var(--color-primary);
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 0.72rem;
-        font-weight: 700;
-        font-family: monospace;
-    }
-
-    .prov-name-text {
-        font-weight: 600;
-        color: var(--color-text-white);
-        font-size: 0.98rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .prov-sub-rfc {
-        font-size: 0.78rem;
-        color: var(--color-text-muted);
-        font-family: monospace;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .prov-contact-cell {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .prov-contact-name {
-        font-weight: 600;
-        color: #e2e8f0;
-    }
-
-    .prov-contact-details {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        font-size: 0.8rem;
-        color: var(--color-text-muted);
-    }
-
-    .prov-contact-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .prov-contact-item i {
-        width: 14px;
-        color: var(--color-primary);
-        font-size: 0.75rem;
-        text-align: center;
-    }
-
-    .prov-contact-item a {
-        color: var(--color-text-muted);
-        text-decoration: none;
-        transition: var(--transition-smooth);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .prov-contact-item a:hover {
-        color: var(--color-primary);
-    }
-
-    .prov-ref-text {
-        font-size: 0.85rem;
-        color: var(--color-text-muted);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .badge-count-payment {
-        background: linear-gradient(135deg, rgba(46, 125, 50, 0.15) 0%, rgba(27, 94, 32, 0.3) 100%);
-        border: 1px solid rgba(46, 125, 50, 0.3);
-        color: #81c784;
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 0.78rem;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .badge-count-payment.none {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        color: var(--color-text-muted);
-    }
-
-    .actions-row-container {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .btn-action-row {
-        padding: 8px 12px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        border-radius: 6px;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        transition: var(--transition-smooth);
-    }
-
-    .btn-action-row.btn-detail {
-        background-color: rgba(33, 150, 243, 0.08);
-        border: 1px solid rgba(33, 150, 243, 0.2);
-        color: #2196f3;
-    }
-
-    .btn-action-row.btn-detail:hover {
-        background-color: #2196f3;
-        color: var(--color-text-white);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 10px rgba(33, 150, 243, 0.2);
-    }
-
-    .btn-action-row.btn-edit {
-        background-color: rgba(255, 152, 0, 0.08);
-        border: 1px solid rgba(255, 152, 0, 0.2);
-        color: var(--color-primary);
-    }
-
-    .btn-action-row.btn-edit:hover {
-        background-color: var(--color-primary);
-        color: var(--color-text-white);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 10px rgba(255, 152, 0, 0.2);
-    }
-
-    /* ==========================================================================
-       Vista 2: Grid de Tarjetas (Cards)
-       ========================================================================== */
-    .view-cards-mode {
-        display: none; /* Controlado por JS */
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 20px;
-    }
-
-    .provider-premium-card {
-        background-color: var(--color-bg-card);
-        border: 1px solid var(--color-border);
-        border-radius: var(--border-radius-lg);
-        padding: 24px;
-        box-shadow: var(--shadow-premium);
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        position: relative;
-        overflow: hidden;
-        transition: var(--transition-smooth);
-    }
-
-    .provider-premium-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 4px;
-        background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-        opacity: 0;
-        transition: var(--transition-smooth);
-    }
-
-    .provider-premium-card:hover {
-        transform: translateY(-5px);
-        border-color: rgba(255, 152, 0, 0.3);
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
-    }
-
-    .provider-premium-card:hover::before {
-        opacity: 1;
-    }
-
-    .card-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 16px;
-    }
-
-    .card-identity {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        max-width: 80%;
-    }
-
-    .avatar-icon-placeholder {
-        width: 44px;
-        height: 44px;
-        background: linear-gradient(135deg, #2a303d 0%, #171c26 100%);
-        border: 1px solid var(--color-border);
-        color: var(--color-primary);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 1.1rem;
-        flex-shrink: 0;
-    }
-
-    .card-name-wrapper {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        overflow: hidden;
-    }
-
-    .card-title-name {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: var(--color-text-white);
-        margin: 0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .card-rfc-tag {
-        font-size: 0.75rem;
-        color: var(--color-text-muted);
-        font-family: monospace;
-    }
-
-    .card-id-badge {
-        background: rgba(255, 152, 0, 0.08);
-        border: 1px solid rgba(255, 152, 0, 0.15);
-        color: var(--color-primary);
-        padding: 3px 8px;
-        border-radius: 6px;
-        font-size: 0.72rem;
-        font-weight: 700;
-        font-family: monospace;
-    }
-
-    .card-body-info {
-        border-top: 1px solid rgba(255, 255, 255, 0.04);
-        padding-top: 16px;
-        margin-bottom: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .card-info-item {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        font-size: 0.88rem;
-    }
-
-    .card-info-item i {
-        color: var(--color-primary);
-        width: 16px;
-        margin-top: 3px;
-        text-align: center;
-        font-size: 0.85rem;
-    }
-
-    .card-info-label {
-        font-weight: 600;
-        color: #94a3b8;
-    }
-
-    .card-info-val {
-        color: #cbd5e1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        max-width: 200px;
-    }
-
-    .card-info-val a {
-        color: #cbd5e1;
-        text-decoration: none;
-        transition: var(--transition-smooth);
-    }
-
-    .card-info-val a:hover {
-        color: var(--color-primary);
-    }
-
-    .card-footer-actions {
-        display: flex;
-        gap: 10px;
-        border-top: 1px solid rgba(255, 255, 255, 0.04);
-        padding-top: 16px;
-    }
-
-    .btn-card-action {
-        flex: 1;
-        padding: 10px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        border-radius: 8px;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        transition: var(--transition-smooth);
-    }
-
-    .btn-card-action.btn-detail {
-        background-color: rgba(33, 150, 243, 0.08);
-        border: 1px solid rgba(33, 150, 243, 0.2);
-        color: #2196f3;
-    }
-
-    .btn-card-action.btn-detail:hover {
-        background-color: #2196f3;
-        color: var(--color-text-white);
-        box-shadow: 0 4px 12px rgba(33, 150, 243, 0.25);
-    }
-
-    .btn-card-action.btn-edit {
-        background-color: rgba(255, 152, 0, 0.08);
-        border: 1px solid rgba(255, 152, 0, 0.2);
-        color: var(--color-primary);
-    }
-
-    .btn-card-action.btn-edit:hover {
-        background-color: var(--color-primary);
-        color: var(--color-text-white);
-        box-shadow: 0 4px 12px rgba(255, 152, 0, 0.25);
-    }
-
-    /* Empty state */
-    .empty-state-panel {
-        text-align: center;
-        padding: 60px 30px;
-        background-color: var(--color-bg-card);
-        border: 1px solid var(--color-border);
-        border-radius: var(--border-radius-lg);
-        color: var(--color-text-muted);
-        box-shadow: var(--shadow-premium);
-    }
-
-    .empty-state-panel i {
-        font-size: 3.5rem;
-        margin-bottom: 20px;
-        color: #3b4252;
-    }
-
-    .empty-state-panel h3 {
-        font-size: 1.3rem;
-        color: var(--color-text-light);
-        margin: 0 0 10px 0;
-    }
-
-    .empty-state-panel p {
-        margin: 0;
-        font-size: 0.95rem;
-    }
-
-    /* ==========================================================================
-       Configuraciones de Visualización (JS controlled)
-       ========================================================================== */
-    .view-mode-table .view-table-mode {
-        display: block;
-    }
-
-    .view-mode-cards .view-cards-mode {
-        display: grid;
-    }
-
-    /* ==========================================================================
-       Responsive & Breakpoints
-       ========================================================================== */
-    @media (max-width: 1024px) {
-        /* En pantallas menores a 1024px forzamos la vista de tarjetas para evitar scroll */
-        .header-actions .view-toggle-wrapper {
-            display: none !important;
-        }
-
-        .view-table-mode {
-            display: none !important;
-        }
-
-        .view-cards-mode {
-            display: grid !important;
-        }
-    }
-
-    @media (max-width: 768px) {
-        .header-panel {
-            padding: 20px;
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .btn-nuevo-prov {
-            width: 100%;
-            justify-content: center;
-        }
-
-        .search-form-control {
-            flex-direction: column;
-            align-items: stretch;
-        }
-
-        .search-input-container {
-            max-width: 100%;
-        }
-
-        .btn-exec-search {
-            width: 100%;
-            justify-content: center;
-        }
-    }
+  /* ---------- Variables locales → tokens globales (tema claro/oscuro) ---------- */
+  :root {
+    --color-primary: var(--brand);
+    --color-primary-hover: var(--brand-600);
+    --color-primary-dark: var(--brand-700);
+    --color-bg-panel: var(--surface-2);
+    --color-bg-card: var(--surface);
+    --color-bg-hover: var(--surface-hover);
+    --color-border: var(--border);
+    --color-text-muted: var(--text-2);
+    --color-text-light: var(--text);
+    --color-text-white: var(--text);
+  }
+
+  .prov-page { min-width: 0; }
+
+  /* ---------- Encabezado ---------- */
+  .view-toggle-wrapper {
+    display: inline-flex; gap: .2rem; padding: .25rem; border-radius: 12px;
+    background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-xs);
+  }
+  .btn-toggle-view {
+    display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
+    min-height: 34px; padding: 0 .75rem; border: 0; border-radius: 9px; cursor: pointer;
+    background: transparent; color: var(--text-2); font-family: inherit; font-size: .84rem; font-weight: 600;
+    transition: background .18s var(--ease), color .18s var(--ease);
+  }
+  .btn-toggle-view:hover { background: var(--surface-hover); color: var(--text); }
+  .btn-toggle-view.active { background: var(--text); color: var(--bg); box-shadow: var(--shadow-sm); }
+  .btn-toggle-view:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+  /* ---------- Resumen (KPIs) ---------- */
+  .prov-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+  .prov-kpi {
+    --c: var(--brand);
+    position: relative; overflow: hidden; display: flex; align-items: center; gap: .85rem;
+    padding: .9rem 1.1rem; border-radius: var(--radius-lg); background: var(--surface);
+    border: 1px solid var(--border); box-shadow: var(--shadow-sm); min-width: 0;
+  }
+  .prov-kpi::after {
+    content: ""; position: absolute; right: -36px; top: -36px; width: 110px; height: 110px; border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--c) 18%, transparent), transparent 70%); pointer-events: none;
+  }
+  .prov-kpi-ico { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: grid; place-items: center; color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent); }
+  .prov-kpi-value { display: block; font-size: 1.45rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--text); }
+  .prov-kpi-label { display: block; font-size: .8rem; font-weight: 600; color: var(--text-2); }
+  .prov-kpi.k-ok { --c: var(--success); }
+  .prov-kpi.k-warn { --c: var(--warning); }
+
+  /* ---------- Búsqueda ---------- */
+  .search-panel { padding: .9rem; }
+  .search-form-control { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+  .search-input-container { position: relative; flex: 1 1 320px; min-width: 0; max-width: 640px; }
+  .search-input-container > i {
+    position: absolute; left: .9rem; top: 50%; transform: translateY(-50%);
+    color: var(--text-3); pointer-events: none; transition: color .18s var(--ease);
+  }
+  .search-input-container .search-bar-input { padding-left: 2.5rem; }
+  .search-bar-input:focus + i { color: var(--brand); }
+
+  /* ---------- Encabezado de resultados ---------- */
+  .results-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; margin: 1.25rem 0 .75rem; }
+  .results-head h2 { margin: 0; font-size: 1rem; display: flex; align-items: center; gap: .5rem; }
+  .results-head h2 i { color: var(--brand); }
+  .results-head .meta { font-size: .84rem; color: var(--text-2); }
+  .results-head .meta strong { color: var(--text); }
+
+  /* ---------- Avatares (color según la inicial) ---------- */
+  .prov-avatar, .avatar-icon-placeholder {
+    --c: var(--brand);
+    width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: grid; place-items: center;
+    font-weight: 800; font-size: 1rem; color: var(--c);
+    background: color-mix(in srgb, var(--c) 13%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--c) 24%, transparent);
+  }
+  .av-1 { --c: var(--info); }
+  .av-2 { --c: #7c3aed; }
+  .av-3 { --c: #0d9488; }
+  .av-4 { --c: var(--success); }
+  .av-5 { --c: #db2777; }
+  html[data-theme="dark"] .av-2 { --c: #a78bfa; }
+  html[data-theme="dark"] .av-3 { --c: #2dd4bf; }
+  html[data-theme="dark"] .av-5 { --c: #f472b6; }
+
+  /* ---------- Vista 1: tabla ---------- */
+  .view-table-mode { display: none; /* Controlado por JS */ }
+  .table-card { margin: 0; }
+  .responsive-table { table-layout: fixed; min-width: 760px; }
+  .responsive-table .col-prov { width: 36%; }
+  .responsive-table .col-contacto { width: 27%; }
+  .responsive-table .col-ref { width: 15%; }
+  .responsive-table .col-metodos { width: 10%; text-align: center; }
+  .responsive-table .col-acciones { width: 12%; text-align: right; }
+  .responsive-table td { padding: .8rem .85rem; }
+  .responsive-table td.cell-center { text-align: center; }
+  .responsive-table td.cell-right { text-align: right; }
+
+  .prov-meta-cell { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+  .prov-meta-text { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+  .prov-title-line { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+  .prov-name-text { font-weight: 650; color: var(--text); font-size: .92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .prov-sub-rfc { display: flex; align-items: center; gap: .4rem; font-size: .76rem; color: var(--text-2); font-family: var(--mono); white-space: nowrap; overflow: hidden; }
+  .prov-sub-rfc i { color: var(--text-3); }
+  .prov-id-pill {
+    font-family: var(--mono); font-size: .7rem; font-weight: 700; color: var(--text-2);
+    background: var(--surface-3); border-radius: 6px; padding: .05rem .4rem; flex-shrink: 0;
+  }
+
+  .prov-contact-cell { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+  .prov-contact-name { font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .prov-contact-details { display: flex; flex-direction: column; gap: .1rem; font-size: .8rem; color: var(--text-2); min-width: 0; }
+  .prov-contact-item { display: flex; align-items: center; gap: .45rem; min-width: 0; }
+  .prov-contact-item i { width: 14px; text-align: center; font-size: .72rem; color: var(--text-3); flex-shrink: 0; }
+  .prov-contact-item span, .prov-contact-item a { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .prov-contact-item a { color: var(--text-2); }
+  .prov-contact-item a:hover { color: var(--brand); }
+  .prov-empty { color: var(--text-3); font-style: italic; font-size: .82rem; }
+  .prov-ref-text { font-size: .84rem; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .badge-count-payment { font-variant-numeric: tabular-nums; }
+  .badge-count-payment.none { color: var(--text-3); }
+
+  .actions-row-container { display: inline-flex; gap: .35rem; align-items: center; justify-content: flex-end; }
+  .btn-action-row.btn-detail:hover { color: var(--info); border-color: color-mix(in srgb, var(--info) 40%, var(--border)); }
+  .btn-action-row.btn-edit:hover { color: var(--brand); border-color: color-mix(in srgb, var(--brand) 40%, var(--border)); }
+
+  /* ---------- Vista 2: tarjetas ---------- */
+  .view-cards-mode { display: none; /* Controlado por JS */ grid-template-columns: repeat(auto-fill, minmax(min(310px, 100%), 1fr)); gap: 1rem; }
+  .provider-premium-card {
+    display: flex; flex-direction: column; min-width: 0; padding: 1.1rem 1.15rem 1rem;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+    transition: transform .2s var(--ease), box-shadow .2s var(--ease), border-color .2s var(--ease);
+  }
+  .provider-premium-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: color-mix(in srgb, var(--brand) 35%, var(--border)); }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: .75rem; margin-bottom: .9rem; }
+  .card-identity { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+  .avatar-icon-placeholder { width: 44px; height: 44px; font-size: 1.1rem; border-radius: 13px; }
+  .card-name-wrapper { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+  .card-title-name { margin: 0; font-size: .98rem; font-weight: 700; line-height: 1.3; color: var(--text); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; }
+  .card-rfc-tag { font-size: .76rem; color: var(--text-2); font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-rfc-tag i { color: var(--text-3); margin-right: .15rem; }
+  .card-id-badge { flex-shrink: 0; font-family: var(--mono); font-size: .72rem; font-weight: 700; color: var(--text-2); background: var(--surface-3); border-radius: 7px; padding: .15rem .45rem; }
+
+  .card-body-info { display: flex; flex-direction: column; gap: .15rem; padding: .6rem 0 .75rem; border-top: 1px solid var(--border); margin-bottom: auto; }
+  .card-info-item { display: flex; align-items: center; gap: .65rem; min-height: 32px; font-size: .86rem; min-width: 0; }
+  .card-info-item > i { width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0; display: grid; place-items: center; font-size: .78rem; color: var(--text-2); background: var(--surface-2); border: 1px solid var(--border); }
+  .card-info-item > div { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex: 1; min-width: 0; }
+  .card-info-label { font-size: .8rem; font-weight: 500; color: var(--text-2); white-space: nowrap; flex-shrink: 0; }
+  .card-info-val { color: var(--text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; text-align: right; }
+  .card-info-val a { color: var(--text); }
+  .card-info-val a:hover { color: var(--brand); }
+  .card-info-item .chip { flex-shrink: 0; }
+
+  .card-footer-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; padding-top: .9rem; border-top: 1px solid var(--border); }
+  .btn-card-action { width: 100%; }
+  .btn-card-action.btn-detail i { color: var(--info); }
+  .btn-card-action.btn-edit i { color: var(--brand); }
+
+  /* ---------- Estado vacío ---------- */
+  .empty-state-panel { text-align: center; padding: clamp(2rem, 6vw, 3.5rem) 1.25rem; margin: 1.25rem 0 0; }
+  .empty-ico {
+    width: 72px; height: 72px; margin: 0 auto 1rem; border-radius: 22px; display: grid; place-items: center;
+    font-size: 1.7rem; color: var(--text-3); background: var(--surface-2); border: 1px dashed var(--border-strong);
+  }
+  .empty-state-panel h3 { font-size: 1.15rem; margin: 0 0 .35rem; }
+  .empty-state-panel p { margin: 0 auto; max-width: 460px; color: var(--text-2); font-size: .92rem; }
+  .empty-state-panel .empty-term { margin-top: .5rem; font-size: .84rem; }
+  .empty-actions { display: flex; gap: .6rem; justify-content: center; flex-wrap: wrap; margin-top: 1.25rem; }
+
+  /* ---------- Vista seleccionada (JS) ---------- */
+  .view-mode-table .view-table-mode { display: block; }
+  .view-mode-cards .view-cards-mode { display: grid; }
+
+  /* ---------- Responsivo ---------- */
+  @media (max-width: 900px) {
+    /* En pantallas angostas se usa siempre la vista de tarjetas */
+    .header-actions .view-toggle-wrapper { display: none !important; }
+    .view-table-mode { display: none !important; }
+    .view-cards-mode { display: grid !important; }
+  }
+  @media (max-width: 760px) {
+    .page-head { align-items: stretch; }
+    .header-actions { width: 100%; }
+    .btn-nuevo-prov { flex: 1; min-height: 44px; }
+    .prov-kpis { gap: .5rem; }
+    .prov-kpi { flex-direction: column; align-items: flex-start; gap: .45rem; padding: .75rem .8rem; }
+    .prov-kpi-ico { width: 34px; height: 34px; border-radius: 10px; font-size: .85rem; }
+    .prov-kpi-value { font-size: 1.25rem; }
+    .prov-kpi-label { font-size: .72rem; line-height: 1.25; }
+    .search-input-container { flex: 1 1 100%; max-width: none; }
+    .search-input-container .search-bar-input { min-height: 44px; }
+    .btn-exec-search, .btn-clear-search { flex: 1 1 auto; min-height: 44px; }
+    .btn-card-action { min-height: 44px; }
+  }
+  /* Pantallas táctiles (tabletas incluidas): objetivos de toque ≥ 40px */
+  @media (pointer: coarse) {
+    .btn-toggle-view { min-height: 40px; }
+    .btn-action-row.btn-icon { width: 40px; min-width: 40px; min-height: 40px; }
+    .prov-contact-item a { padding: .6rem 0; margin: -.6rem 0; }
+    .card-info-item { min-height: 40px; }
+    .card-info-val a { display: block; padding: .65rem 0; overflow: hidden; text-overflow: ellipsis; }
+    .btn-card-action { min-height: 44px; }
+  }
 </style>
+{% endblock %}
 
-<div class="proveedores-container" id="container-root">
-    <!-- Header Panel -->
-    <div class="header-panel">
-        <div class="header-info">
-            <h2>Gestión de Proveedores</h2>
-            <p>Control e historial de proveedores y sus respectivos métodos de pago.</p>
+{% block content %}
+{% set n_prov = proveedores|length if proveedores else 0 %}
+{% set n_con_metodo = (proveedores|selectattr('num_metodos_pago')|list|length) if proveedores else 0 %}
+<div class="proveedores-container prov-page" id="container-root">
+    <!-- Encabezado -->
+    <div class="page-head reveal">
+        <div>
+            <div class="eyebrow"><i class="fa-solid fa-truck-field"></i> Administración</div>
+            <h1>Gestión de Proveedores</h1>
+            <p class="subtitle">Control e historial de proveedores y sus respectivos métodos de pago.</p>
         </div>
-        <div class="header-actions">
+        <div class="page-actions header-actions">
             <!-- View Toggle -->
-            <div class="view-toggle-wrapper">
+            <div class="view-toggle-wrapper" role="group" aria-label="Tipo de vista">
                 <button type="button" id="toggle-table" class="btn-toggle-view" title="Vista de Tabla compacta">
-                    <i class="fas fa-list"></i>
+                    <i class="fa-solid fa-list"></i><span>Tabla</span>
                 </button>
                 <button type="button" id="toggle-cards" class="btn-toggle-view" title="Vista de Tarjetas">
-                    <i class="fas fa-th-large"></i>
+                    <i class="fa-solid fa-grip"></i><span>Tarjetas</span>
                 </button>
             </div>
             <!-- Nuevo Proveedor Button -->
-            <a href="{{ url_for('nuevo_proveedor') }}" class="btn-nuevo-prov">
-                <i class="fas fa-plus"></i> Nuevo Proveedor
+            <a href="{{ url_for('nuevo_proveedor') }}" class="btn btn-primary btn-nuevo-prov">
+                <i class="fa-solid fa-plus"></i> Nuevo Proveedor
             </a>
         </div>
     </div>
 
+    {% if proveedores %}
+    <!-- Resumen -->
+    <div class="prov-kpis">
+        <div class="prov-kpi reveal reveal-1">
+            <span class="prov-kpi-ico"><i class="fa-solid fa-building"></i></span>
+            <div>
+                <span class="prov-kpi-value">{{ n_prov }}</span>
+                <span class="prov-kpi-label">{{ 'Resultados' if busqueda else 'Proveedores' }}</span>
+            </div>
+        </div>
+        <div class="prov-kpi k-ok reveal reveal-2">
+            <span class="prov-kpi-ico"><i class="fa-solid fa-wallet"></i></span>
+            <div>
+                <span class="prov-kpi-value">{{ n_con_metodo }}</span>
+                <span class="prov-kpi-label">Con método de pago</span>
+            </div>
+        </div>
+        <div class="prov-kpi k-warn reveal reveal-3">
+            <span class="prov-kpi-ico"><i class="fa-solid fa-circle-exclamation"></i></span>
+            <div>
+                <span class="prov-kpi-value">{{ n_prov - n_con_metodo }}</span>
+                <span class="prov-kpi-label">Sin método de pago</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Search Section -->
-    <div class="search-panel">
+    <div class="card search-panel reveal reveal-2">
         <form method="GET" action="{{ url_for('proveedores_dashboard') }}" class="search-form-control">
             <div class="search-input-container">
                 <input type="text"
                        name="busqueda"
                        placeholder="Buscar por nombre, RFC, email o teléfono..."
                        value="{{ busqueda }}"
-                       class="search-bar-input">
-                <i class="fas fa-search"></i>
+                       class="search-bar-input"
+                       aria-label="Buscar proveedores">
+                <i class="fa-solid fa-magnifying-glass"></i>
             </div>
-            <button type="submit" class="btn-exec-search">
-                <i class="fas fa-filter"></i> Buscar
+            <button type="submit" class="btn btn-dark btn-exec-search">
+                <i class="fa-solid fa-magnifying-glass"></i> Buscar
             </button>
             {% if busqueda %}
-                <a href="{{ url_for('proveedores_dashboard') }}" class="btn-clear-search">
-                    <i class="fas fa-times-circle"></i> Limpiar búsqueda
+                <a href="{{ url_for('proveedores_dashboard') }}" class="btn btn-ghost btn-clear-search">
+                    <i class="fa-solid fa-circle-xmark"></i> Limpiar búsqueda
                 </a>
             {% endif %}
         </form>
@@ -773,102 +289,118 @@
 
     <!-- Data Display -->
     {% if proveedores %}
+        <div class="results-head reveal reveal-3">
+            <h2><i class="fa-solid fa-address-book"></i> Directorio</h2>
+            <span class="meta">
+                <strong>{{ n_prov }}</strong> {{ 'proveedor' if n_prov == 1 else 'proveedores' }}{% if busqueda %} para «{{ busqueda }}»{% endif %}
+            </span>
+        </div>
+
         <!-- VISTA 1: TABLA COMPACTA -->
         <div class="view-table-mode">
-            <table class="responsive-table">
-                <thead>
-                    <tr>
-                        <th style="width: 35%;">Proveedor</th>
-                        <th style="width: 25%;">Contacto Principal</th>
-                        <th style="width: 15%;">Referencia</th>
-                        <th style="width: 12%; text-align: center;">Métodos</th>
-                        <th style="width: 13%; text-align: center;">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for proveedor in proveedores %}
-                    <tr>
-                        <td>
-                            <div class="prov-meta-cell">
-                                <div class="prov-title-line">
-                                    <span class="prov-id-pill">#{{ proveedor.id }}</span>
-                                    <span class="prov-name-text" title="{{ proveedor.nombre or 'Sin nombre' }}">{{ proveedor.nombre or 'Sin nombre' }}</span>
-                                </div>
-                                <div class="prov-sub-rfc">
-                                    <i class="far fa-id-card"></i> {{ proveedor.rfc or 'Sin RFC' }}
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="prov-contact-cell">
-                                {% if proveedor.contacto %}
-                                    <div class="prov-contact-name">{{ proveedor.contacto }}</div>
-                                {% endif %}
-                                <div class="prov-contact-details">
-                                    {% if proveedor.telefono %}
-                                        <div class="prov-contact-item">
-                                            <i class="fas fa-phone"></i>
-                                            <span>{{ proveedor.telefono }}</span>
+            <div class="card flush table-card">
+                <div class="table-wrap">
+                    <table class="responsive-table">
+                        <thead>
+                            <tr>
+                                <th class="col-prov">Proveedor</th>
+                                <th class="col-contacto">Contacto Principal</th>
+                                <th class="col-ref">Referencia</th>
+                                <th class="col-metodos">Métodos</th>
+                                <th class="col-acciones">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for proveedor in proveedores %}
+                            {% set av = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.find((proveedor.nombre or 'P')[0]|upper) % 6 %}
+                            <tr>
+                                <td>
+                                    <div class="prov-meta-cell">
+                                        <span class="prov-avatar av-{{ av }}" aria-hidden="true">{{ (proveedor.nombre or 'P')[0] | upper }}</span>
+                                        <div class="prov-meta-text">
+                                            <div class="prov-title-line">
+                                                <span class="prov-name-text" title="{{ proveedor.nombre or 'Sin nombre' }}">{{ proveedor.nombre or 'Sin nombre' }}</span>
+                                            </div>
+                                            <div class="prov-sub-rfc">
+                                                <span class="prov-id-pill">#{{ proveedor.id }}</span>
+                                                <i class="fa-regular fa-id-card"></i> {{ proveedor.rfc or 'Sin RFC' }}
+                                            </div>
                                         </div>
-                                    {% endif %}
-                                    {% if proveedor.email %}
-                                        <div class="prov-contact-item">
-                                            <i class="fas fa-envelope"></i>
-                                            <a href="mailto:{{ proveedor.email }}" title="{{ proveedor.email }}">{{ proveedor.email }}</a>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="prov-contact-cell">
+                                        {% if proveedor.contacto %}
+                                            <div class="prov-contact-name">{{ proveedor.contacto }}</div>
+                                        {% endif %}
+                                        <div class="prov-contact-details">
+                                            {% if proveedor.telefono %}
+                                                <div class="prov-contact-item">
+                                                    <i class="fa-solid fa-phone"></i>
+                                                    <span>{{ proveedor.telefono }}</span>
+                                                </div>
+                                            {% endif %}
+                                            {% if proveedor.email %}
+                                                <div class="prov-contact-item">
+                                                    <i class="fa-solid fa-envelope"></i>
+                                                    <a href="mailto:{{ proveedor.email }}" title="{{ proveedor.email }}">{{ proveedor.email }}</a>
+                                                </div>
+                                            {% endif %}
+                                            {% if not proveedor.contacto and not proveedor.telefono and not proveedor.email %}
+                                                <span class="prov-empty">Sin contacto</span>
+                                            {% endif %}
                                         </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="prov-ref-text" title="{{ proveedor.referencia or '' }}">
+                                        {{ proveedor.referencia or '-' }}
+                                    </div>
+                                </td>
+                                <td class="cell-center">
+                                    {% if proveedor.num_metodos_pago > 0 %}
+                                        <span class="chip chip-success badge-count-payment" title="{{ proveedor.num_metodos_pago }} método(s) de pago registrado(s)">
+                                            <i class="fa-solid fa-wallet"></i> {{ proveedor.num_metodos_pago }}
+                                        </span>
+                                    {% else %}
+                                        <span class="chip badge-count-payment none" title="Sin métodos de pago">
+                                            <i class="fa-solid fa-wallet"></i> 0
+                                        </span>
                                     {% endif %}
-                                    {% if not proveedor.contacto and not proveedor.telefono and not proveedor.email %}
-                                        <span style="color: var(--color-text-muted); font-style: italic;">Sin contacto</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="prov-ref-text" title="{{ proveedor.referencia or '' }}">
-                                {{ proveedor.referencia or '-' }}
-                            </div>
-                        </td>
-                        <td style="text-align: center;">
-                            {% if proveedor.num_metodos_pago > 0 %}
-                                <span class="badge-count-payment" title="{{ proveedor.num_metodos_pago }} método(s) de pago registrado(s)">
-                                    <i class="fas fa-wallet"></i> {{ proveedor.num_metodos_pago }}
-                                </span>
-                            {% else %}
-                                <span class="badge-count-payment none" title="Sin métodos de pago">
-                                    <i class="fas fa-wallet"></i> 0
-                                </span>
-                            {% endif %}
-                        </td>
-                        <td style="text-align: center;">
-                            <div class="actions-row-container">
-                                <a href="{{ url_for('detalle_proveedor', proveedor_id=proveedor.id) }}"
-                                   class="btn-action-row btn-detail" title="Ver detalle y métodos de pago">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="{{ url_for('editar_proveedor', proveedor_id=proveedor.id) }}"
-                                   class="btn-action-row btn-edit" title="Editar datos del proveedor">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                                </td>
+                                <td class="cell-right">
+                                    <div class="actions-row-container">
+                                        <a href="{{ url_for('detalle_proveedor', proveedor_id=proveedor.id) }}"
+                                           class="btn btn-secondary btn-sm btn-icon btn-action-row btn-detail" title="Ver detalle y métodos de pago" aria-label="Ver detalle">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('editar_proveedor', proveedor_id=proveedor.id) }}"
+                                           class="btn btn-secondary btn-sm btn-icon btn-action-row btn-edit" title="Editar datos del proveedor" aria-label="Editar">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <!-- VISTA 2: GRID DE TARJETAS -->
         <div class="view-cards-mode">
             {% for proveedor in proveedores %}
+            {% set av = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.find((proveedor.nombre or 'P')[0]|upper) % 6 %}
             <div class="provider-premium-card">
                 <div class="card-top">
                     <div class="card-identity">
-                        <div class="avatar-icon-placeholder">
+                        <div class="avatar-icon-placeholder av-{{ av }}" aria-hidden="true">
                             {{ (proveedor.nombre or 'P')[0] | upper }}
                         </div>
                         <div class="card-name-wrapper">
                             <h3 class="card-title-name" title="{{ proveedor.nombre or 'Sin nombre' }}">{{ proveedor.nombre or 'Sin nombre' }}</h3>
-                            <span class="card-rfc-tag"><i class="far fa-id-card"></i> {{ proveedor.rfc or 'Sin RFC registrado' }}</span>
+                            <span class="card-rfc-tag"><i class="fa-regular fa-id-card"></i> {{ proveedor.rfc or 'Sin RFC registrado' }}</span>
                         </div>
                     </div>
                     <span class="card-id-badge">#{{ proveedor.id }}</span>
@@ -876,7 +408,7 @@
 
                 <div class="card-body-info">
                     <div class="card-info-item">
-                        <i class="fas fa-user-tie"></i>
+                        <i class="fa-solid fa-user-tie"></i>
                         <div>
                             <span class="card-info-label">Contacto:</span>
                             <span class="card-info-val" title="{{ proveedor.contacto or 'No especificado' }}">{{ proveedor.contacto or 'No especificado' }}</span>
@@ -885,7 +417,7 @@
 
                     {% if proveedor.telefono %}
                     <div class="card-info-item">
-                        <i class="fas fa-phone-alt"></i>
+                        <i class="fa-solid fa-phone"></i>
                         <div>
                             <span class="card-info-label">Teléfono:</span>
                             <span class="card-info-val">{{ proveedor.telefono }}</span>
@@ -895,7 +427,7 @@
 
                     {% if proveedor.email %}
                     <div class="card-info-item">
-                        <i class="fas fa-envelope"></i>
+                        <i class="fa-solid fa-envelope"></i>
                         <div>
                             <span class="card-info-label">Correo:</span>
                             <span class="card-info-val">
@@ -906,20 +438,20 @@
                     {% endif %}
 
                     <div class="card-info-item">
-                        <i class="fas fa-wallet"></i>
+                        <i class="fa-solid fa-wallet"></i>
                         <div>
                             <span class="card-info-label">Métodos de Pago:</span>
                             {% if proveedor.num_metodos_pago > 0 %}
-                                <span style="color: #81c784; font-weight: bold;">{{ proveedor.num_metodos_pago }} activo(s)</span>
+                                <span class="chip chip-success">{{ proveedor.num_metodos_pago }} activo(s)</span>
                             {% else %}
-                                <span style="color: var(--color-text-muted);">Ninguno</span>
+                                <span class="chip">Ninguno</span>
                             {% endif %}
                         </div>
                     </div>
 
                     {% if proveedor.referencia %}
                     <div class="card-info-item">
-                        <i class="fas fa-info-circle"></i>
+                        <i class="fa-solid fa-hashtag"></i>
                         <div>
                             <span class="card-info-label">Ref:</span>
                             <span class="card-info-val" title="{{ proveedor.referencia }}">{{ proveedor.referencia }}</span>
@@ -929,7 +461,7 @@
 
                     {% if proveedor.notas %}
                     <div class="card-info-item">
-                        <i class="fas fa-sticky-note"></i>
+                        <i class="fa-solid fa-note-sticky"></i>
                         <div>
                             <span class="card-info-label">Notas:</span>
                             <span class="card-info-val" title="{{ proveedor.notas }}">{{ proveedor.notas }}</span>
@@ -939,11 +471,11 @@
                 </div>
 
                 <div class="card-footer-actions">
-                    <a href="{{ url_for('detalle_proveedor', proveedor_id=proveedor.id) }}" class="btn-card-action btn-detail">
-                        <i class="fas fa-eye"></i> Detalle
+                    <a href="{{ url_for('detalle_proveedor', proveedor_id=proveedor.id) }}" class="btn btn-secondary btn-card-action btn-detail">
+                        <i class="fa-solid fa-eye"></i> Detalle
                     </a>
-                    <a href="{{ url_for('editar_proveedor', proveedor_id=proveedor.id) }}" class="btn-card-action btn-edit">
-                        <i class="fas fa-edit"></i> Editar
+                    <a href="{{ url_for('editar_proveedor', proveedor_id=proveedor.id) }}" class="btn btn-secondary btn-card-action btn-edit">
+                        <i class="fa-solid fa-pen-to-square"></i> Editar
                     </a>
                 </div>
             </div>
@@ -951,10 +483,23 @@
         </div>
     {% else %}
         <!-- Empty State -->
-        <div class="empty-state-panel">
-            <i class="fas fa-user-slash"></i>
+        <div class="card empty-state-panel reveal reveal-3">
+            <span class="empty-ico"><i class="fa-solid fa-user-slash"></i></span>
             <h3>No se encontraron proveedores</h3>
             <p>Intenta cambiar el criterio de búsqueda o agrega un nuevo proveedor.</p>
+            {% if busqueda %}
+                <p class="empty-term">Búsqueda actual: <strong>«{{ busqueda }}»</strong></p>
+            {% endif %}
+            <div class="empty-actions">
+                {% if busqueda %}
+                    <a href="{{ url_for('proveedores_dashboard') }}" class="btn btn-secondary">
+                        <i class="fa-solid fa-circle-xmark"></i> Limpiar búsqueda
+                    </a>
+                {% endif %}
+                <a href="{{ url_for('nuevo_proveedor') }}" class="btn btn-primary">
+                    <i class="fa-solid fa-plus"></i> Nuevo Proveedor
+                </a>
+            </div>
         </div>
     {% endif %}
 </div>

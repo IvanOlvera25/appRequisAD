@@ -4,33 +4,34 @@
 
 {% block content %}
 <div class="editar-credito-container">
-    <div class="form-header">
+    <div class="form-header page-head reveal">
         <div class="header-info">
-            <h1>Editar Crédito</h1>
+            <div class="eyebrow"><i class="fa-solid fa-pen-to-square"></i> Finanzas · Edición de crédito</div>
+            <h1>Editar crédito</h1>
             <p class="subtitle">Modificar información del crédito: {{ credito.nombre }}</p>
         </div>
-        <div class="header-actions">
+        <div class="header-actions page-actions">
             <a href="{{ url_for('detalle_credito', credito_id=credito.id) }}" class="btn btn-secondary">
-                <span class="btn-icon">⬅️</span>
-                Volver al Detalle
+                <i class="fa-solid fa-arrow-left"></i>
+                Volver al detalle
             </a>
         </div>
     </div>
 
     <!-- Información actual del crédito -->
-    <div class="info-actual">
-        <h3>Información Actual</h3>
+    <div class="info-actual reveal reveal-1">
+        <h3><i class="fa-solid fa-circle-info"></i> Información actual</h3>
         <div class="info-grid">
             <div class="info-item">
-                <label>Estado Actual:</label>
+                <label>Estado actual</label>
                 <span class="etiqueta-estado estado-{{ credito.estado|lower }}">{{ credito.estado }}</span>
             </div>
             <div class="info-item">
-                <label>Monto Total Actual:</label>
+                <label>Monto total actual</label>
                 <span class="monto" id="monto-actual-display">${{ "{:,.2f}".format(credito.monto_total) }}</span>
             </div>
             <div class="info-item">
-                <label>Fecha de Registro:</label>
+                <label>Fecha de registro</label>
                 <span>{{ credito.fecha_registro[:10] if credito.fecha_registro else 'N/A' }}</span>
             </div>
         </div>
@@ -40,8 +41,11 @@
     <form method="POST" class="credito-form">
         <div class="form-sections">
             <!-- Información básica -->
-            <div class="form-section">
-                <h3>Información Básica</h3>
+            <div class="form-section reveal reveal-2">
+                <div class="section-head">
+                    <span class="section-ico"><i class="fa-solid fa-file-lines"></i></span>
+                    <div><h3>Información básica</h3><p>Nombre, entidad y tipo de crédito</p></div>
+                </div>
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="nombre" class="required">Nombre del Crédito</label>
@@ -67,14 +71,14 @@
                         <label for="tipo_credito" class="required">Tipo de Crédito</label>
                         <select id="tipo_credito" name="tipo_credito" required>
                             <option value="">Seleccionar tipo</option>
-                            <option value="Personal" {% if credito.tipo_credito == 'Personal' %}selected{% endif %}>Personal</option>
-                            <option value="Empresarial" {% if credito.tipo_credito == 'Empresarial' %}selected{% endif %}>Empresarial</option>
-                            <option value="Hipotecario" {% if credito.tipo_credito == 'Hipotecario' %}selected{% endif %}>Hipotecario</option>
-                            <option value="Automotriz" {% if credito.tipo_credito == 'Automotriz' %}selected{% endif %}>Automotriz</option>
-                            <option value="Línea de Crédito" {% if credito.tipo_credito == 'Línea de Crédito' %}selected{% endif %}>Línea de Crédito</option>
-                            <option value="Refaccionario" {% if credito.tipo_credito == 'Refaccionario' %}selected{% endif %}>Refaccionario</option>
-                            <option value="Capital de Trabajo" {% if credito.tipo_credito == 'Capital de Trabajo' %}selected{% endif %}>Capital de Trabajo</option>
-                            <option value="Otro" {% if credito.tipo_credito == 'Otro' %}selected{% endif %}>Otro</option>
+                            {% set tipos_credito = ['Compras', 'Personal', 'Empresarial', 'Hipotecario', 'Automotriz', 'Línea de Crédito', 'Refaccionario', 'Capital de Trabajo', 'Tarjeta de Crédito', 'Educativo', 'Otro'] %}
+                            {% for t in tipos_credito %}
+                            <option value="{{ t }}" {% if credito.tipo_credito == t %}selected{% endif %}>{{ t }}</option>
+                            {% endfor %}
+                            {# Tipo guardado que no está en la lista: se conserva para no dejar el campo vacío #}
+                            {% if credito.tipo_credito and credito.tipo_credito not in tipos_credito %}
+                            <option value="{{ credito.tipo_credito }}" selected>{{ credito.tipo_credito }}</option>
+                            {% endif %}
                         </select>
                     </div>
 
@@ -98,8 +102,11 @@
             </div>
 
             <!-- Información financiera -->
-            <div class="form-section">
-                <h3>Información Financiera</h3>
+            <div class="form-section reveal reveal-3">
+                <div class="section-head">
+                    <span class="section-ico"><i class="fa-solid fa-coins"></i></span>
+                    <div><h3>Información financiera</h3><p>Monto, tasa, plazo y pago mensual</p></div>
+                </div>
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="monto_total" class="required">Monto Total</label>
@@ -170,16 +177,19 @@
                 <!-- Calculadora de pago mensual -->
                 <div class="calculadora-pago">
                     <button type="button" id="calcular-pago" class="btn btn-info">
-                        <span class="btn-icon">🧮</span>
-                        Calcular Pago Mensual
+                        <i class="fa-solid fa-calculator"></i>
+                        Calcular pago mensual
                     </button>
                     <small class="help-text">Calcula automáticamente basado en monto, tasa y plazo</small>
                 </div>
             </div>
 
             <!-- Fechas -->
-            <div class="form-section">
-                <h3>Fechas del Crédito</h3>
+            <div class="form-section reveal reveal-4">
+                <div class="section-head">
+                    <span class="section-ico"><i class="fa-solid fa-calendar-days"></i></span>
+                    <div><h3>Fechas del crédito</h3><p>Inicio y fin del plazo</p></div>
+                </div>
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="fecha_inicio" class="required">Fecha de Inicio</label>
@@ -203,16 +213,19 @@
                 <!-- Calculadora de fecha final -->
                 <div class="calculadora-fecha">
                     <button type="button" id="calcular-fecha" class="btn btn-info">
-                        <span class="btn-icon">📅</span>
-                        Calcular Fecha Final
+                        <i class="fa-solid fa-calendar-check"></i>
+                        Calcular fecha final
                     </button>
                     <small class="help-text">Calcula fecha final basada en fecha inicio y plazo</small>
                 </div>
             </div>
 
             <!-- Estado y configuración -->
-            <div class="form-section">
-                <h3>Estado y Configuración</h3>
+            <div class="form-section reveal reveal-5">
+                <div class="section-head">
+                    <span class="section-ico"><i class="fa-solid fa-sliders"></i></span>
+                    <div><h3>Estado y configuración</h3><p>Estado, contacto y notas</p></div>
+                </div>
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="estado" class="required">Estado del Crédito</label>
@@ -248,18 +261,18 @@
         <div class="form-actions">
             <div class="actions-left">
                 <a href="{{ url_for('detalle_credito', credito_id=credito.id) }}" class="btn btn-secondary">
-                    <span class="btn-icon">❌</span>
+                    <i class="fa-solid fa-xmark"></i>
                     Cancelar
                 </a>
             </div>
             <div class="actions-right">
-                <button type="button" id="preview-btn" class="btn btn-info">
-                    <span class="btn-icon">👁️</span>
-                    Vista Previa
+                <button type="button" id="preview-btn" class="btn btn-secondary">
+                    <i class="fa-solid fa-eye"></i>
+                    Vista previa
                 </button>
                 <button type="submit" class="btn btn-primary" id="submit-btn">
-                    <span class="btn-icon">💾</span>
-                    Guardar Cambios
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    Guardar cambios
                 </button>
             </div>
         </div>
@@ -270,15 +283,15 @@
 <div id="preview-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Vista Previa de Cambios</h3>
-            <span class="close">&times;</span>
+            <h3><i class="fa-solid fa-eye"></i> Vista previa de cambios</h3>
+            <span class="close" role="button" aria-label="Cerrar">&times;</span>
         </div>
         <div class="modal-body">
             <div id="preview-content"></div>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary close-modal">Cerrar</button>
-            <button type="button" id="confirm-save" class="btn btn-primary">Confirmar y Guardar</button>
+            <button type="button" id="confirm-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Confirmar y guardar</button>
         </div>
     </div>
 </div>
@@ -286,9 +299,9 @@
 <!-- Modal de confirmación de cambio de monto -->
 <div id="monto-change-modal" class="modal">
     <div class="modal-content">
-        <div class="modal-header" style="background: linear-gradient(135deg, var(--warning-color), #e0a800);">
-            <h3>⚠️ Cambio de Monto Detectado</h3>
-            <span class="close close-monto">&times;</span>
+        <div class="modal-header warn">
+            <h3><i class="fa-solid fa-triangle-exclamation"></i> Cambio de monto detectado</h3>
+            <span class="close close-monto" role="button" aria-label="Cerrar">&times;</span>
         </div>
         <div class="modal-body">
             <div class="warning-message">
@@ -314,558 +327,139 @@
                     <label for="motivo-modal" class="required">Por favor indica el motivo del cambio:</label>
                     <input type="text"
                            id="motivo-modal"
-                           placeholder="Ej: Expansión por necesidades adicionales, Refinanciamiento, Ajuste por tipo de cambio, etc."
-                           style="width: 100%; background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.75rem;">
+                           placeholder="Ej: Expansión por necesidades adicionales, Refinanciamiento, Ajuste por tipo de cambio, etc.">
                 </div>
             </div>
         </div>
         <div class="modal-footer">
-            <button type="button" class="btn btn-secondary close-monto-cancel">Cancelar Cambio</button>
-            <button type="button" id="confirm-monto-change" class="btn btn-primary">Confirmar Cambio</button>
+            <button type="button" class="btn btn-secondary close-monto-cancel">Cancelar cambio</button>
+            <button type="button" id="confirm-monto-change" class="btn btn-primary">Confirmar cambio</button>
         </div>
     </div>
 </div>
 
 <style>
-    :root {
-        --primary-color: #f37c22;
-        --secondary-color: #333;
-        --background: #000;
-        --header-bg: #1a1a1a;
-        --input-bg: #2a2a2a;
-        --text-color: #fff;
-        --border-color: #444;
-        --success-color: #28a745;
-        --error-color: #dc3545;
-        --warning-color: #ffc107;
-        --info-color: #17a2b8;
-    }
+    .editar-credito-container { max-width: 1040px; margin: 0 auto; }
 
-    .editar-credito-container {
-        max-width: 1000px;
-        margin: 0 auto;
-        padding: 1.5rem;
-    }
+    /* ---------- Estado ---------- */
+    .etiqueta-estado { text-transform: none; }
+    .etiqueta-estado.estado-activo { --c: var(--success); }
+    .etiqueta-estado.estado-liquidado { --c: var(--info); }
+    .etiqueta-estado.estado-suspendido { --c: var(--danger); }
+    .etiqueta-estado.estado-en { --c: var(--warning); }
 
-    /* Header */
-    .form-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
-        padding: 1.5rem;
-        background: linear-gradient(135deg, var(--header-bg), #333);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-    }
-
-    .header-info h1 {
-        margin: 0 0 0.5rem;
-        color: var(--primary-color);
-        font-size: 1.8rem;
-    }
-
-    .subtitle {
-        color: #bbb;
-        margin: 0;
-        font-size: 1rem;
-    }
-
-    /* Información actual */
+    /* ---------- Información actual ---------- */
     .info-actual {
-        background-color: var(--input-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 2rem;
+        background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+        padding: 1rem 1.15rem; margin-bottom: 1rem;
     }
+    .info-actual h3 { margin: 0 0 .8rem; font-size: .78rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-2); display: flex; align-items: center; gap: .45rem; }
+    .info-actual h3 i { color: var(--brand); }
+    .info-actual .info-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+    .info-item { display: flex; flex-direction: column; align-items: flex-start; gap: .3rem; min-width: 0; padding: .7rem .85rem; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); }
+    .info-item label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); }
+    .info-item > span { font-weight: 650; color: var(--text); }
+    .info-item .monto { font-size: 1.1rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text); }
 
-    .info-actual h3 {
-        margin: 0 0 1rem;
-        color: var(--primary-color);
-    }
-
-    .info-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-    }
-
-    .info-item {
-        display: flex;
-        flex-direction: column;
-        gap: 0.25rem;
-    }
-
-    .info-item label {
-        font-size: 0.9rem;
-        color: #bbb;
-    }
-
-    .info-item span {
-        font-weight: 500;
-        color: var(--text-color);
-    }
-
-    .monto {
-        color: var(--success-color);
-        font-family: 'Courier New', monospace;
-        font-size: 1.1rem;
-    }
-
-    /* Estados */
-    .etiqueta-estado {
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: bold;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        display: inline-block;
-    }
-
-    .estado-activo {
-        background: linear-gradient(45deg, rgba(40, 167, 69, 0.2), rgba(40, 167, 69, 0.3));
-        color: var(--success-color);
-        border: 1px solid var(--success-color);
-    }
-
-    .estado-liquidado {
-        background: linear-gradient(45deg, rgba(23, 162, 184, 0.2), rgba(23, 162, 184, 0.3));
-        color: var(--info-color);
-        border: 1px solid var(--info-color);
-    }
-
-    .estado-suspendido {
-        background: linear-gradient(45deg, rgba(220, 53, 69, 0.2), rgba(220, 53, 69, 0.3));
-        color: var(--error-color);
-        border: 1px solid var(--error-color);
-    }
-
-    /* Formulario */
-    .credito-form {
-        background-color: var(--header-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 2rem;
-    }
-
-    .form-sections {
-        display: flex;
-        flex-direction: column;
-        gap: 2rem;
-    }
-
+    /* ---------- Secciones del formulario ---------- */
+    .credito-form { margin: 0; }
+    .form-sections { display: flex; flex-direction: column; gap: 1rem; }
     .form-section {
-        background-color: var(--input-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        padding: 1.5rem;
+        background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+        padding: 1.2rem clamp(1rem, 2.5vw, 1.5rem) 1.25rem; transition: border-color .25s var(--ease), box-shadow .25s var(--ease);
+    }
+    .form-section:focus-within { border-color: color-mix(in srgb, var(--brand) 45%, var(--border)); box-shadow: var(--shadow-md); }
+    .section-head { display: flex; align-items: center; gap: .85rem; margin-bottom: 1.1rem; }
+    .section-ico { width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0; display: grid; place-items: center; color: var(--brand); background: var(--brand-50); border: 1px solid var(--brand-100); }
+    .section-head h3 { margin: 0; font-size: 1.02rem; }
+    .section-head p { margin: .1rem 0 0; font-size: .84rem; color: var(--text-2); }
+
+    .credito-form .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1rem; }
+    .form-group.full-width { grid-column: 1 / -1; }
+    .form-group label.required { color: var(--text); font-weight: 600; }
+    .form-group label.required::after { content: ' *'; color: var(--danger); font-weight: 700; }
+
+    /* Validación: neutral al cargar; solo marca error después de que el usuario interactúa */
+    .form-group input:user-invalid, .form-group select:user-invalid, .form-group textarea:user-invalid {
+        border-color: var(--danger);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 14%, transparent);
     }
 
-    .form-section h3 {
-        margin: 0 0 1.5rem;
-        color: var(--primary-color);
-        font-size: 1.2rem;
-        border-bottom: 1px solid var(--border-color);
-        padding-bottom: 0.5rem;
-    }
-
-    .form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-    }
-
-    .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .form-group.full-width {
-        grid-column: 1 / -1;
-    }
-
-    .form-group label {
-        font-weight: 600;
-        color: var(--text-color);
-        font-size: 0.9rem;
-    }
-
-    .form-group label.required::after {
-        content: ' *';
-        color: var(--error-color);
-    }
-
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-        background-color: var(--header-bg);
-        color: var(--text-color);
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        padding: 0.75rem;
-        font-size: 1rem;
-        transition: all 0.3s ease;
-    }
-
-    .form-group input:focus,
-    .form-group select:focus,
-    .form-group textarea:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 2px rgba(243, 124, 34, 0.2);
-    }
-
-    .form-group input::placeholder,
-    .form-group textarea::placeholder {
-        color: #888;
-    }
-
-    /* Inputs con iconos */
-    .input-with-icon {
-        position: relative;
-        display: flex;
-        align-items: center;
-    }
-
-    .input-icon {
-        position: absolute;
-        left: 0.75rem;
-        color: var(--primary-color);
-        font-weight: bold;
-        z-index: 1;
-    }
-
-    .input-icon-right {
-        position: absolute;
-        right: 0.75rem;
-        color: var(--primary-color);
-        font-weight: bold;
-    }
-
-    .input-with-icon input {
-        padding-left: 2.5rem;
-    }
-
-    .input-with-icon input:has(~ .input-icon-right) {
-        padding-right: 2.5rem;
-        padding-left: 0.75rem;
-    }
+    /* Inputs con prefijo / sufijo */
+    .input-with-icon { position: relative; display: flex; align-items: center; }
+    .input-with-icon input { width: 100%; }
+    .input-icon, .input-icon-right { position: absolute; top: 50%; transform: translateY(-50%); font-weight: 700; color: var(--text-2); pointer-events: none; z-index: 1; }
+    .input-icon { left: .85rem; }
+    .input-icon-right { right: .85rem; }
+    .input-with-icon .input-icon + input { padding-left: 1.8rem; }
+    .input-with-icon input:has(+ .input-icon-right) { padding-right: 2.2rem; }
+    .monto-cambio-info { font-weight: 700; margin-top: .15rem; }
 
     /* Calculadoras */
-    .calculadora-pago,
-    .calculadora-fecha {
-        margin-top: 1rem;
-        padding: 1rem;
-        background-color: rgba(243, 124, 34, 0.1);
-        border: 1px solid rgba(243, 124, 34, 0.3);
-        border-radius: 8px;
-        text-align: center;
+    .calculadora-pago, .calculadora-fecha {
+        display: flex; align-items: center; gap: .75rem 1rem; flex-wrap: wrap; margin-top: .35rem;
+        padding: .75rem .85rem; border-radius: 12px; border: 1px dashed var(--border-strong); background: var(--surface-2);
     }
+    .calculadora-pago .help-text, .calculadora-fecha .help-text { margin: 0; }
+    .help-text { display: block; font-size: .78rem; color: var(--text-3); }
 
-    .help-text {
-        display: block;
-        margin-top: 0.5rem;
-        color: #bbb;
-        font-size: 0.8rem;
+    /* ---------- Acciones ---------- */
+    .credito-form .form-actions {
+        display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap;
+        margin-top: 1rem; padding: .9rem 1.1rem; border-radius: var(--radius-lg);
+        background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-sm);
     }
+    .actions-left, .actions-right { display: flex; gap: .5rem; flex-wrap: wrap; }
 
-    .monto-cambio-info {
-        font-weight: bold;
-        margin-top: 0.25rem;
-    }
+    /* ---------- Modales (usan el overlay global .modal) ---------- */
+    .modal { display: none; }
+    .modal .modal-header h3 { display: flex; align-items: center; gap: .5rem; }
+    .modal .modal-header h3 i { color: var(--brand); }
+    .modal .modal-header.warn { background: color-mix(in srgb, var(--warning) 12%, var(--surface)); border-bottom-color: color-mix(in srgb, var(--warning) 30%, var(--border)); }
+    .modal .modal-header.warn h3 i { color: var(--warning); }
+    .modal:not(.fade) .close { width: 40px; height: 40px; flex-shrink: 0; }
+    .modal .modal-body { max-height: 60vh; overflow-y: auto; }
+    .modal .modal-footer { flex-wrap: wrap; }
 
-    /* Botones */
-    .btn {
-        padding: 0.75rem 1.5rem;
-        border: none;
-        border-radius: 6px;
-        font-size: 0.9rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        white-space: nowrap;
-    }
+    /* Vista previa */
+    .preview-section { margin-bottom: .85rem; padding: .85rem 1rem; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); }
+    .preview-section:last-child { margin-bottom: 0; }
+    .preview-section h4 { margin: 0 0 .6rem; font-size: .74rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-2); }
+    .preview-item { display: flex; justify-content: space-between; gap: 1rem; padding: .4rem 0; border-bottom: 1px dashed var(--border); font-size: .88rem; }
+    .preview-item:last-child { border-bottom: 0; padding-bottom: 0; }
+    .preview-label { color: var(--text-2); }
+    .preview-value { color: var(--text); font-weight: 650; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 
-    .btn-primary {
-        background: linear-gradient(45deg, var(--primary-color), #e66a0a);
-        color: white;
-    }
-
-    .btn-primary:hover {
-        background: linear-gradient(45deg, #e66a0a, var(--primary-color));
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(243, 124, 34, 0.4);
-    }
-
-    .btn-secondary {
-        background: linear-gradient(45deg, var(--border-color), #555);
-        color: var(--text-color);
-    }
-
-    .btn-secondary:hover {
-        background: linear-gradient(45deg, #555, var(--border-color));
-    }
-
-    .btn-info {
-        background: linear-gradient(45deg, var(--info-color), #138496);
-        color: white;
-    }
-
-    .btn-info:hover {
-        background: linear-gradient(45deg, #138496, var(--info-color));
-    }
-
-    .btn-icon {
-        font-size: 1rem;
-    }
-
-    /* Acciones del formulario */
-    .form-actions {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 2rem;
-        padding-top: 2rem;
-        border-top: 1px solid var(--border-color);
-    }
-
-    .actions-left,
-    .actions-right {
-        display: flex;
-        gap: 1rem;
-    }
-
-    /* Modal */
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.8);
-    }
-
-    .modal-content {
-        background-color: var(--header-bg);
-        margin: 5% auto;
-        padding: 0;
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        width: 80%;
-        max-width: 600px;
-        max-height: 80vh;
-        overflow: hidden;
-    }
-
-    .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1.5rem;
-        border-bottom: 1px solid var(--border-color);
-        background: linear-gradient(135deg, var(--primary-color), #e66a0a);
-        color: white;
-    }
-
-    .modal-header h3 {
-        margin: 0;
-        font-size: 1.2rem;
-    }
-
-    .close {
-        color: white;
-        font-size: 2rem;
-        font-weight: bold;
-        cursor: pointer;
-        line-height: 1;
-    }
-
-    .close:hover {
-        opacity: 0.7;
-    }
-
-    .modal-body {
-        padding: 1.5rem;
-        max-height: 50vh;
-        overflow-y: auto;
-    }
-
-    .modal-footer {
-        display: flex;
-        justify-content: flex-end;
-        gap: 1rem;
-        padding: 1.5rem;
-        border-top: 1px solid var(--border-color);
-        background-color: var(--input-bg);
-    }
-
-    /* Preview content */
-    .preview-section {
-        margin-bottom: 1.5rem;
-        padding: 1rem;
-        background-color: var(--input-bg);
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-    }
-
-    .preview-section h4 {
-        margin: 0 0 1rem;
-        color: var(--primary-color);
-        font-size: 1rem;
-    }
-
-    .preview-item {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 0.5rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .preview-item:last-child {
-        border-bottom: none;
-        margin-bottom: 0;
-        padding-bottom: 0;
-    }
-
-    .preview-label {
-        color: #bbb;
-        font-size: 0.9rem;
-    }
-
-    .preview-value {
-        color: var(--text-color);
-        font-weight: 500;
-        text-align: right;
-    }
-
-    /* Modal de cambio de monto */
-    .warning-message {
-        text-align: center;
-    }
-
-    .warning-message p {
-        margin: 0.5rem 0;
-        color: var(--text-color);
-    }
-
-    .monto-comparison {
-        margin: 1.5rem 0;
-        padding: 1rem;
-        background-color: var(--header-bg);
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-    }
-
-    .monto-item {
-        display: flex;
-        justify-content: space-between;
-        padding: 0.5rem;
-        margin-bottom: 0.5rem;
-    }
-
-    .monto-item label {
-        color: #bbb;
-        font-weight: 600;
-    }
-
-    .monto-item span {
-        font-family: 'Courier New', monospace;
-        font-weight: bold;
-        color: var(--text-color);
-    }
-
-    .diferencia-item {
-        border-top: 2px solid var(--border-color);
-        padding-top: 0.75rem;
-        margin-top: 0.5rem;
-    }
-
-    .diferencia-item span {
-        font-size: 1.1rem;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-        .editar-credito-container {
-            padding: 1rem;
-        }
-
-        .form-header {
-            flex-direction: column;
-            gap: 1rem;
-            text-align: center;
-        }
-
-        .form-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .form-actions {
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .actions-left,
-        .actions-right {
-            justify-content: center;
-            width: 100%;
-        }
-
-        .modal-content {
-            width: 95%;
-            margin: 10% auto;
-        }
-    }
-
-    /* Animaciones */
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .form-section {
-        animation: fadeIn 0.5s ease-out;
-    }
-
-    /* Validación de formulario */
-    .form-group input:invalid,
-    .form-group select:invalid {
-        border-color: var(--error-color);
-    }
-
-    .form-group input:valid,
-    .form-group select:valid {
-        border-color: var(--success-color);
-    }
+    /* Cambio de monto */
+    .warning-message { text-align: left; }
+    .warning-message p { margin: .25rem 0; color: var(--text); }
+    .monto-comparison { margin: 1rem 0; padding: .35rem 1rem; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); }
+    .monto-item { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .55rem 0; border-bottom: 1px dashed var(--border); }
+    .monto-item:last-child { border-bottom: 0; }
+    .monto-item label { color: var(--text-2); font-weight: 600; }
+    .monto-item span { font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+    .diferencia-item span { font-size: 1.08rem; }
 
     /* Campo resaltado cuando cambia */
-    .campo-modificado {
-        animation: pulseGlow 0.5s ease-in-out;
+    .campo-modificado { animation: pulseGlow .5s ease-in-out; }
+    @keyframes pulseGlow {
+        0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--warning) 0%, transparent); }
+        50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--warning) 28%, transparent); }
     }
 
-    @keyframes pulseGlow {
-        0%, 100% {
-            box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
-        }
-        50% {
-            box-shadow: 0 0 0 10px rgba(255, 193, 7, 0.3);
-        }
+    /* ---------- Responsive ---------- */
+    @media (max-width: 760px) {
+        .page-head h1 { font-size: 1.35rem; }
+        .page-actions, .page-actions .btn { width: 100%; }
+        .info-actual .info-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+        .info-actual .info-item:last-child { grid-column: 1 / -1; }
+        .credito-form .form-grid { grid-template-columns: minmax(0, 1fr); }
+        .calculadora-pago .btn, .calculadora-fecha .btn { width: 100%; }
+        .credito-form .form-actions { flex-direction: column-reverse; align-items: stretch; }
+        .actions-left, .actions-right { flex-direction: column-reverse; }
+        .actions-left .btn, .actions-right .btn { width: 100%; }
+        .modal .modal-footer .btn { flex: 1 1 auto; }
+        .form-group input, .form-group select, .form-group textarea { font-size: 16px; } /* evita zoom en iOS */
     }
 </style>
 
@@ -911,7 +505,7 @@
                 motivoInput.required = true;
 
                 const diferencia = montoNuevo - montoOriginal;
-                const signo = diferencia > 0 ? '+' : '';
+                const signo = diferencia > 0 ? '+' : (diferencia < 0 ? '−' : '');  // antes el negativo se mostraba sin signo
                 montoCambioInfo.style.display = 'block';
                 montoCambioInfo.textContent = `⚠️ Cambio detectado: ${signo}$${Math.abs(diferencia).toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
 
@@ -940,7 +534,7 @@
                     '$' + montoNuevo.toLocaleString('es-MX', {minimumFractionDigits: 2});
 
                 const diferenciaSpan = document.getElementById('monto-diferencia-modal');
-                const signo = diferencia > 0 ? '+' : '';
+                const signo = diferencia > 0 ? '+' : (diferencia < 0 ? '−' : '');  // antes el negativo se mostraba sin signo
                 diferenciaSpan.textContent = signo + '$' + Math.abs(diferencia).toLocaleString('es-MX', {minimumFractionDigits: 2});
                 diferenciaSpan.style.color = diferencia > 0 ? 'var(--success-color)' : 'var(--error-color)';
 

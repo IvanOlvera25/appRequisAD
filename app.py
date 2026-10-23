@@ -838,13 +838,52 @@ def _build_filters(estado_filtro: str, busqueda: str, criterio: str):
     where_sql = ("WHERE " + " AND ".join(where)) if where else ""
     return where_sql, params
 
-def _panel_where(estado_filtro="", busqueda="", criterio="todos"):
+# Estados que ya no requieren pago (todo lo demás cuenta como "abierto")
+ESTADOS_CERRADOS = ("Liquidado", "Liquidacion total", "Declinada")
+
+
+def _panel_where(estado_filtro="", busqueda="", criterio="todos", tipo_pago="", departamento="",
+                 desde="", hasta="", vence="", sid=None):
     """
     WHERE de los filtros del panel admin (estado + búsqueda por criterio).
     Lo usan el panel y la exportación a Excel para que traigan lo mismo.
+    Filtros opcionales: tipo_pago, departamento, desde/hasta (fecha de solicitud,
+    YYYY-MM-DD), vence (vencidas | hoy | semana | mes, solo solicitudes abiertas)
+    y sid (id exacto).
     """
     where_clauses = []
     params = []
+
+    if sid:
+        where_clauses.append("id = ?")
+        params.append(sid)
+    if tipo_pago:
+        where_clauses.append("tipo_pago = ?")
+        params.append(tipo_pago)
+    if departamento:
+        where_clauses.append("departamento = ?")
+        params.append(departamento)
+    if desde:
+        where_clauses.append("substr(fecha, 1, 10) >= ?")
+        params.append(desde)
+    if hasta:
+        where_clauses.append("substr(fecha, 1, 10) <= ?")
+        params.append(hasta)
+    if vence in ("vencidas", "hoy", "semana", "mes"):
+        hoy = datetime.now().strftime("%Y-%m-%d")
+        where_clauses.append(f"estado NOT IN ({','.join('?' * len(ESTADOS_CERRADOS))})")
+        params.extend(ESTADOS_CERRADOS)
+        where_clauses.append("fecha_limite IS NOT NULL AND fecha_limite <> ''")
+        if vence == "vencidas":
+            where_clauses.append("fecha_limite < ?")
+            params.append(hoy)
+        elif vence == "hoy":
+            where_clauses.append("substr(fecha_limite, 1, 10) = ?")
+            params.append(hoy)
+        else:
+            dias = 7 if vence == "semana" else 30
+            where_clauses.append("substr(fecha_limite, 1, 10) BETWEEN ? AND ?")
+            params.extend([hoy, (datetime.now() + timedelta(days=dias)).strftime("%Y-%m-%d")])
 
     if estado_filtro:
         where_clauses.append("estado = ?")
@@ -884,24 +923,38 @@ def _panel_where(estado_filtro="", busqueda="", criterio="todos"):
     return where_sql, params
 
 
-def query_solicitudes_paginated(page=1, page_size=PAGE_SIZE_DEFAULT, estado_filtro="", busqueda="", criterio="todos"):
+# Orden del listado del panel (clave → ORDER BY)
+ORDENES_PANEL = {
+    "recientes": "fecha DESC",
+    "antiguas": "fecha ASC",
+    "vence": "CASE WHEN fecha_limite IS NULL OR fecha_limite = '' THEN 1 ELSE 0 END, fecha_limite ASC, fecha DESC",
+    "monto_desc": "monto DESC",
+    "monto_asc": "monto ASC",
+}
+
+
+def query_solicitudes_paginated(page=1, page_size=PAGE_SIZE_DEFAULT, estado_filtro="", busqueda="", criterio="todos",
+                                orden="recientes", **filtros):
     """
     Consulta paginada de solicitudes con filtros, búsqueda y contadores por estado.
     Incluye soporte para los 3 nuevos tipos de archivos.
+    filtros: tipo_pago, departamento, desde, hasta, vence, sid (ver _panel_where).
     """
     conn = get_db_connection()
-    where_sql, params = _panel_where(estado_filtro, busqueda, criterio)
+    where_sql, params = _panel_where(estado_filtro, busqueda, criterio, **filtros)
 
     # --- Contadores por estado ---
+    # Se calculan SIN el filtro de estado para que cada pestaña muestre su conteo real
+    where_counts, params_counts = _panel_where("", busqueda, criterio, **filtros)
     counts_query = f"""
         SELECT
             LOWER(estado) as estado,
             COUNT(*) as total
         FROM solicitudes
-        {where_sql}
+        {where_counts}
         GROUP BY LOWER(estado)
     """
-    rows_counts = conn.execute(counts_query, params).fetchall()
+    rows_counts = conn.execute(counts_query, params_counts).fetchall()
     counts = {row["estado"]: row["total"] for row in rows_counts}
 
     # Total de registros
@@ -922,10 +975,11 @@ def query_solicitudes_paginated(page=1, page_size=PAGE_SIZE_DEFAULT, estado_filt
             banco, clabe, beneficiario, referencia, descripcion, datos_deposito,
             anticipo, porcentaje_anticipo, monto_anticipo, monto_restante, tipo_anticipo,
             tiene_comision, porcentaje_comision, monto_sin_comision, monto_comision,
-            historial_estados, fecha_aprobado, fecha_liquidado, fecha_ultimo_cambio
+            historial_estados, fecha_aprobado, fecha_liquidado, fecha_ultimo_cambio,
+            creado_por, ip_origen
         FROM solicitudes
         {where_sql}
-        ORDER BY fecha DESC
+        ORDER BY {ORDENES_PANEL.get(orden, ORDENES_PANEL["recientes"])}
         LIMIT ? OFFSET ?
     """
     # ===== FIN ACTUALIZADO =====
@@ -1443,6 +1497,196 @@ def compute_next_due_date(fecha_proximo_pago_str: str, periodicidad: str) -> str
             nd = date(d.year + 1, d.month, 28)
     return nd.strftime("%Y-%m-%d")
 
+# === SOLICITUDES AUTOMÁTICAS DE PAGOS RECURRENTES ===
+# Cada pago recurrente activo genera su solicitud de pago (estado Pendiente) cuando
+# su fecha de pago entra en los próximos DIAS_ANTICIPACION_RECURRENTES días, y en el
+# mismo paso avanza a la siguiente fecha según su periodicidad.
+# Lo ejecuta `tareas.py recurrentes` (tarea diaria en PythonAnywhere) o el botón
+# "Generar solicitudes ahora" de la página de pagos recurrentes.
+DIAS_ANTICIPACION_RECURRENTES = 14
+# Fechas ya vencidas hasta hace este número de días también generan solicitud; las
+# más viejas solo se avanzan (evita crear decenas de solicitudes por fechas atrasadas).
+DIAS_GRACIA_RECURRENTES = 14
+CREADO_POR_RECURRENTE = "Automático (pago recurrente)"
+
+
+def _asegurar_columnas_recurrentes(conn):
+    """Columnas para registrar la última solicitud generada por cada recurrente."""
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(pagos_recurrentes)")}
+    cambios = [
+        ("ultima_solicitud_id", "INTEGER"),
+        ("ultima_solicitud_para_fecha", "TEXT"),   # fecha de pago que cubrió
+        ("ultima_solicitud_creada", "TEXT"),       # cuándo se generó
+    ]
+    for col, tipo in cambios:
+        if col not in cols:
+            conn.execute(f"ALTER TABLE pagos_recurrentes ADD COLUMN {col} {tipo}")
+    conn.commit()
+
+
+def _solicitud_existente_recurrente(conn, destinatario, monto, fecha_pago, periodicidad):
+    """
+    Busca una solicitud ya capturada (a mano o automática) para este mismo pago:
+    mismo destinatario, monto ±$1 y fecha límite cercana; en pagos mensuales o más
+    largos también cuenta una creada en los últimos 20 días. Evita duplicados al
+    activar la automatización. La ventana es menor en semanales/quincenales para no
+    confundir el pago de la semana anterior con el actual.
+    """
+    margen = {"semanal": 3, "quincenal": 6}.get(periodicidad, 10)
+    desde = (fecha_pago - timedelta(days=margen)).strftime("%Y-%m-%d")
+    hasta = (fecha_pago + timedelta(days=margen)).strftime("%Y-%m-%d")
+    # Para semanal/quincenal se usa una fecha imposible: solo aplica la ventana de fecha límite
+    creada_desde = ((datetime.now() - timedelta(days=20)).strftime("%Y-%m-%d")
+                    if periodicidad not in ("semanal", "quincenal") else "9999-12-31")
+    return conn.execute("""
+        SELECT id, fp, estado, fecha_limite FROM solicitudes
+         WHERE LOWER(TRIM(destinatario)) = LOWER(TRIM(?))
+           AND (ABS(monto - ?) <= 1 OR ABS(monto_sin_comision - ?) <= 1)
+           AND estado <> 'Declinada'
+           AND (substr(fecha_limite, 1, 10) BETWEEN ? AND ? OR substr(fecha, 1, 10) >= ?)
+         ORDER BY id DESC LIMIT 1
+    """, (destinatario, monto, monto, desde, hasta, creada_desde)).fetchone()
+
+
+def _insertar_solicitud_recurrente(conn, r, fecha_pago_str):
+    """Crea la solicitud (Pendiente) de un pago recurrente. Devuelve (id, datos)."""
+    tipo_pago = (r.get("metodo_pago") or "").strip()
+    monto_base = round(float(r.get("monto") or 0), 2)
+    # Misma regla de comisión que el formulario de solicitud
+    tiene_comision = 1 if tipo_pago == "BBVA Sin factura" else 0
+    if tiene_comision:
+        monto = round(monto_base / 0.94, 2)
+        monto_comision = round(monto - monto_base, 2)
+    else:
+        monto, monto_comision = monto_base, 0.0
+    destinatario = (r.get("proveedor") or r.get("nombre") or "").strip()
+    descripcion = (f"Pago recurrente {r.get('periodicidad', '')} «{r.get('nombre', '')}» "
+                   f"con fecha de pago {fecha_pago_str}. {r.get('descripcion') or ''}").strip()
+    datos = {
+        "fp": f"REC-{r['id']}",
+        "nombre": "Pago recurrente (automático)",
+        "destinatario": destinatario,
+        "correo": ", ".join(get_recipients(r.get("correos") or "")),
+        "departamento": "Administracion",
+        "tipo_solicitud": "Administrativos",
+        "categoria_administrativa": "Pago recurrente",
+        "tipo_pago": tipo_pago,
+        "descripcion": descripcion,
+        "datos_deposito": "",
+        "banco": r.get("banco") or "",
+        "clabe": r.get("clabe") or "",
+        "beneficiario": destinatario,
+        "referencia": "",
+        "monto": monto,
+        "monto_sin_comision": monto_base,
+        "tiene_comision": tiene_comision,
+        "porcentaje_comision": 6.0 if tiene_comision else 0.0,
+        "monto_comision": monto_comision,
+        "estado": "Pendiente",
+        "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "fecha_limite": fecha_pago_str,
+        "anticipo": "No",
+        "porcentaje_anticipo": 0.0,
+        "monto_anticipo": 0.0,
+        "monto_restante": monto,
+        "tipo_anticipo": "porcentaje",
+        "creado_por": CREADO_POR_RECURRENTE,
+    }
+    cols = list(datos.keys())
+    cur = conn.execute(
+        f"INSERT INTO solicitudes ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})",
+        [datos[c] for c in cols])
+    return cur.lastrowid, datos
+
+
+def generar_solicitudes_recurrentes(simular=False, hoy=None):
+    """
+    Genera las solicitudes de los pagos recurrentes que vencen en los próximos
+    DIAS_ANTICIPACION_RECURRENTES días y avanza su fecha. Con simular=True no
+    escribe nada; solo devuelve lo que haría.
+    Devuelve {"creadas": [...], "omitidas": [...], "saltadas": n, "errores": [...]}.
+    """
+    hoy = hoy or datetime.now().date()
+    limite = hoy + timedelta(days=DIAS_ANTICIPACION_RECURRENTES)
+    gracia = hoy - timedelta(days=DIAS_GRACIA_RECURRENTES)
+    res = {"creadas": [], "omitidas": [], "saltadas": 0, "errores": [], "simulacion": simular}
+    nuevas = []
+
+    conn = get_db_connection()
+    try:
+        _asegurar_columnas_recurrentes(conn)
+        rows = conn.execute("SELECT * FROM pagos_recurrentes WHERE activo = 1 ORDER BY fecha_proximo_pago").fetchall()
+        for row in rows:
+            r = dict(row)
+            try:
+                fecha = datetime.strptime((r.get("fecha_proximo_pago") or "")[:10], "%Y-%m-%d").date()
+            except ValueError:
+                res["errores"].append(f"#{r['id']} {r.get('nombre')}: fecha inválida '{r.get('fecha_proximo_pago')}'")
+                continue
+            fecha_inicial = fecha
+            ultima = {}
+            try:
+                vueltas = 0
+                while fecha <= limite and vueltas < 200:   # semanal/quincenal pueden caer 2 veces en la ventana
+                    vueltas += 1
+                    fecha_str = fecha.strftime("%Y-%m-%d")
+                    item = {"recurrente_id": r["id"], "concepto": r.get("nombre"), "destinatario": r.get("proveedor") or r.get("nombre"),
+                            "monto": float(r.get("monto") or 0), "fecha_pago": fecha_str}
+                    if fecha < gracia:
+                        res["saltadas"] += 1                       # vencida hace mucho: solo se avanza
+                    elif r.get("ultima_solicitud_para_fecha") == fecha_str:
+                        pass                                       # ya se generó en una corrida anterior
+                    else:
+                        dup = _solicitud_existente_recurrente(conn, item["destinatario"], item["monto"], fecha, r["periodicidad"])
+                        if dup:
+                            item["solicitud_id"] = dup["id"]
+                            item["motivo"] = f"ya existe la solicitud #{dup['id']} (FP {dup['fp']}, {dup['estado']})"
+                            res["omitidas"].append(item)
+                        elif simular:
+                            res["creadas"].append(item)
+                        else:
+                            sid, datos = _insertar_solicitud_recurrente(conn, r, fecha_str)
+                            item["solicitud_id"] = sid
+                            res["creadas"].append(item)
+                            nuevas.append(datos)
+                            ultima = {"id": sid, "fecha": fecha_str}
+                    fecha = datetime.strptime(compute_next_due_date(fecha_str, r["periodicidad"]), "%Y-%m-%d").date()
+
+                if not simular and fecha != fecha_inicial:
+                    # Solicitud(es) + nueva fecha se guardan juntas (un commit por recurrente)
+                    conn.execute(
+                        "UPDATE pagos_recurrentes SET fecha_proximo_pago=?, ultimo_recordatorio_para_fecha=NULL WHERE id=?",
+                        (fecha.strftime("%Y-%m-%d"), r["id"]))
+                    if ultima:
+                        conn.execute(
+                            "UPDATE pagos_recurrentes SET ultima_solicitud_id=?, ultima_solicitud_para_fecha=?, ultima_solicitud_creada=? WHERE id=?",
+                            (ultima["id"], ultima["fecha"], datetime.now().strftime("%Y-%m-%d %H:%M:%S"), r["id"]))
+                    conn.commit()
+            except Exception as e:
+                conn.rollback()
+                res["errores"].append(f"#{r['id']} {r.get('nombre')}: {e}")
+    finally:
+        conn.close()
+
+    # Correos fuera de la transacción: el mismo aviso que una solicitud capturada a mano
+    for datos in nuevas:
+        try:
+            send_notification_email(datos)
+        except Exception as e:
+            print(f"[recurrentes] No se pudo enviar el aviso de {datos.get('fp')}: {e}")
+
+    print(f"[recurrentes] {'SIMULACIÓN · ' if simular else ''}creadas={len(res['creadas'])} "
+          f"omitidas={len(res['omitidas'])} vencidas_antiguas_saltadas={res['saltadas']} errores={len(res['errores'])}")
+    for it in res["creadas"]:
+        print(f"  + {it['fecha_pago']} {it['destinatario']} ${it['monto']:,.2f} (recurrente #{it['recurrente_id']})"
+              + (f" -> solicitud #{it['solicitud_id']}" if it.get('solicitud_id') else ""))
+    for it in res["omitidas"]:
+        print(f"  = {it['fecha_pago']} {it['destinatario']} ${it['monto']:,.2f}: {it['motivo']}")
+    for err in res["errores"]:
+        print(f"  ! {err}")
+    return res
+
+
 def send_recurring_payment_reminder(row: dict) -> bool:
     """Email de recordatorio de pago recurrente"""
 
@@ -1552,15 +1796,26 @@ def check_recurring_payment_reminders():
             due_date = datetime.strptime(r['fecha_proximo_pago'], "%Y-%m-%d").date()
             dias = int(r.get('dias_recordatorio') or 2)
 
-            # 1) Enviar recordatorio si estamos en ventana y no se ha enviado para esta fecha
-            if 0 <= (due_date - today).days <= dias:
-                if (r.get('ultimo_recordatorio_para_fecha') or "") != r['fecha_proximo_pago']:
-                    if send_recurring_payment_reminder(r):
+            # 1) Enviar recordatorio si estamos en ventana y no se ha enviado para esta fecha.
+            #    Con las solicitudes automáticas la fecha próxima avanza 14 días antes del
+            #    pago, así que también se revisa la fecha que ya tiene solicitud generada.
+            fechas = [r['fecha_proximo_pago']]
+            if r.get('ultima_solicitud_para_fecha'):
+                fechas.insert(0, r['ultima_solicitud_para_fecha'])
+            for fecha_rec in fechas:
+                try:
+                    f_rec = datetime.strptime(fecha_rec[:10], "%Y-%m-%d").date()
+                except ValueError:
+                    continue
+                if 0 <= (f_rec - today).days <= dias and (r.get('ultimo_recordatorio_para_fecha') or "") != fecha_rec:
+                    if send_recurring_payment_reminder({**r, 'fecha_proximo_pago': fecha_rec}):
                         conn.execute(
                             "UPDATE pagos_recurrentes SET fecha_ultimo_recordatorio=?, ultimo_recordatorio_para_fecha=? WHERE id=?",
-                            (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), r['fecha_proximo_pago'], r['id'])
+                            (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), fecha_rec, r['id'])
                         )
                         conn.commit()
+                        r['ultimo_recordatorio_para_fecha'] = fecha_rec
+                    break
 
             # 2) Si la fecha ya pasó, avanzar a la siguiente
             if today > due_date:
@@ -1581,12 +1836,23 @@ def pagos_recurrentes():
         flash("No tienes permiso para acceder a Pagos Recurrentes.", "error")
         return redirect(url_for("admin_dashboard"))
     conn = get_db_connection()
+    _asegurar_columnas_recurrentes(conn)
     rows = conn.execute(
         "SELECT * FROM pagos_recurrentes ORDER BY activo DESC, fecha_proximo_pago ASC, nombre ASC"
     ).fetchall()
     conn.close()
     pagos = [dict(r) for r in rows]
-    return render_template("pagos_recurrentes.html", pagos=pagos)
+    hoy = datetime.now().date()
+    for p in pagos:
+        # Día en que se generará la solicitud de la próxima fecha
+        try:
+            prox = datetime.strptime((p.get("fecha_proximo_pago") or "")[:10], "%Y-%m-%d").date()
+            p["auto_fecha"] = (prox - timedelta(days=DIAS_ANTICIPACION_RECURRENTES)).strftime("%Y-%m-%d")
+            p["auto_pendiente"] = prox <= hoy + timedelta(days=DIAS_ANTICIPACION_RECURRENTES)
+        except ValueError:
+            p["auto_fecha"], p["auto_pendiente"] = None, False
+    return render_template("pagos_recurrentes.html", pagos=pagos, dias_anticipacion=DIAS_ANTICIPACION_RECURRENTES,
+                           rec_resultado=session.pop("rec_resultado", None))
 
 @app.route("/pagos_recurrentes/nuevo", methods=["POST"])
 def crear_pago_recurrente():
@@ -1745,6 +2011,37 @@ def avanzar_fecha_pago_recurrente(pid):
     conn.close()
     flash("Fecha próxima actualizada.", "success")
     return redirect(url_for("pagos_recurrentes"))
+
+@app.route("/pagos_recurrentes/generar", methods=["POST"])
+def generar_solicitudes_recurrentes_ahora():
+    if not session.get("admin_logged_in") or session.get("role") != "admin":
+        flash("No tienes permiso.", "error")
+        return redirect(url_for("admin_dashboard"))
+    simular = request.form.get("simular") == "1"
+    try:
+        res = generar_solicitudes_recurrentes(simular=simular)
+    except Exception as e:
+        flash(f"Error generando solicitudes: {e}", "error")
+        return redirect(url_for("pagos_recurrentes"))
+    # Resumen para la página (acotado: la sesión vive en una cookie)
+    session["rec_resultado"] = {
+        "simulacion": simular,
+        "creadas": res["creadas"][:25],
+        "omitidas": res["omitidas"][:25],
+        "n_creadas": len(res["creadas"]),
+        "n_omitidas": len(res["omitidas"]),
+        "saltadas": res["saltadas"],
+        "errores": res["errores"][:10],
+    }
+    if simular:
+        flash(f"Vista previa: se crearían {len(res['creadas'])} solicitud(es).", "info")
+    elif res["creadas"]:
+        flash(f"Se crearon {len(res['creadas'])} solicitud(es) de pago.", "success")
+    else:
+        flash("No había pagos por generar en los próximos "
+              f"{DIAS_ANTICIPACION_RECURRENTES} días.", "info")
+    return redirect(url_for("pagos_recurrentes"))
+
 
 @app.route("/admin/run_recurring_reminders_now")
 def run_recurring_reminders_now():
@@ -3125,6 +3422,110 @@ def actualizar_flujo():
     except ValueError:
         flash("Valor no válido.", "error")
     return redirect(url_for("admin_dashboard"))
+@app.template_global()
+def panel_url(_endpoint="admin_dashboard", **cambios):
+    """
+    URL del panel conservando los filtros actuales de la URL, con `cambios`
+    aplicados. Un valor None o "" quita ese parámetro (p. ej. p=None).
+    """
+    args = request.args.to_dict()
+    args.update(cambios)
+    args = {k: v for k, v in args.items() if v not in (None, "")}
+    return url_for(_endpoint, **args)
+
+
+_MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
+
+
+@app.template_filter("fecha_corta")
+def fecha_corta(valor, con_anio=None):
+    """'2026-10-24[ hh:mm:ss]' -> '24 oct' (o '24 oct 2025' si no es del año actual)."""
+    try:
+        d = datetime.strptime(str(valor or "")[:10], "%Y-%m-%d")
+    except ValueError:
+        return valor or ""
+    anio = con_anio if con_anio is not None else d.year != datetime.now().year
+    return f"{d.day} {_MESES_CORTOS[d.month - 1]}" + (f" {d.year}" if anio else "")
+
+
+def _filtros_extra_request():
+    """Filtros opcionales del panel tomados de la URL (ver _panel_where)."""
+    def _fecha(v):
+        v = (v or "").strip()
+        try:
+            return datetime.strptime(v, "%Y-%m-%d").strftime("%Y-%m-%d")
+        except ValueError:
+            return ""
+    try:
+        sid = int(request.args.get("sid") or 0) or None
+    except ValueError:
+        sid = None
+    vence = (request.args.get("vence") or "").strip().lower()
+    return {
+        "tipo_pago": (request.args.get("tipo_pago") or "").strip(),
+        "departamento": (request.args.get("departamento") or "").strip(),
+        "desde": _fecha(request.args.get("desde")),
+        "hasta": _fecha(request.args.get("hasta")),
+        "vence": vence if vence in ("vencidas", "hoy", "semana", "mes") else "",
+        "sid": sid,
+    }
+
+
+def _panel_resumen():
+    """
+    Indicadores del panel y lista de pagos abiertos vencidos / por vencer en 7 días.
+    Solo lectura; no depende de los filtros del listado.
+    """
+    hoy = datetime.now().strftime("%Y-%m-%d")
+    en7 = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
+    mes = datetime.now().strftime("%Y-%m")
+    cerrados = ",".join("?" * len(ESTADOS_CERRADOS))
+    abierta = f"estado NOT IN ({cerrados}) AND fecha_limite IS NOT NULL AND fecha_limite <> ''"
+    conn = get_db_connection()
+    try:
+        def agg(where, params=()):
+            r = conn.execute(f"SELECT COUNT(*) n, COALESCE(SUM(monto), 0) total FROM solicitudes WHERE {where}", params).fetchone()
+            return {"n": r["n"], "total": float(r["total"] or 0)}
+
+        resumen = {
+            "pendientes": agg("estado = 'Pendiente'"),
+            "por_pagar": agg("estado IN ('Aprobado', 'Aprobado con anticipo')"),
+            "vencidas": agg(f"{abierta} AND fecha_limite < ?", (*ESTADOS_CERRADOS, hoy)),
+            "semana": agg(f"{abierta} AND substr(fecha_limite, 1, 10) BETWEEN ? AND ?", (*ESTADOS_CERRADOS, hoy, en7)),
+            "liquidado_mes": agg("estado IN ('Liquidado', 'Liquidacion total', 'Liquidado con anticipo') "
+                                 "AND substr(COALESCE(NULLIF(fecha_liquidado, ''), fecha_ultimo_cambio, ''), 1, 7) = ?", (mes,)),
+        }
+
+        cols = "id, fp, nombre, destinatario, monto, estado, fecha_limite, tipo_pago, anticipo"
+        vencidas = conn.execute(
+            f"SELECT {cols} FROM solicitudes WHERE {abierta} AND fecha_limite < ? ORDER BY fecha_limite DESC LIMIT 8",
+            (*ESTADOS_CERRADOS, hoy)).fetchall()
+        proximas = conn.execute(
+            f"SELECT {cols} FROM solicitudes WHERE {abierta} AND substr(fecha_limite, 1, 10) BETWEEN ? AND ? "
+            "ORDER BY fecha_limite ASC, monto DESC LIMIT 12",
+            (*ESTADOS_CERRADOS, hoy, en7)).fetchall()
+
+        opciones = {
+            "tipos_pago": [r[0] for r in conn.execute(
+                "SELECT DISTINCT tipo_pago FROM solicitudes WHERE tipo_pago IS NOT NULL AND tipo_pago <> '' ORDER BY tipo_pago")],
+            "departamentos": [r[0] for r in conn.execute(
+                "SELECT DISTINCT departamento FROM solicitudes WHERE departamento IS NOT NULL AND departamento <> '' ORDER BY departamento")],
+        }
+    finally:
+        conn.close()
+
+    def _item(r):
+        d = dict(r)
+        try:
+            d["dias"] = (datetime.strptime((d.get("fecha_limite") or "")[:10], "%Y-%m-%d").date() - datetime.now().date()).days
+        except ValueError:
+            d["dias"] = None
+        d["monto"] = float(d.get("monto") or 0)
+        return d
+
+    return resumen, {"vencidas": [_item(r) for r in vencidas], "proximas": [_item(r) for r in proximas]}, opciones
+
+
 @app.route("/admin_dashboard", methods=["GET", "POST"], endpoint="admin_dashboard")
 def admin_dashboard():
     if not session.get("admin_logged_in"):
@@ -3133,16 +3534,27 @@ def admin_dashboard():
     estado_filtro = (request.args.get("estado") or "").strip()
     busqueda = (request.args.get("busqueda") or "").strip()
     criterio_busqueda = (request.args.get("criterio_busqueda") or "todos").strip().lower()
-    page = int(request.args.get("p", 1))
-    page_size = int(request.args.get("page_size", PAGE_SIZE_DEFAULT))
+    try:
+        page = int(request.args.get("p", 1))
+        page_size = int(request.args.get("page_size", PAGE_SIZE_DEFAULT))
+    except ValueError:
+        page, page_size = 1, PAGE_SIZE_DEFAULT
+    page_size = max(5, min(page_size, 100))
+    orden = (request.args.get("orden") or "recientes").strip()
+    if orden not in ORDENES_PANEL:
+        orden = "recientes"
+    filtros = _filtros_extra_request()
 
     data = query_solicitudes_paginated(
         page=page,
         page_size=page_size,
         estado_filtro=estado_filtro,
         busqueda=busqueda,
-        criterio=criterio_busqueda
+        criterio=criterio_busqueda,
+        orden=orden,
+        **filtros
     )
+    resumen, por_vencer, opciones = _panel_resumen()
 
     def _empty(v):
         return v is None or (isinstance(v, str) and v.strip() == "")
@@ -3213,6 +3625,8 @@ def admin_dashboard():
             "fecha_liquidado": row.get("fecha_liquidado", ""),
             "fecha_ultimo_cambio": row.get("fecha_ultimo_cambio", ""),
             # ===== FIN NUEVO =====
+            "creado_por": row.get("creado_por") or "",
+            "ip_origen": row.get("ip_origen") or "",
         }
         items.append(it)
 
@@ -3321,6 +3735,14 @@ def admin_dashboard():
                           "porcentaje_comision","monto_sin_comision","monto_comision","monto"):
                     it[k] = _f(it.get(k))
 
+    hoy_d = datetime.now().date()
+    for it in items:
+        try:
+            it["dias_limite"] = (datetime.strptime((it.get("fecha_limite") or "")[:10], "%Y-%m-%d").date() - hoy_d).days
+        except ValueError:
+            it["dias_limite"] = None
+        it["abierta"] = it.get("estado") not in ESTADOS_CERRADOS
+
     return render_template(
         "admin_dashboard.html",
         solicitudes=items,
@@ -3332,7 +3754,13 @@ def admin_dashboard():
         page_size=data["page_size"],
         total_pages=data["total_pages"],
         total_count=data["total_count"],
-        counts=data["counts"]
+        counts=data["counts"],
+        orden=orden,
+        filtros=filtros,
+        resumen=resumen,
+        por_vencer=por_vencer,
+        opciones=opciones,
+        hoy=datetime.now().strftime("%Y-%m-%d"),
     )
 
 @app.route("/admin/solicitudes.json")
@@ -3487,7 +3915,20 @@ def ver_historial():
                                 busqueda in s["nombre"].strip().lower() or
                                 busqueda in str(s["monto"]).strip().lower()]
 
-    return render_template("admin_historial.html", solicitudes=solicitudes_list)
+    # Paginación: antes se dibujaban todas (~2,400 filas, ~4 MB de HTML)
+    total_count = len(solicitudes_list)
+    try:
+        page = max(1, int(request.args.get("p", 1)))
+        page_size = int(request.args.get("page_size", 50))
+    except ValueError:
+        page, page_size = 1, 50
+    page_size = max(10, min(page_size, 200))
+    total_pages = max(1, -(-total_count // page_size))
+    page = min(page, total_pages)
+    solicitudes_list = solicitudes_list[(page - 1) * page_size: page * page_size]
+
+    return render_template("admin_historial.html", solicitudes=solicitudes_list, page=page,
+                           page_size=page_size, total_pages=total_pages, total_count=total_count)
 
 @app.route("/solicitudes/<int:sid>.json")
 def solicitud_json(sid):
@@ -3622,7 +4063,8 @@ def exportar_solicitudes():
     estado_filtro = (request.args.get("estado") or "").strip()
     busqueda = (request.args.get("busqueda") or "").strip()
     criterio = (request.args.get("criterio_busqueda") or "todos").strip().lower()
-    where_sql, params = _panel_where(estado_filtro, busqueda, criterio)
+    extra = _filtros_extra_request()
+    where_sql, params = _panel_where(estado_filtro, busqueda, criterio, **extra)
 
     conn = get_db_connection()
     rows = conn.execute(f"SELECT * FROM solicitudes {where_sql} ORDER BY fecha DESC", params).fetchall()
@@ -3673,6 +4115,9 @@ def exportar_solicitudes():
     if busqueda:
         filtros.append(f"{criterio.capitalize() if criterio != 'todos' else 'Búsqueda'}: {busqueda}")
     filtros.append(f"Estado: {estado_filtro or 'Todos'}")
+    etiquetas = {"tipo_pago": "Tipo de pago", "departamento": "Departamento", "desde": "Desde",
+                 "hasta": "Hasta", "vence": "Vencimiento"}
+    filtros.extend(f"{etiquetas[k]}: {v}" for k, v in extra.items() if v and k in etiquetas)
     ws.write_string(0, 0, "Concentrado de solicitudes de pago", f_titulo)
     ws.write_string(1, 0, f"{' · '.join(filtros)} · {len(rows)} registros · generado {datetime.now():%Y-%m-%d %H:%M}", f_sub)
 
@@ -9225,6 +9670,63 @@ def _start_alerts_once():
         start_alerts_scheduler()
     except Exception as e:
         print(f"[alerts] error start once: {e}")
+
+# === ASISTENTE IA (interfaz lista; falta conectar OpenAI) ===
+# El panel del asistente (templates/partials/asistente.html + static/js/asistente.js)
+# solo lo ven administradores. Para hacerlo funcional:
+#   1. Definir OPENAI_API_KEY en el entorno del servidor (pestaña Web de PythonAnywhere).
+#   2. Implementar asistente_chat con la API de OpenAI usando "tools" de solo lectura
+#      (buscar solicitudes, resumen por estado/destinatario, próximos a vencer) que
+#      reutilicen _panel_where / _panel_resumen.
+#   3. Para cambios de estado, la IA NO modifica nada: devuelve "acciones" propuestas
+#      ({tipo: 'cambiar_estado', solicitud_id, fp, destinatario, monto, estado_actual,
+#      estado_nuevo}); el usuario confirma en la tarjeta y asistente_accion aplica el
+#      cambio con la misma lógica que /actualizar_estado (historial, fechas y correos).
+def _asistente_configurado():
+    return bool(os.environ.get("OPENAI_API_KEY"))
+
+
+def _asistente_autorizado():
+    return session.get("admin_logged_in") and session.get("role") == "admin"
+
+
+@app.route("/asistente/estado")
+def asistente_estado():
+    if not _asistente_autorizado():
+        return jsonify({"ok": False, "error": "No autorizado"}), 403
+    return jsonify({"ok": True, "configured": _asistente_configurado()})
+
+
+@app.route("/asistente/chat", methods=["POST"])
+def asistente_chat():
+    if not _asistente_autorizado():
+        return jsonify({"ok": False, "error": "No autorizado"}), 403
+    if not _asistente_configurado():
+        return jsonify({
+            "ok": False,
+            "configured": False,
+            "respuesta": "Todavía no estoy conectado a la IA. La interfaz ya está lista: "
+                         "en cuanto se configure la clave de OpenAI en el servidor podré "
+                         "responder tus preguntas y proponerte cambios de estado.",
+        }), 503
+    return jsonify({
+        "ok": False,
+        "configured": True,
+        "respuesta": "La clave de OpenAI está configurada, pero la conexión del asistente "
+                     "aún no está implementada en el servidor.",
+    }), 501
+
+
+@app.route("/asistente/accion", methods=["POST"])
+def asistente_accion():
+    if not _asistente_autorizado():
+        return jsonify({"ok": False, "error": "No autorizado"}), 403
+    return jsonify({
+        "ok": False,
+        "configured": _asistente_configurado(),
+        "respuesta": "Las acciones del asistente se habilitarán al conectar la IA.",
+    }), 501
+
 
 if __name__ == "__main__":
     app.run(debug=False, threaded=True, port=5005)

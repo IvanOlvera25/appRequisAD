@@ -3,103 +3,207 @@
 
 {% block extra_css %}
 <style>
-  :root{
-    --bg:#0e0f12; --panel:#171a1f; --panel-2:#1d2128; --text:#e7eaf0; --muted:#9aa3b2;
-    --accent:#3b82f6; --accent-2:#f59e0b; --success:#10b981; --danger:#ef4444; --border:#2a2f38; --chip:#222734;
+  .com-page { min-width: 0; }
+  .com-page .toolbar { margin: 0; }
+
+  /* ---------- KPIs ---------- */
+  .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+  .kpi-card {
+    --c: var(--brand);
+    position: relative; overflow: hidden; display: flex; align-items: center; gap: .9rem;
+    padding: 1rem 1.1rem; margin: 0; border-radius: var(--radius-lg); min-width: 0;
   }
-  body{background:var(--bg); color:var(--text);}
-  .wrap{max-width:1200px; margin:28px auto; padding:0 20px;}
-
-  .page-head h1{font-size:28px; margin:0 0 6px;}
-  .page-head p{margin:0 0 14px; color:var(--muted);}
-
-  .toolbar{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;}
-  .btn{
-    display:inline-flex; align-items:center; gap:8px; border:1px solid var(--border);
-    background:var(--panel); color:var(--text); padding:10px 14px; border-radius:12px; cursor:pointer; text-decoration:none;
+  .kpi-card::after {
+    content: ""; position: absolute; right: -40px; top: -40px; width: 130px; height: 130px; border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--c) 18%, transparent), transparent 70%); pointer-events: none;
   }
-  .btn:hover{background:var(--panel-2);}
-  .btn-primary{background:var(--accent); border-color:transparent;}
-  .btn-danger{background:var(--danger); border-color:transparent;}
-  .btn-warn{background:var(--accent-2); border-color:transparent; color:#0d0f14;}
-  .btn-sm{padding:6px 10px; border-radius:10px; font-size:13px;}
-  .btn-ghost{background:transparent;}
+  .kpi-card .kpi-ico { width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0; display: grid; place-items: center; color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent); }
+  .kpi-card h4 { margin: 0; font-size: .8rem; font-weight: 600; color: var(--text-2); text-transform: none; letter-spacing: 0; }
+  .kpi-card .kpi { font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; font-variant-numeric: tabular-nums; color: var(--text); }
+  .kpi-card.k-reg { --c: var(--brand); } .kpi-card.k-trab { --c: var(--info); } .kpi-card.k-total { --c: var(--success); }
 
-  .cards{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:18px;}
-  .card{background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:18px;}
-  .card h4{margin:0 0 6px; color:var(--muted); font-weight:500; font-size:14px;}
-  .card .kpi{font-size:28px; font-weight:700;}
+  /* ---------- Tablas ---------- */
+  .table-card { padding: 0; overflow: hidden; margin-bottom: 1.25rem; }
+  .list-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .85rem 1.1rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .list-head h2 { margin: 0; font-size: 1rem; display: flex; align-items: center; gap: .5rem; }
+  .list-head h2 i { color: var(--brand); }
+  .list-head .meta { color: var(--text-2); font-size: .84rem; }
+  .com-table th, .com-table td { padding-left: .7rem; padding-right: .7rem; }
+  .com-table th:first-child, .com-table td:first-child { padding-left: 1.1rem; }
+  .com-table th:last-child, .com-table td:last-child { padding-right: 1.1rem; }
+  .com-table th.num, .com-table td.num { text-align: right; }
+  .com-table th.end { text-align: right; }
+  #tbl { min-width: 1120px; }
+  .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .c-id { color: var(--text-3); font-size: .82rem; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .c-tra { font-weight: 650; }
+  .c-pro { color: var(--text-2); }
+  .c-fec { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--text-2); font-size: .86rem; }
+  .c-com strong { font-weight: 800; }
+  .help { font-size: .78rem; color: var(--text-3); white-space: nowrap; }
 
-  .filter{background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:14px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:14px;}
-  .input, select, textarea{
-    background:var(--panel-2); border:1px solid var(--border); color:var(--text);
-    padding:10px 12px; border-radius:10px; outline:none; width:100%;
+  /* Estado */
+  .st-chip {
+    --c: var(--text-2);
+    gap: .4rem; color: var(--c); background: color-mix(in srgb, var(--c) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--c) 22%, transparent);
   }
-  .input:focus, select:focus, textarea:focus{border-color:var(--accent);}
+  .st-chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--c); flex-shrink: 0; }
+  .st-chip.st-pendiente { --c: var(--st-pendiente); }
+  .st-chip.st-aprobada { --c: var(--st-aprobado); }
+  .st-chip.st-pagada { --c: var(--st-liquidado); }
+  .st-chip.st-declinada { --c: var(--st-declinada); }
+  .chip i { font-size: .72em; }
 
-  .table-card{background:var(--panel); border:1px solid var(--border); border-radius:16px; overflow:hidden;}
-  table{width:100%; border-collapse:separate; border-spacing:0;}
-  thead th{background:#0f141b; color:#c6d0e0; font-weight:600; text-align:left; padding:12px; border-bottom:1px solid var(--border); white-space:nowrap;}
-  tbody td{padding:12px; border-bottom:1px solid var(--border); vertical-align:middle;}
-  .chip{background:var(--chip); color:#cbd5e1; padding:4px 8px; border-radius:999px; font-size:12px; white-space:nowrap;}
-  .chip.ok{background:#052d22; color:#9ae6b4;}
-  .chip.bad{background:#2a1111; color:#fecaca;}
-  .row-actions{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  /* Acciones (sticky a la derecha si la tabla necesita scroll) */
+  #tbl td.row-actions { width: 1%; white-space: nowrap; }
+  #tbl th:last-child, #tbl td.row-actions { position: sticky; right: 0; z-index: 2; }
+  #tbl td.row-actions { background: var(--surface); box-shadow: -10px 0 12px -10px rgba(15, 23, 42, .18); }
+  #tbl th:last-child { box-shadow: -10px 0 12px -10px rgba(15, 23, 42, .18); }
+  #tbl tbody tr:hover td.row-actions { background: var(--surface-hover); }
+  html[data-theme="dark"] #tbl td.row-actions, html[data-theme="dark"] #tbl th:last-child { box-shadow: -10px 0 12px -10px rgba(0, 0, 0, .7); }
+  .row-actions .ra { display: flex; gap: .4rem; align-items: flex-start; justify-content: flex-end; }
+  .row-actions form { margin: 0; }
+  .form-estado { display: grid; grid-template-columns: 140px auto; gap: .4rem; align-items: center; }
+  .form-estado .sel-estado { min-height: 34px; height: 34px; padding: .25rem 2rem .25rem .6rem; font-size: .82rem; width: 100% !important; border-radius: 9px; }
+  .form-estado .file-comprobante { grid-column: 1 / -1; order: 3; width: 100% !important; min-width: 0; max-width: 100%; overflow: hidden; font-size: .78rem; }
+  .row-actions .btn-sm { min-height: 34px; }
+  .row-actions .btn-icon-sm { width: 34px; min-width: 34px; padding: 0; }
+  .row-actions .btn-icon-sm .btn-label { display: none; }
 
-  /* Modal */
-  .modal{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:50;}
-  .modal.show{display:flex;}
-  .modal-card{width:100%; max-width:760px; background:var(--panel); border:1px solid var(--border); border-radius:16px; overflow:hidden;}
-  .modal-head{display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:#12161d; border-bottom:1px solid var(--border);}
-  .modal-head h3{margin:0; font-size:18px;}
-  .modal-body{padding:16px;}
-  .grid{display:grid; gap:12px;}
-  .g-2{grid-template-columns:1fr 1fr;}
-  .g-3{grid-template-columns:repeat(3,1fr);}
-  .modal-foot{display:flex; justify-content:flex-end; gap:8px; padding:14px 16px; border-top:1px solid var(--border); background:#12161d;}
-  .help{font-size:12px; color:var(--muted);}
-  @media (max-width:900px){.cards{grid-template-columns:1fr}.g-2,.g-3{grid-template-columns:1fr}}
+  .empty-cell { padding: 0 !important; }
+  tbody tr:has(> .empty-cell):hover { background: transparent; }
+
+  /* Resumen por trabajador */
+  .stats-table td:first-child { font-weight: 600; }
+  .stats-table td.num:last-child { font-weight: 750; }
+  @media (max-width: 640px) { .stats-table th { white-space: normal; } .stats-table th.num { width: 1%; } }
+
+  /* ---------- Modales (usan el estilo global .modal) ---------- */
+  .modal.cm-modal { display: none; }
+  .modal.cm-modal.show { display: flex; }
+  .modal.cm-modal .modal-content { max-width: 760px; }
+  @media (min-width: 641px) { .modal.cm-modal .modal-content { margin: auto; } }
+  .cm-modal .modal-header h3 { display: flex; align-items: center; gap: .6rem; }
+  .cm-modal .modal-header h3::before {
+    content: "\f295"; font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: .85rem;
+    width: 32px; height: 32px; border-radius: 10px; display: inline-grid; place-items: center; flex-shrink: 0;
+    color: var(--brand); background: var(--brand-50);
+  }
+  .cm-modal .modal-close { width: 40px; height: 40px; font-size: 1.1rem; }
+  .cm-modal .modal-body label { display: block; margin: 0 0 .9rem; font-size: .82rem; font-weight: 600; color: var(--text); }
+  .cm-modal .modal-body label > input, .cm-modal .modal-body label > select, .cm-modal .modal-body label > textarea { margin-top: .4rem; font-weight: 400; }
+  .cm-modal .modal-body textarea { min-height: 84px; }
+  .cm-modal .modal-footer { position: sticky; bottom: 0; z-index: 2; }
+  .grid { display: grid; gap: 0 1rem; }
+  .g-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .g-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+  /* ---------- Responsivo ---------- */
+  @media (max-width: 900px) {
+    .g-2, .g-3 { grid-template-columns: minmax(0, 1fr); }
+
+    /* Filas del historial → tarjetas */
+    #tbl { min-width: 0; }
+    #tbl thead { display: none; }
+    #tbl, #tbl tbody { display: block; }
+    #tbl tbody tr[data-id] {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas: "idc est" "tra tra" "pro pro" "mon com" "fec cal" "cpr cpr" "acc acc";
+      gap: .35rem .75rem; padding: .95rem 1.1rem; border-bottom: 1px solid var(--border);
+    }
+    #tbl tbody tr[data-id]:hover { background: transparent; }
+    #tbl tbody tr[data-id] td { padding: 0; border: 0; min-width: 0; }
+    #tbl td.c-id { grid-area: idc; align-self: center; }
+    #tbl td.c-est { grid-area: est; justify-self: end; }
+    #tbl td.c-tra { grid-area: tra; font-size: .98rem; }
+    #tbl td.c-pro { grid-area: pro; font-size: .84rem; }
+    #tbl td.c-mon { grid-area: mon; text-align: left; font-size: .82rem; color: var(--text-2); align-self: end; }
+    #tbl td.c-mon::before { content: "Monto proyecto: "; color: var(--text-3); }
+    #tbl td.c-com { grid-area: com; justify-self: end; font-size: 1.1rem; }
+    #tbl td.c-fec { grid-area: fec; font-size: .82rem; align-self: center; }
+    #tbl td.c-fec::before { content: "Fecha: "; color: var(--text-3); }
+    #tbl td.c-cal { grid-area: cal; justify-self: end; }
+    #tbl td.c-cpr { grid-area: cpr; }
+    #tbl td.c-cpr::before { content: "Comprobante: "; font-size: .8rem; color: var(--text-3); margin-right: .25rem; }
+    #tbl td.c-cpr .btn { min-height: 40px; }
+    #tbl td.row-actions { grid-area: acc; position: static; box-shadow: none; background: transparent !important; width: auto; white-space: normal; margin-top: .45rem; padding-top: .7rem !important; border-top: 1px dashed var(--border) !important; }
+    .row-actions .ra { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem; }
+    .row-actions .ra > .form-estado { grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) auto; }
+    .form-estado .sel-estado { min-width: 0; height: 42px; min-height: 42px; font-size: .9rem; }
+    .form-estado .file-comprobante { min-height: 42px; font-size: .84rem; }
+    .form-estado .file-comprobante::file-selector-button { min-height: 40px; }
+    .row-actions .btn-sm { min-height: 42px; }
+    .row-actions .ra > form:not(.form-estado) .btn, .row-actions .ra > .btn { width: 100%; }
+    .row-actions .btn-icon-sm { width: 100%; padding: 0 .7rem; }
+    .row-actions .btn-icon-sm .btn-label { display: inline; }
+  }
+  @media (max-width: 760px) {
+    .com-page .page-actions { width: 100%; }
+    .com-page .page-actions .btn { flex: 1 1 auto; }
+    .cards { gap: .6rem; }
+    .kpi-card { flex-direction: column; align-items: flex-start; gap: .5rem; padding: .8rem; }
+    .kpi-card .kpi-ico { width: 34px; height: 34px; border-radius: 10px; font-size: .85rem; }
+    .kpi-card .kpi { font-size: 1.2rem; }
+    .kpi-card h4 { font-size: .74rem; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="wrap">
-  <div class="page-head">
-    <h1>Comisiones</h1>
-    <p>Gestión de comisiones por trabajador, comprobantes y cambios de estado con notificación.</p>
-  </div>
-
-  <div class="toolbar">
-    <a class="btn btn-ghost" href="{{ url_for('admin_dashboard') }}"><i class="fa fa-gauge"></i> Dashboard</a>
-    <button id="btn-add" class="btn btn-primary"><i class="fa fa-plus"></i> Nueva comisión</button>
+<div class="com-page">
+  <div class="page-head reveal">
+    <div>
+      <div class="eyebrow"><i class="fa-solid fa-percent"></i> Finanzas</div>
+      <h1>Comisiones</h1>
+      <p class="subtitle">Gestión de comisiones por trabajador, comprobantes y cambios de estado con notificación.</p>
+    </div>
+    <div class="toolbar page-actions">
+      <a class="btn btn-ghost" href="{{ url_for('admin_dashboard') }}"><i class="fa-solid fa-gauge-high"></i> Panel</a>
+      <button id="btn-add" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Nueva comisión</button>
+    </div>
   </div>
 
   <!-- KPIs simples -->
   <div class="cards">
-    <div class="card"><h4>Registros</h4><div class="kpi">{{ comisiones|length }}</div></div>
-    <div class="card"><h4>Trabajadores</h4><div class="kpi">{{ stats|length }}</div></div>
-    <div class="card"><h4>Total comisiones</h4>
-      <div class="kpi">
-        ${{ '%.2f'|format((comisiones|sum(attribute='comision_monto') if comisiones else 0) or 0) }}
+    <div class="card kpi-card k-reg reveal reveal-1">
+      <span class="kpi-ico"><i class="fa-solid fa-receipt"></i></span>
+      <div><h4>Registros</h4><div class="kpi">{{ comisiones|length }}</div></div>
+    </div>
+    <div class="card kpi-card k-trab reveal reveal-2">
+      <span class="kpi-ico"><i class="fa-solid fa-users"></i></span>
+      <div><h4>Trabajadores</h4><div class="kpi">{{ stats|length }}</div></div>
+    </div>
+    <div class="card kpi-card k-total reveal reveal-3">
+      <span class="kpi-ico"><i class="fa-solid fa-sack-dollar"></i></span>
+      <div><h4>Total comisiones</h4>
+        <div class="kpi">
+          ${{ '{:,.2f}'.format(((comisiones|sum(attribute='comision_monto') if comisiones else 0) or 0)|float) }}
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Tabla de historial (sin columna de correo) -->
-  <div class="table-card" style="margin-bottom:16px;">
-    <table id="tbl">
+  <div class="card table-card reveal reveal-4">
+    <div class="list-head">
+      <h2><i class="fa-solid fa-clock-rotate-left"></i> Historial de comisiones</h2>
+      <span class="meta">{{ comisiones|length }} registro{{ '' if (comisiones|length) == 1 else 's' }}</span>
+    </div>
+    <div class="table-wrap">
+    <table id="tbl" class="com-table">
       <thead>
         <tr>
           <th>ID</th>
           <th>Trabajador</th>
           <th>Proyecto</th>
           <th>Fecha</th>
-          <th>Monto Proyecto</th>
+          <th class="num">Monto Proyecto</th>
           <th>Cálculo</th>
-          <th>Comisión</th>
+          <th class="num">Comisión</th>
           <th>Estado</th>
           <th>Comprobante</th>
-          <th>Acciones</th>
+          <th class="end">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -107,49 +211,49 @@
         {% for c in comisiones %}
           {% set _comi = (c.comision_monto if c.comision_monto is not none else (c.monto_calculado if c.monto_calculado is defined else 0))|float %}
           <tr data-id="{{ c.id }}">
-            <td>#{{ c.id }}</td>
-            <td>{{ c.trabajador }}</td>
-            <td>{{ c.proyecto }}</td>
-            <td>{{ c.fecha }}</td>
-            <td>${{ '%.2f'|format((c.monto_proyecto or 0.0)|float) }}</td>
-            <td>
+            <td class="c-id">#{{ c.id }}</td>
+            <td class="c-tra">{{ c.trabajador }}</td>
+            <td class="c-pro">{{ c.proyecto }}</td>
+            <td class="c-fec" title="{{ c.fecha }}">{{ c.fecha|fecha_corta(true) }}</td>
+            <td class="num c-mon">${{ '{:,.2f}'.format((c.monto_proyecto or 0.0)|float) }}</td>
+            <td class="c-cal">
               {% if c.comision_tipo %}
                 {% if c.comision_tipo == 'porcentaje' %}
-                  <span class="chip">{{ (c.comision_valor or 0)|float }}%</span>
+                  <span class="chip"><i class="fa-solid fa-percent"></i>{{ (c.comision_valor or 0)|float }}%</span>
                 {% else %}
-                  <span class="chip">$ {{ '%.2f'|format((c.comision_valor or 0)|float) }}</span>
+                  <span class="chip"><i class="fa-solid fa-dollar-sign"></i>$ {{ '{:,.2f}'.format((c.comision_valor or 0)|float) }}</span>
                 {% endif %}
               {% elif c.tipo_calculo %}
                 {% if c.tipo_calculo == 'porcentaje' %}
-                  <span class="chip">{{ (c.porcentaje or 0)|float }}%</span>
+                  <span class="chip"><i class="fa-solid fa-percent"></i>{{ (c.porcentaje or 0)|float }}%</span>
                 {% else %}
-                  <span class="chip">$ {{ '%.2f'|format((c.monto_comision or 0)|float) }}</span>
+                  <span class="chip"><i class="fa-solid fa-dollar-sign"></i>$ {{ '{:,.2f}'.format((c.monto_comision or 0)|float) }}</span>
                 {% endif %}
               {% else %}
                 <span class="chip">-</span>
               {% endif %}
             </td>
-            <td><strong>${{ '%.2f'|format(_comi) }}</strong></td>
-            <td>
+            <td class="num c-com"><strong>${{ '{:,.2f}'.format(_comi) }}</strong></td>
+            <td class="c-est">
               {% set s = (c.estado or 'Pendiente') %}
-              <span class="chip {{ 'ok' if s in ['Aprobada','Pagada'] else ('bad' if s=='Declinada' else '') }}">{{ s }}</span>
+              <span class="chip st-chip st-{{ s|lower }} {{ 'ok' if s in ['Aprobada','Pagada'] else ('bad' if s=='Declinada' else '') }}">{{ s }}</span>
             </td>
-            <td>
+            <td class="c-cpr">
               {% if c.comprobante_archivo %}
-                <a class="btn btn-sm" href="{{ url_for('comisiones.comision_ver_comprobante', cid=c.id) }}" target="_blank">Ver</a>
+                <a class="btn btn-sm btn-secondary" href="{{ url_for('comisiones.comision_ver_comprobante', cid=c.id) }}" target="_blank"><i class="fa-solid fa-file-lines"></i> Ver</a>
               {% else %}
                 <span class="help">Sin comprobante</span>
               {% endif %}
             </td>
             <td class="row-actions">
+              <div class="ra">
               <!-- Cambiar estado + comprobante -->
               <form method="post"
                     action="{{ url_for('comisiones.comision_cambiar_estado', cid=c.id) }}"
                     enctype="multipart/form-data"
                     class="form-estado"
-                    data-row-id="{{ c.id }}"
-                    style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                <select name="estado" class="input sel-estado" data-row-id="{{ c.id }}" required style="width:auto;">
+                    data-row-id="{{ c.id }}">
+                <select name="estado" class="input sel-estado" data-row-id="{{ c.id }}" required style="width:auto;" aria-label="Estado de la comisión #{{ c.id }}">
                   <option value="">--Selecciona--</option>
                   <option value="Pendiente" {{ 'selected' if c.estado=='Pendiente' }}>Pendiente</option>
                   <option value="Aprobada"  {{ 'selected' if c.estado=='Aprobada'  }}>Aprobada</option>
@@ -162,37 +266,43 @@
                        data-row-id="{{ c.id }}"
                        accept=".pdf,.png,.jpg,.jpeg"
                        style="display:{% if c.estado=='Pagada' %}block{% else %}none{% endif %}; width:auto;">
-                <button class="btn btn-sm btn-warn" type="submit">Actualizar</button>
+                <button class="btn btn-sm btn-success btn-warn" type="submit"><i class="fa-solid fa-check"></i> Actualizar</button>
               </form>
 
               <!-- Editar -->
-              <button class="btn btn-sm" data-edit="{{ c.id }}">Editar</button>
+              <button class="btn btn-sm btn-secondary btn-icon-sm" data-edit="{{ c.id }}" title="Editar" aria-label="Editar"><i class="fa-solid fa-pen"></i><span class="btn-label">Editar</span></button>
 
               <!-- Eliminar -->
               <form method="post"
                     action="{{ url_for('comisiones.comision_eliminar', cid=c.id) }}"
                     onsubmit="return confirm('¿Eliminar esta comisión?')"
                     style="display:inline">
-                <button class="btn btn-sm btn-danger" type="submit">Eliminar</button>
+                <button class="btn btn-sm btn-danger btn-icon-sm" type="submit" title="Eliminar" aria-label="Eliminar"><i class="fa-solid fa-trash-can"></i><span class="btn-label">Eliminar</span></button>
               </form>
+              </div>
             </td>
           </tr>
         {% endfor %}
       {% else %}
-        <tr><td colspan="10" style="text-align:center; padding:24px; color:var(--muted)">No hay comisiones registradas.</td></tr>
+        <tr><td colspan="10" class="empty-cell"><div class="empty-state"><i class="fa-solid fa-percent"></i>No hay comisiones registradas.</div></td></tr>
       {% endif %}
       </tbody>
     </table>
+    </div>
   </div>
 
   <!-- Estadísticas por trabajador -->
-  <div class="table-card">
-    <table>
+  <div class="card table-card reveal reveal-5">
+    <div class="list-head">
+      <h2><i class="fa-solid fa-chart-simple"></i> Resumen por trabajador</h2>
+    </div>
+    <div class="table-wrap">
+    <table class="com-table stats-table">
       <thead>
         <tr>
           <th>Trabajador</th>
-          <th># Comisiones</th>
-          <th>Total Comisión</th>
+          <th class="num"># Comisiones</th>
+          <th class="num">Total Comisión</th>
         </tr>
       </thead>
       <tbody>
@@ -201,24 +311,25 @@
             {% set total = (s.total if s.total is not none else 0)|float %}
             <tr>
               <td>{{ s.trabajador }}</td>
-              <td>{{ s.cantidad }}</td>
-              <td>$ {{ '%.2f'|format(total) }}</td>
+              <td class="num">{{ s.cantidad }}</td>
+              <td class="num">$ {{ '{:,.2f}'.format(total) }}</td>
             </tr>
           {% endfor %}
         {% else %}
-          <tr><td colspan="3" style="text-align:center; padding:16px; color:var(--muted);">Sin datos</td></tr>
+          <tr><td colspan="3" class="empty-cell"><div class="empty-state"><i class="fa-solid fa-chart-simple"></i>Sin datos</div></td></tr>
         {% endif %}
       </tbody>
     </table>
+    </div>
   </div>
 </div>
 
 <!-- Modal NUEVA comisión -->
-<div class="modal" id="modal-new">
-  <div class="modal-card">
-    <div class="modal-head">
+<div class="modal cm-modal" id="modal-new">
+  <div class="modal-card modal-content">
+    <div class="modal-head modal-header">
       <h3>Nueva comisión</h3>
-      <button class="btn btn-sm" id="btn-close-new">Cerrar</button>
+      <button class="modal-close" id="btn-close-new" aria-label="Cerrar" title="Cerrar"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <form id="frm-new" method="post" action="{{ url_for('comisiones.comision_nueva') }}">
       <div class="modal-body">
@@ -282,20 +393,20 @@
           </label>
         </div>
       </div>
-      <div class="modal-foot">
-        <button type="button" class="btn" id="btn-cancel-new">Cancelar</button>
-        <button class="btn btn-primary">Guardar</button>
+      <div class="modal-foot modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-new">Cancelar</button>
+        <button class="btn btn-primary"><i class="fa-solid fa-check"></i> Guardar</button>
       </div>
     </form>
   </div>
 </div>
 
 <!-- Modal EDITAR comisión -->
-<div class="modal" id="modal-edit">
-  <div class="modal-card">
-    <div class="modal-head">
+<div class="modal cm-modal" id="modal-edit">
+  <div class="modal-card modal-content">
+    <div class="modal-head modal-header">
       <h3>Editar comisión</h3>
-      <button class="btn btn-sm" id="btn-close-edit">Cerrar</button>
+      <button class="modal-close" id="btn-close-edit" aria-label="Cerrar" title="Cerrar"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <form id="frm-edit" method="post" action="#">
       <div class="modal-body">
@@ -353,9 +464,9 @@
           <input class="input" type="email" name="correos" placeholder="persona@dominio.com" />
         </label>
       </div>
-      <div class="modal-foot">
-        <button type="button" class="btn" id="btn-cancel-edit">Cancelar</button>
-        <button class="btn btn-primary">Guardar cambios</button>
+      <div class="modal-foot modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-edit">Cancelar</button>
+        <button class="btn btn-primary"><i class="fa-solid fa-check"></i> Guardar cambios</button>
       </div>
     </form>
   </div>
