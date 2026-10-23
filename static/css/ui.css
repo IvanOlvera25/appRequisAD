@@ -502,9 +502,11 @@ html[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator { 
 input[type="checkbox"], input[type="radio"] { accent-color: var(--brand); width: 17px; height: 17px; cursor: pointer; }
 input[type="file"] { font-family: inherit; font-size: .85rem; color: var(--text-2); max-width: 100%; }
 input[type="file"]::file-selector-button {
-  font-family: inherit; font-weight: 600; font-size: .82rem; margin-right: .65rem; padding: .45rem .8rem; border-radius: 8px;
-  border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer;
+  font-family: inherit; font-weight: 600; font-size: .82rem; margin-right: .75rem; padding: .5rem .9rem; border-radius: 9px;
+  border: 1.5px solid var(--border-strong); background: var(--surface); color: var(--text); cursor: pointer;
+  box-shadow: var(--shadow-xs); transition: border-color .15s, color .15s, background .15s;
 }
+input[type="file"]:hover::file-selector-button { border-color: var(--brand); color: var(--brand); background: var(--brand-50); }
 .form-container {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm); padding: clamp(1rem, 3vw, 2rem); max-width: 980px; margin: 0 auto;

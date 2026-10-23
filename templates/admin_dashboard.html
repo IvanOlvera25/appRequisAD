@@ -150,6 +150,15 @@
   .file-chip:hover { border-color: var(--brand); color: var(--brand); transform: translateY(-1px); }
   .sin-archivos { font-size: .84rem; color: var(--text-3); font-style: italic; }
 
+  /* Comprobante por solicitud en el cambio masivo: recuadro punteado clickeable */
+  #archivos-list input[type="file"] {
+    display: block; width: 100%; padding: .55rem .6rem; cursor: pointer;
+    border: 1.5px dashed var(--border-strong); border-radius: 12px; background: var(--surface);
+    transition: border-color .15s, background .15s, box-shadow .15s;
+  }
+  #archivos-list input[type="file"]:hover { border-color: var(--brand); background: var(--brand-50); }
+  #archivos-list input[type="file"]:focus-visible { outline: none; border-color: var(--brand); box-shadow: var(--focus-ring); }
+
   /* ---------- Barra de selección ---------- */
   .bulk-bar {
     position: fixed; left: 50%; bottom: 24px; z-index: 905; transform: translate(-50%, 160%);
