@@ -3948,12 +3948,26 @@ def solicitud_json(sid):
     return jsonify({"success": True, "solicitud": data})
 
 
-@app.route("/actualizar_estado/<int:solicitud_id>", methods=["POST"])
-def actualizar_estado(solicitud_id):
-    if not session.get("admin_logged_in"):
-        return redirect(url_for("admin_login"))
+def estados_permitidos(solicitud):
+    """Estados a los que puede pasar una solicitud: las mismas opciones que ofrece
+    el selector de cada fila del panel."""
+    anticipo = (solicitud.get("anticipo") or "").lower() == "si"
+    if (solicitud.get("estado") or "").lower() == "programado":
+        opciones = ["Pendiente", "Aprobado con anticipo" if anticipo else "Aprobado"]
+    elif anticipo:
+        opciones = ["Aprobado con anticipo", "Liquidado con anticipo", "Liquidacion total", "Pendiente"]
+    else:
+        opciones = ["Aprobado", "Liquidado", "Pendiente"]
+    return opciones + ["Programado", "Declinada"]
 
-    nuevo_estado = request.form.get("nuevo_estado", "Pendiente")
+
+def aplicar_cambio_estado(solicitud_id, nuevo_estado, usuario, attachment=None):
+    """
+    Cambia el estado de una solicitud: historial, fecha de aprobado/liquidado,
+    correo al solicitante y sincronización remota. Lo usan el panel
+    (/actualizar_estado) y el asistente IA (/asistente/accion).
+    Devuelve el dict de la solicitud actualizada, o None si no existe.
+    """
     fecha_cambio = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     conn = get_db_connection()
@@ -3966,8 +3980,7 @@ def actualizar_estado(solicitud_id):
 
     if not solicitud_actual:
         conn.close()
-        flash("Solicitud no encontrada.", "error")
-        return redirect(url_for("admin_dashboard"))
+        return None
 
     estado_anterior = solicitud_actual['estado']
 
@@ -3982,7 +3995,7 @@ def actualizar_estado(solicitud_id):
         'estado_anterior': estado_anterior,
         'estado_nuevo': nuevo_estado.capitalize(),
         'fecha': fecha_cambio,
-        'usuario': session.get('username', session.get('role', 'admin'))
+        'usuario': usuario
     })
 
     # Construir la consulta de actualización base
@@ -4009,8 +4022,6 @@ def actualizar_estado(solicitud_id):
     solicitud = conn.execute("SELECT * FROM solicitudes WHERE id = ?", (solicitud_id,)).fetchone()
     conn.close()
 
-    flash(f"Solicitud {solicitud_id} actualizada a {nuevo_estado}.", "success")
-
     # Convertir a diccionario para los emails
     solicitud_dict = dict(solicitud)
 
@@ -4022,13 +4033,10 @@ def actualizar_estado(solicitud_id):
     elif nuevo_estado.lower() == "declinada":
         send_declined_email(solicitud_dict)
     elif nuevo_estado.lower() == "liquidado":
-        attachment = request.files.get("liquidado_file")
         send_liquidado_email(solicitud_dict, attachment)
     elif nuevo_estado.lower() == "liquidado con anticipo":
-        attachment = request.files.get("liquidado_file")
         send_liquidado_anticipo_email(solicitud_dict, attachment)
     elif nuevo_estado.lower() == "liquidacion total":
-        attachment = request.files.get("liquidado_file")
         send_liquidacion_total_email(solicitud_dict, attachment)
 
     # Sincronizar con base de datos remota si está habilitado
@@ -4037,6 +4045,24 @@ def actualizar_estado(solicitud_id):
     except Exception as e:
         print(f"Error al iniciar sincronización: {e}")
 
+    return solicitud_dict
+
+
+@app.route("/actualizar_estado/<int:solicitud_id>", methods=["POST"])
+def actualizar_estado(solicitud_id):
+    if not session.get("admin_logged_in"):
+        return redirect(url_for("admin_login"))
+
+    nuevo_estado = request.form.get("nuevo_estado", "Pendiente")
+    actualizada = aplicar_cambio_estado(
+        solicitud_id, nuevo_estado,
+        usuario=session.get('username', session.get('role', 'admin')),
+        attachment=request.files.get("liquidado_file"))
+
+    if actualizada is None:
+        flash("Solicitud no encontrada.", "error")
+    else:
+        flash(f"Solicitud {solicitud_id} actualizada a {nuevo_estado}.", "success")
     return redirect(url_for("admin_dashboard"))
 
 @app.route("/eliminar_solicitud/<int:solicitud_id>", methods=["POST"])
@@ -9671,61 +9697,241 @@ def _start_alerts_once():
     except Exception as e:
         print(f"[alerts] error start once: {e}")
 
-# === ASISTENTE IA (interfaz lista; falta conectar OpenAI) ===
-# El panel del asistente (templates/partials/asistente.html + static/js/asistente.js)
-# solo lo ven administradores. Para hacerlo funcional:
-#   1. Definir OPENAI_API_KEY en el entorno del servidor (pestaña Web de PythonAnywhere).
-#   2. Implementar asistente_chat con la API de OpenAI usando "tools" de solo lectura
-#      (buscar solicitudes, resumen por estado/destinatario, próximos a vencer) que
-#      reutilicen _panel_where / _panel_resumen.
-#   3. Para cambios de estado, la IA NO modifica nada: devuelve "acciones" propuestas
-#      ({tipo: 'cambiar_estado', solicitud_id, fp, destinatario, monto, estado_actual,
-#      estado_nuevo}); el usuario confirma en la tarjeta y asistente_accion aplica el
-#      cambio con la misma lógica que /actualizar_estado (historial, fechas y correos).
-def _asistente_configurado():
-    return bool(os.environ.get("OPENAI_API_KEY"))
+# === ASISTENTE IA (OpenAI, ver asistente_ia.py) ===
+# Solo administradores. La IA consulta con herramientas de solo lectura y, para
+# cambiar estados, solo PROPONE: el usuario confirma cada tarjeta y entonces
+# /asistente/accion lo aplica con la misma lógica del panel (aplicar_cambio_estado).
+# Requiere OPENAI_API_KEY en el entorno (en PythonAnywhere: archivo WSGI).
+import asistente_ia
+import uuid as _uuid
+
+_ASIS_COLS = "id, fp, nombre, destinatario, monto, estado, fecha, fecha_limite, tipo_pago, departamento, descripcion, anticipo"
+_ASIS_CERRADOS = ("Liquidado", "Liquidacion total", "Declinada")
 
 
 def _asistente_autorizado():
     return session.get("admin_logged_in") and session.get("role") == "admin"
 
 
+def _asis_fila(r, corta=True):
+    d = dict(r)
+    desc = (d.get("descripcion") or "").split("Detalle de Viáticos:")[0].strip()
+    return {
+        "id": d["id"], "fp": d.get("fp"), "solicitante": d.get("nombre"), "destinatario": d.get("destinatario"),
+        "monto": round(float(d.get("monto") or 0), 2), "estado": d.get("estado"),
+        "fecha_solicitud": (d.get("fecha") or "")[:10], "fecha_limite": (d.get("fecha_limite") or "")[:10],
+        "tipo_pago": d.get("tipo_pago"), "departamento": d.get("departamento"),
+        "descripcion": desc[:140] if corta else desc,
+    }
+
+
+def _asis_filtros(estado=None, vence=None, desde=None, hasta=None, texto=None, criterio=None,
+                  tipo_pago=None, departamento=None):
+    def fecha_ok(v):
+        try:
+            return datetime.strptime(v, "%Y-%m-%d").strftime("%Y-%m-%d") if v else ""
+        except ValueError:
+            return ""
+    return _panel_where(estado or "", (texto or "").strip(), (criterio or "todos"),
+                        tipo_pago=tipo_pago or "", departamento=departamento or "",
+                        desde=fecha_ok(desde), hasta=fecha_ok(hasta), vence=vence or "")
+
+
+def asis_resumen_general():
+    resumen, por_vencer, _ = _panel_resumen()
+    conn = get_db_connection()
+    try:
+        por_estado = {r["estado"]: {"n": r["n"], "total": round(float(r["t"] or 0), 2)} for r in conn.execute(
+            "SELECT estado, COUNT(*) n, SUM(monto) t FROM solicitudes GROUP BY estado")}
+    finally:
+        conn.close()
+    return {"indicadores": resumen, "por_estado": por_estado,
+            "vencen_7_dias": por_vencer["proximas"], "vencidas_recientes": por_vencer["vencidas"]}
+
+
+def asis_buscar_solicitudes(texto=None, criterio=None, estado=None, vence=None, tipo_pago=None,
+                            departamento=None, desde=None, hasta=None, orden=None, limite=None):
+    where, params = _asis_filtros(estado, vence, desde, hasta, texto, criterio, tipo_pago, departamento)
+    limite = max(1, min(int(limite or 20), 50))
+    conn = get_db_connection()
+    try:
+        tot = conn.execute(f"SELECT COUNT(*) n, COALESCE(SUM(monto),0) t FROM solicitudes {where}", params).fetchone()
+        filas = conn.execute(
+            f"SELECT {_ASIS_COLS} FROM solicitudes {where} ORDER BY {ORDENES_PANEL.get(orden or 'recientes', ORDENES_PANEL['recientes'])} LIMIT ?",
+            params + [limite]).fetchall()
+    finally:
+        conn.close()
+    return {"total_coincidencias": tot["n"], "suma_montos": round(float(tot["t"] or 0), 2),
+            "mostradas": len(filas), "solicitudes": [_asis_fila(f) for f in filas]}
+
+
+def asis_detalle_solicitud(solicitud_id):
+    conn = get_db_connection()
+    try:
+        r = conn.execute("SELECT * FROM solicitudes WHERE id = ?", (solicitud_id,)).fetchone()
+    finally:
+        conn.close()
+    if not r:
+        return {"error": f"No existe la solicitud {solicitud_id}"}
+    d = dict(r)
+    try:
+        historial = json.loads(d.get("historial_estados") or "[]")[-5:]
+    except Exception:
+        historial = []
+    out = _asis_fila(r, corta=False)
+    out.update({
+        "correos": d.get("correo"), "banco": d.get("banco"), "clabe": d.get("clabe"),
+        "beneficiario": d.get("beneficiario"), "referencia": d.get("referencia"),
+        "categoria": d.get("categoria_administrativa"),
+        "tiene_comision": bool(d.get("tiene_comision")), "monto_sin_comision": d.get("monto_sin_comision"),
+        "anticipo": d.get("anticipo"), "porcentaje_anticipo": d.get("porcentaje_anticipo"),
+        "monto_anticipo": d.get("monto_anticipo"), "monto_restante": d.get("monto_restante"),
+        "fecha_aprobado": d.get("fecha_aprobado"), "fecha_liquidado": d.get("fecha_liquidado"),
+        "historial_reciente": historial, "capturada_por": d.get("creado_por") or "formulario",
+        "archivos": [n for n, c in (("factura", "archivo_factura"), ("recibo", "archivo_recibo"),
+                                    ("orden de compra", "archivo_orden_compra"), ("otro", "archivo_adjunto")) if d.get(c)],
+        "estados_permitidos": estados_permitidos(d),
+    })
+    return out
+
+
+def asis_totales_agrupados(agrupar_por, estado=None, vence=None, desde=None, hasta=None, limite=None):
+    campo = {"destinatario": "destinatario", "solicitante": "nombre", "departamento": "departamento",
+             "estado": "estado", "tipo_pago": "tipo_pago", "mes": "substr(fecha, 1, 7)"}.get(agrupar_por)
+    if not campo:
+        return {"error": "agrupar_por inválido"}
+    where, params = _asis_filtros(estado, vence, desde, hasta)
+    limite = max(1, min(int(limite or 15), 50))
+    orden = "grupo DESC" if agrupar_por == "mes" else "total DESC"
+    conn = get_db_connection()
+    try:
+        filas = conn.execute(f"""SELECT {campo} AS grupo, COUNT(*) n, COALESCE(SUM(monto),0) total
+                                 FROM solicitudes {where} GROUP BY {campo} ORDER BY {orden} LIMIT ?""",
+                             params + [limite]).fetchall()
+    finally:
+        conn.close()
+    return {"agrupado_por": agrupar_por,
+            "grupos": [{"grupo": f["grupo"], "solicitudes": f["n"], "total": round(float(f["total"]), 2)} for f in filas]}
+
+
+def asis_posibles_duplicados(dias=None):
+    dias = max(1, min(int(dias or 30), 365))
+    desde = (datetime.now() - timedelta(days=dias)).strftime("%Y-%m-%d")
+    conn = get_db_connection()
+    try:
+        grupos = conn.execute("""
+            SELECT LOWER(TRIM(nombre)) s, LOWER(TRIM(destinatario)) d, ROUND(monto, 0) m, COUNT(*) n,
+                   GROUP_CONCAT(id) ids
+              FROM solicitudes
+             WHERE substr(fecha, 1, 10) >= ? AND estado <> 'Declinada'
+             GROUP BY s, d, m HAVING COUNT(*) > 1 ORDER BY n DESC LIMIT 20""", (desde,)).fetchall()
+        resultado = []
+        for g in grupos:
+            ids = [int(x) for x in (g["ids"] or "").split(",") if x][:6]
+            filas = conn.execute(f"SELECT {_ASIS_COLS} FROM solicitudes WHERE id IN ({','.join('?' * len(ids))})", ids).fetchall()
+            resultado.append({"veces": g["n"], "solicitudes": [_asis_fila(f) for f in filas]})
+    finally:
+        conn.close()
+    return {"dias": dias, "grupos": resultado}
+
+
+def asis_proponer_cambio_estado(solicitud_id, estado_nuevo, motivo=None):
+    conn = get_db_connection()
+    try:
+        r = conn.execute(f"SELECT {_ASIS_COLS} FROM solicitudes WHERE id = ?", (solicitud_id,)).fetchone()
+    finally:
+        conn.close()
+    if not r:
+        return {"error": f"No existe la solicitud {solicitud_id}"}
+    d = dict(r)
+    permitidos = estados_permitidos(d)
+    if estado_nuevo not in permitidos:
+        return {"error": f"Desde '{d['estado']}' (anticipo: {d.get('anticipo') or 'No'}) solo se puede pasar a: {', '.join(permitidos)}"}
+    if (d.get("estado") or "").lower() == estado_nuevo.lower():
+        return {"error": f"La solicitud {solicitud_id} ya está en {estado_nuevo}"}
+    return {"propuesta": {
+        "id": _uuid.uuid4().hex, "tipo": "cambiar_estado", "solicitud_id": d["id"], "fp": d.get("fp"),
+        "destinatario": d.get("destinatario"), "monto": round(float(d.get("monto") or 0), 2),
+        "estado_actual": d.get("estado"), "estado_nuevo": estado_nuevo, "motivo": motivo or "",
+    }}
+
+
+ASISTENTE_HERRAMIENTAS = {
+    "resumen_general": asis_resumen_general,
+    "buscar_solicitudes": asis_buscar_solicitudes,
+    "detalle_solicitud": asis_detalle_solicitud,
+    "totales_agrupados": asis_totales_agrupados,
+    "posibles_duplicados": asis_posibles_duplicados,
+    "proponer_cambio_estado": asis_proponer_cambio_estado,
+}
+
+_DIAS_ES = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+_MESES_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
+             "septiembre", "octubre", "noviembre", "diciembre"]
+
+
 @app.route("/asistente/estado")
 def asistente_estado():
     if not _asistente_autorizado():
         return jsonify({"ok": False, "error": "No autorizado"}), 403
-    return jsonify({"ok": True, "configured": _asistente_configurado()})
+    return jsonify({"ok": True, "configured": asistente_ia.configurado(), "modelo": asistente_ia.modelo()})
 
 
 @app.route("/asistente/chat", methods=["POST"])
 def asistente_chat():
     if not _asistente_autorizado():
         return jsonify({"ok": False, "error": "No autorizado"}), 403
-    if not _asistente_configurado():
+    if not asistente_ia.configurado():
         return jsonify({
-            "ok": False,
-            "configured": False,
-            "respuesta": "Todavía no estoy conectado a la IA. La interfaz ya está lista: "
-                         "en cuanto se configure la clave de OpenAI en el servidor podré "
-                         "responder tus preguntas y proponerte cambios de estado.",
+            "ok": False, "configured": False,
+            "respuesta": "Todavía no estoy conectado a la IA: falta configurar OPENAI_API_KEY en el servidor.",
         }), 503
-    return jsonify({
-        "ok": False,
-        "configured": True,
-        "respuesta": "La clave de OpenAI está configurada, pero la conexión del asistente "
-                     "aún no está implementada en el servidor.",
-    }), 501
+    data = request.get_json(silent=True) or {}
+    mensaje = (data.get("mensaje") or "").strip()
+    if not mensaje:
+        return jsonify({"ok": False, "respuesta": "Escribe una pregunta."}), 400
+    ahora = datetime.now()
+    hoy = f"{_DIAS_ES[ahora.weekday()]} {ahora.day} de {_MESES_ES[ahora.month - 1]} de {ahora.year}"
+    try:
+        res = asistente_ia.conversar(mensaje, data.get("historial") or [], ASISTENTE_HERRAMIENTAS,
+                                     usuario=session.get("username") or "admin", hoy_texto=hoy)
+    except asistente_ia.AsistenteError as e:
+        return jsonify({"ok": False, "configured": True, "respuesta": str(e)}), 502
+    print(f"[asistente] {session.get('username')}: {len(res['acciones'])} propuesta(s), {res['tokens']} tokens")
+    return jsonify({"ok": True, "configured": True, "respuesta": res["respuesta"], "acciones": res["acciones"]})
 
 
 @app.route("/asistente/accion", methods=["POST"])
 def asistente_accion():
+    """Aplica una propuesta que el usuario confirmó. Se valida todo de nuevo:
+    la propuesta viaja por el navegador y no se confía en ella."""
     if not _asistente_autorizado():
         return jsonify({"ok": False, "error": "No autorizado"}), 403
-    return jsonify({
-        "ok": False,
-        "configured": _asistente_configurado(),
-        "respuesta": "Las acciones del asistente se habilitarán al conectar la IA.",
-    }), 501
+    accion = (request.get_json(silent=True) or {}).get("accion") or {}
+    if accion.get("tipo") != "cambiar_estado":
+        return jsonify({"ok": False, "respuesta": "Acción no soportada."}), 400
+    try:
+        sid = int(accion.get("solicitud_id"))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "respuesta": "Solicitud inválida."}), 400
+    estado_nuevo = accion.get("estado_nuevo") or ""
+
+    conn = get_db_connection()
+    try:
+        r = conn.execute("SELECT id, estado, anticipo FROM solicitudes WHERE id = ?", (sid,)).fetchone()
+    finally:
+        conn.close()
+    if not r:
+        return jsonify({"ok": False, "respuesta": f"La solicitud {sid} ya no existe."}), 404
+    if estado_nuevo not in estados_permitidos(dict(r)):
+        return jsonify({"ok": False, "respuesta": f"Desde '{r['estado']}' no se puede pasar a '{estado_nuevo}'."}), 400
+    # Si el estado cambió desde que se propuso, se pide revisar otra vez.
+    if accion.get("estado_actual") and accion["estado_actual"] != r["estado"]:
+        return jsonify({"ok": False, "respuesta": f"La solicitud cambió a '{r['estado']}' mientras tanto; pídelo de nuevo."}), 409
+
+    usuario = f"{session.get('username') or 'admin'} (asistente IA)"
+    aplicar_cambio_estado(sid, estado_nuevo, usuario=usuario)
+    return jsonify({"ok": True, "respuesta": f"Solicitud {sid} actualizada a {estado_nuevo}."})
 
 
 if __name__ == "__main__":

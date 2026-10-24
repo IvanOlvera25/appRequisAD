@@ -56,11 +56,61 @@
   }
   fetch('/asistente/estado', { credentials: 'same-origin' })
     .then(function (r) { return r.json(); })
-    .then(function (d) { setStatus(d.configured, d.configured ? 'En línea' : 'Sin conexión a la IA'); })
+    .then(function (d) { setStatus(d.configured, d.configured ? 'En línea · ' + (d.modelo || 'IA') : 'Sin conexión a la IA'); })
     .catch(function () { setStatus(false, 'Sin conexión a la IA'); });
 
   /* ---------- Render ---------- */
   function scrollDown() { body.scrollTop = body.scrollHeight; }
+
+  // Markdown mínimo y seguro: primero se escapa todo el HTML y después se da
+  // formato a **negritas**, `código`, listas y encabezados.
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function inline(s) {
+    return s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code>$1</code>');
+  }
+  function celdas(ln) {
+    return ln.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(function (c) { return c.trim(); });
+  }
+  function renderTabla(filas) {
+    var cuerpo = filas.filter(function (f) { return !/^\|?\s*:?-{2,}/.test(f.trim()); });
+    if (!cuerpo.length) return '';
+    var head = celdas(cuerpo[0]), out = '<div class="md-table"><table><thead><tr>';
+    head.forEach(function (c) { out += '<th>' + inline(c) + '</th>'; });
+    out += '</tr></thead><tbody>';
+    cuerpo.slice(1).forEach(function (f) {
+      out += '<tr>' + celdas(f).map(function (c) {
+        return '<td' + (/^[-−]?\$|^[-−]?\d[\d,.]*%?$/.test(c) ? ' class="num"' : '') + '>' + inline(c) + '</td>';
+      }).join('') + '</tr>';
+    });
+    return out + '</tbody></table></div>';
+  }
+  function renderMarkdown(texto) {
+    var lineas = escapeHtml(texto).split(/\r?\n/);
+    var html = [], lista = null, tabla = [];
+    function cerrarLista() { if (lista) { html.push('</' + lista + '>'); lista = null; } }
+    function cerrarTabla() { if (tabla.length) { html.push(renderTabla(tabla)); tabla = []; } }
+    lineas.forEach(function (ln) {
+      if (/^\s*\|.*\|\s*$/.test(ln)) { cerrarLista(); tabla.push(ln); return; }
+      cerrarTabla();
+      var ul = ln.match(/^\s*[-*•]\s+(.*)$/), ol = ln.match(/^\s*\d+[.)]\s+(.*)$/), h = ln.match(/^\s*#{1,4}\s+(.*)$/);
+      if (ul || ol) {
+        var tipo = ul ? 'ul' : 'ol';
+        if (lista !== tipo) { cerrarLista(); html.push('<' + tipo + '>'); lista = tipo; }
+        html.push('<li>' + inline((ul || ol)[1]) + '</li>');
+      } else {
+        cerrarLista();
+        if (h) html.push('<p class="md-h">' + inline(h[1]) + '</p>');
+        else if (ln.trim()) html.push('<p>' + inline(ln) + '</p>');
+      }
+    });
+    cerrarLista();
+    cerrarTabla();
+    return html.join('');
+  }
   function hideIntro() {
     if (welcome) welcome.style.display = 'none';
     if (suggestWrap) suggestWrap.style.display = 'none';
@@ -77,7 +127,8 @@
     }
     var b = document.createElement('div');
     b.className = 'bubble';
-    b.textContent = text;
+    if (role === 'bot') { b.classList.add('md'); b.innerHTML = renderMarkdown(text); }
+    else b.textContent = text;
     wrap.appendChild(b);
     body.appendChild(wrap);
     scrollDown();
@@ -105,8 +156,9 @@
       '<div class="ai-action-foot"><button type="button" class="btn btn-primary btn-sm" data-ok><i class="fa-solid fa-check"></i> Confirmar</button>' +
       '<button type="button" class="btn btn-secondary btn-sm" data-cancel>Cancelar</button></div>';
     var info = card.querySelector('.ai-action-body');
-    [['FP', accion.fp], ['Destinatario', accion.destinatario], ['Monto', money(accion.monto)],
-     ['Estado', (accion.estado_actual || '—') + '  →  ' + accion.estado_nuevo]].forEach(function (r) {
+    [['Solicitud', '#' + accion.solicitud_id + (accion.fp ? ' · FP ' + accion.fp : '')], ['Destinatario', accion.destinatario],
+     ['Monto', money(accion.monto)], ['Estado', (accion.estado_actual || '—') + '  →  ' + accion.estado_nuevo],
+     ['Motivo', accion.motivo || null]].filter(function (r) { return r[1] !== null && r[1] !== ''; }).forEach(function (r) {
       var row = document.createElement('div');
       row.innerHTML = '<span class="text-muted"></span> <strong></strong>';
       row.children[0].textContent = r[0] + ':';
@@ -127,14 +179,17 @@
         .then(function (r) { return r.json().then(function (d) { return { ok: r.ok && d.ok, d: d }; }); })
         .then(function (res) {
           foot.innerHTML = res.ok
-            ? '<span class="chip chip-success"><i class="fa-solid fa-check"></i> Aplicado</span>'
+            ? '<span class="chip chip-success"><i class="fa-solid fa-check"></i> Aplicado</span>' +
+              '<a class="btn btn-ghost btn-sm" href="/admin_dashboard?sid=' + encodeURIComponent(accion.solicitud_id) + '">Ver solicitud</a>' +
+              (location.pathname === '/admin_dashboard' ? '<button type="button" class="btn btn-ghost btn-sm" onclick="location.reload()">Actualizar panel</button>' : '')
             : '<span class="chip chip-warning"></span>';
           if (!res.ok) foot.querySelector('.chip').textContent = res.d.respuesta || res.d.error || 'No se pudo aplicar';
           if (res.ok && window.UI) UI.toast(res.d.respuesta || 'Cambio aplicado', 'success');
         })
         .catch(function () { foot.innerHTML = '<span class="chip chip-warning">Error de red</span>'; });
     });
-    target.parentNode.appendChild(card);
+    // Debajo del mensaje (no dentro de su renglón flexible), en orden de llegada
+    body.appendChild(card);
     scrollDown();
   }
 
