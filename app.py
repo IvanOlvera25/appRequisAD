@@ -9703,6 +9703,7 @@ def _start_alerts_once():
 # /asistente/accion lo aplica con la misma lógica del panel (aplicar_cambio_estado).
 # Requiere OPENAI_API_KEY en el entorno (en PythonAnywhere: archivo WSGI).
 import asistente_ia
+import re
 import uuid as _uuid
 
 _ASIS_COLS = "id, fp, nombre, destinatario, monto, estado, fecha, fecha_limite, tipo_pago, departamento, descripcion, anticipo"
@@ -9856,6 +9857,81 @@ def asis_proponer_cambio_estado(solicitud_id, estado_nuevo, motivo=None):
     }}
 
 
+# --- Archivos adjuntos al asistente ---
+# Se guardan en uploads/asistente/<id>.<ext> (+ <id>.json con el nombre original)
+# para poder hacer preguntas de seguimiento; se borran a las 48 horas.
+ASIS_ADJ_DIR = os.path.join(os.getcwd(), "uploads", "asistente")
+ASIS_ADJ_MAX_MB = 10
+ASIS_ADJ_MAX_ARCHIVOS = 5
+ASIS_ADJ_HORAS = 48
+ASIS_ADJ_TIPOS = {
+    "png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg", "webp": "image/webp", "gif": "image/gif",
+    "pdf": "application/pdf", "csv": "text/csv", "txt": "text/plain", "md": "text/markdown", "json": "application/json",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+}
+
+
+def _asis_limpiar_adjuntos():
+    try:
+        limite = time.time() - ASIS_ADJ_HORAS * 3600
+        for nombre in os.listdir(ASIS_ADJ_DIR):
+            ruta = os.path.join(ASIS_ADJ_DIR, nombre)
+            if os.path.isfile(ruta) and os.path.getmtime(ruta) < limite:
+                os.remove(ruta)
+    except OSError:
+        pass
+
+
+def _asis_guardar_adjuntos(archivos):
+    """Valida y guarda los archivos del mensaje. Devuelve [{id, nombre, tipo, mime, tamano}]."""
+    archivos = [f for f in archivos if f and f.filename]
+    if not archivos:
+        return []
+    if len(archivos) > ASIS_ADJ_MAX_ARCHIVOS:
+        raise asistente_ia.AsistenteError(f"Puedes adjuntar hasta {ASIS_ADJ_MAX_ARCHIVOS} archivos por mensaje.")
+    os.makedirs(ASIS_ADJ_DIR, exist_ok=True)
+    _asis_limpiar_adjuntos()
+    guardados = []
+    for f in archivos:
+        nombre = os.path.basename(f.filename)[:120]
+        ext = nombre.rsplit(".", 1)[-1].lower() if "." in nombre else ""
+        if ext not in ASIS_ADJ_TIPOS:
+            raise asistente_ia.AsistenteError(f"No puedo leer '{nombre}'. Formatos: imágenes, PDF, Excel (.xlsx), Word (.docx), CSV o TXT.")
+        datos = f.read(ASIS_ADJ_MAX_MB * 1024 * 1024 + 1)
+        if len(datos) > ASIS_ADJ_MAX_MB * 1024 * 1024:
+            raise asistente_ia.AsistenteError(f"'{nombre}' pesa más de {ASIS_ADJ_MAX_MB} MB.")
+        if not datos:
+            raise asistente_ia.AsistenteError(f"'{nombre}' está vacío.")
+        aid = _uuid.uuid4().hex
+        with open(os.path.join(ASIS_ADJ_DIR, f"{aid}.{ext}"), "wb") as out:
+            out.write(datos)
+        meta = {"id": aid, "nombre": nombre, "ext": ext, "mime": ASIS_ADJ_TIPOS[ext],
+                "tipo": "imagen" if ASIS_ADJ_TIPOS[ext].startswith("image/") else "documento",
+                "tamano": len(datos), "usuario": session.get("username")}
+        with open(os.path.join(ASIS_ADJ_DIR, f"{aid}.json"), "w") as out:
+            json.dump(meta, out)
+        guardados.append({k: meta[k] for k in ("id", "nombre", "tipo", "mime", "tamano")})
+    return guardados
+
+
+def _asis_cargar_adjunto(aid):
+    """Parte de contenido para la API (input_image / input_file) o None si ya no existe."""
+    if not isinstance(aid, str) or not re.fullmatch(r"[0-9a-f]{32}", aid):
+        return None
+    try:
+        with open(os.path.join(ASIS_ADJ_DIR, f"{aid}.json")) as f:
+            meta = json.load(f)
+        with open(os.path.join(ASIS_ADJ_DIR, f"{aid}.{meta['ext']}"), "rb") as f:
+            datos = base64.b64encode(f.read()).decode()
+    except (OSError, ValueError, KeyError):
+        return None
+    url = f"data:{meta['mime']};base64,{datos}"
+    if meta["mime"].startswith("image/"):
+        return {"type": "input_image", "image_url": url}
+    return {"type": "input_file", "filename": meta["nombre"], "file_data": url}
+
+
 ASISTENTE_HERRAMIENTAS = {
     "resumen_general": asis_resumen_general,
     "buscar_solicitudes": asis_buscar_solicitudes,
@@ -9886,19 +9962,45 @@ def asistente_chat():
             "ok": False, "configured": False,
             "respuesta": "Todavía no estoy conectado a la IA: falta configurar OPENAI_API_KEY en el servidor.",
         }), 503
-    data = request.get_json(silent=True) or {}
-    mensaje = (data.get("mensaje") or "").strip()
+    # JSON (solo texto) o multipart (texto + archivos)
+    if request.files or request.form:
+        mensaje = (request.form.get("mensaje") or "").strip()
+        try:
+            historial = json.loads(request.form.get("historial") or "[]")
+        except ValueError:
+            historial = []
+        archivos = request.files.getlist("archivos")
+    else:
+        data = request.get_json(silent=True) or {}
+        mensaje = (data.get("mensaje") or "").strip()
+        historial = data.get("historial") or []
+        archivos = []
+    if not mensaje and not archivos:
+        return jsonify({"ok": False, "respuesta": "Escribe una pregunta o adjunta un archivo."}), 400
+
+    try:
+        adjuntos = _asis_guardar_adjuntos(archivos)
+    except asistente_ia.AsistenteError as e:
+        return jsonify({"ok": False, "configured": True, "respuesta": str(e)}), 400
+
+    # La interfaz manda el mensaje actual al final del historial: se quita para no duplicarlo
+    if historial and historial[-1].get("rol") == "user" and (historial[-1].get("texto") or "").strip() == mensaje:
+        historial = historial[:-1]
     if not mensaje:
-        return jsonify({"ok": False, "respuesta": "Escribe una pregunta."}), 400
+        mensaje = "Revisa los archivos adjuntos y dime qué contienen."
+
     ahora = datetime.now()
     hoy = f"{_DIAS_ES[ahora.weekday()]} {ahora.day} de {_MESES_ES[ahora.month - 1]} de {ahora.year}"
     try:
-        res = asistente_ia.conversar(mensaje, data.get("historial") or [], ASISTENTE_HERRAMIENTAS,
+        entrada = asistente_ia.construir_entrada(historial, mensaje, adjuntos, _asis_cargar_adjunto)
+        res = asistente_ia.conversar(entrada, ASISTENTE_HERRAMIENTAS,
                                      usuario=session.get("username") or "admin", hoy_texto=hoy)
     except asistente_ia.AsistenteError as e:
-        return jsonify({"ok": False, "configured": True, "respuesta": str(e)}), 502
-    print(f"[asistente] {session.get('username')}: {len(res['acciones'])} propuesta(s), {res['tokens']} tokens")
-    return jsonify({"ok": True, "configured": True, "respuesta": res["respuesta"], "acciones": res["acciones"]})
+        return jsonify({"ok": False, "configured": True, "respuesta": str(e), "adjuntos": adjuntos}), 502
+    print(f"[asistente] {session.get('username')}: {len(adjuntos)} adjunto(s), "
+          f"{len(res['acciones'])} propuesta(s), {res['tokens']} tokens")
+    return jsonify({"ok": True, "configured": True, "respuesta": res["respuesta"],
+                    "acciones": res["acciones"], "adjuntos": adjuntos})
 
 
 @app.route("/asistente/accion", methods=["POST"])
