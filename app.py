@@ -9705,6 +9705,7 @@ def _start_alerts_once():
 import asistente_ia
 import re
 import uuid as _uuid
+from concurrent.futures import ThreadPoolExecutor, wait as _esperar
 
 _ASIS_COLS = "id, fp, nombre, destinatario, monto, estado, fecha, fecha_limite, tipo_pago, departamento, descripcion, anticipo"
 _ASIS_CERRADOS = ("Liquidado", "Liquidacion total", "Declinada")
@@ -9727,15 +9728,32 @@ def _asis_fila(r, corta=True):
 
 
 def _asis_filtros(estado=None, vence=None, desde=None, hasta=None, texto=None, criterio=None,
-                  tipo_pago=None, departamento=None):
+                  tipo_pago=None, departamento=None, flexible=False):
+    """Filtros del panel más estado 'Abiertas' (todas menos las cerradas) y,
+    con flexible=True, texto comparado sin espacios ni mayúsculas
+    ("Totalplay" encuentra "TOTAL PLAY")."""
     def fecha_ok(v):
         try:
             return datetime.strptime(v, "%Y-%m-%d").strftime("%Y-%m-%d") if v else ""
         except ValueError:
             return ""
-    return _panel_where(estado or "", (texto or "").strip(), (criterio or "todos"),
-                        tipo_pago=tipo_pago or "", departamento=departamento or "",
-                        desde=fecha_ok(desde), hasta=fecha_ok(hasta), vence=vence or "")
+    abiertas = estado == "Abiertas"
+    texto = (texto or "").strip()
+    where, params = _panel_where("" if abiertas else (estado or ""), "" if flexible else texto, (criterio or "todos"),
+                                 tipo_pago=tipo_pago or "", departamento=departamento or "",
+                                 desde=fecha_ok(desde), hasta=fecha_ok(hasta), vence=vence or "")
+    extra = []
+    if abiertas:
+        extra.append(f"estado NOT IN ({','.join('?' * len(_ASIS_CERRADOS))})")
+        params += list(_ASIS_CERRADOS)
+    if flexible and texto:
+        campo = {"fp": "fp", "nombre": "nombre", "destinatario": "destinatario", "descripcion": "descripcion"}.get(
+            criterio, "COALESCE(fp,'') || ' ' || COALESCE(nombre,'') || ' ' || COALESCE(destinatario,'') || ' ' || COALESCE(descripcion,'')")
+        extra.append(f"REPLACE(LOWER({campo}), ' ', '') LIKE ?")
+        params.append("%" + texto.lower().replace(" ", "") + "%")
+    if extra:
+        where = (where + " AND " if where else "WHERE ") + " AND ".join(extra)
+    return where, params
 
 
 def asis_resumen_general():
@@ -9752,18 +9770,29 @@ def asis_resumen_general():
 
 def asis_buscar_solicitudes(texto=None, criterio=None, estado=None, vence=None, tipo_pago=None,
                             departamento=None, desde=None, hasta=None, orden=None, limite=None):
-    where, params = _asis_filtros(estado, vence, desde, hasta, texto, criterio, tipo_pago, departamento)
     limite = max(1, min(int(limite or 20), 50))
+    orden_sql = ORDENES_PANEL.get(orden or "recientes", ORDENES_PANEL["recientes"])
     conn = get_db_connection()
     try:
-        tot = conn.execute(f"SELECT COUNT(*) n, COALESCE(SUM(monto),0) t FROM solicitudes {where}", params).fetchone()
-        filas = conn.execute(
-            f"SELECT {_ASIS_COLS} FROM solicitudes {where} ORDER BY {ORDENES_PANEL.get(orden or 'recientes', ORDENES_PANEL['recientes'])} LIMIT ?",
-            params + [limite]).fetchall()
+        def consultar(flexible):
+            where, params = _asis_filtros(estado, vence, desde, hasta, texto, criterio, tipo_pago, departamento, flexible)
+            tot = conn.execute(f"SELECT COUNT(*) n, COALESCE(SUM(monto),0) t FROM solicitudes {where}", params).fetchone()
+            filas = conn.execute(f"SELECT {_ASIS_COLS} FROM solicitudes {where} ORDER BY {orden_sql} LIMIT ?",
+                                 params + [limite]).fetchall()
+            return tot, filas
+        tot, filas = consultar(False)
+        # Sin coincidencias exactas: se reintenta aquí mismo ignorando espacios y
+        # mayúsculas, en lugar de gastar otra ronda del modelo.
+        flexible = not tot["n"] and bool((texto or "").strip()) and criterio != "monto"
+        if flexible:
+            tot, filas = consultar(True)
     finally:
         conn.close()
-    return {"total_coincidencias": tot["n"], "suma_montos": round(float(tot["t"] or 0), 2),
-            "mostradas": len(filas), "solicitudes": [_asis_fila(f) for f in filas]}
+    out = {"total_coincidencias": tot["n"], "suma_montos": round(float(tot["t"] or 0), 2),
+           "mostradas": len(filas), "solicitudes": [_asis_fila(f) for f in filas]}
+    if flexible and tot["n"]:
+        out["busqueda"] = f"{tot['n']} coincidencia(s) comparando sin espacios ni mayúsculas"
+    return out
 
 
 def asis_detalle_solicitud(solicitud_id):
@@ -9809,9 +9838,13 @@ def asis_totales_agrupados(agrupar_por, estado=None, vence=None, desde=None, has
         filas = conn.execute(f"""SELECT {campo} AS grupo, COUNT(*) n, COALESCE(SUM(monto),0) total
                                  FROM solicitudes {where} GROUP BY {campo} ORDER BY {orden} LIMIT ?""",
                              params + [limite]).fetchall()
+        # El gran total va calculado: que la IA no sume a mano los grupos.
+        general = conn.execute(f"SELECT COUNT(*) n, COALESCE(SUM(monto),0) total FROM solicitudes {where}", params).fetchone()
+        n_grupos = conn.execute(f"SELECT COUNT(DISTINCT {campo}) FROM solicitudes {where}", params).fetchone()[0]
     finally:
         conn.close()
     return {"agrupado_por": agrupar_por,
+            "total_general": {"solicitudes": general["n"], "total": round(float(general["total"]), 2), "grupos": n_grupos},
             "grupos": [{"grupo": f["grupo"], "solicitudes": f["n"], "total": round(float(f["total"]), 2)} for f in filas]}
 
 
@@ -9932,13 +9965,80 @@ def _asis_cargar_adjunto(aid):
     return {"type": "input_file", "filename": meta["nombre"], "file_data": url}
 
 
+def _asis_transcripcion(aid):
+    """Texto ya transcrito del archivo (<id>.txt) o None. En los mensajes de
+    seguimiento viaja este texto en lugar del archivo completo."""
+    if not isinstance(aid, str) or not re.fullmatch(r"[0-9a-f]{32}", aid):
+        return None
+    try:
+        with open(os.path.join(ASIS_ADJ_DIR, f"{aid}.txt"), encoding="utf-8") as f:
+            return f.read() or None
+    except OSError:
+        return None
+
+
+def _asis_transcribir(aid):
+    """Genera <id>.txt: los archivos de texto se copian tal cual y el resto lo
+    transcribe el modelo económico. Devuelve los tokens usados."""
+    try:
+        with open(os.path.join(ASIS_ADJ_DIR, f"{aid}.json")) as f:
+            meta = json.load(f)
+        if meta["mime"].startswith("text/") or meta["ext"] == "json":
+            with open(os.path.join(ASIS_ADJ_DIR, f"{aid}.{meta['ext']}"), encoding="utf-8", errors="replace") as f:
+                texto, tokens = f.read(asistente_ia.MAX_TRANSCRIPCION), 0
+        else:
+            texto, tokens = asistente_ia.transcribir(_asis_cargar_adjunto(aid))
+        if texto:
+            with open(os.path.join(ASIS_ADJ_DIR, f"{aid}.txt"), "w", encoding="utf-8") as f:
+                f.write(texto)
+        return tokens
+    except Exception as e:  # sin transcripción el archivo se reenvía completo (construir_entrada)
+        print(f"[asistente] No se pudo transcribir {aid}: {e}")
+        return 0
+
+
+# Las transcripciones corren en paralelo a la respuesta del modelo principal.
+_ASIS_TAREAS = ThreadPoolExecutor(max_workers=4, thread_name_prefix="asistente")
+
+
+# --- Caché ---
+# Las consultas de las herramientas y las respuestas a preguntas sueltas se
+# reutilizan mientras la base no cambie: la llave incluye la "huella" del
+# archivo SQLite (cualquier escritura la cambia) y la fecha de hoy.
+_asis_cache_herramientas = asistente_ia.CacheTTL(segundos=600, maximo=256)
+_asis_cache_respuestas = asistente_ia.CacheTTL(segundos=600, maximo=64)
+
+
+def _asis_huella_datos():
+    partes = []
+    for ruta in (DATABASE, DATABASE + "-wal"):
+        try:
+            st = os.stat(ruta)
+            partes.append(f"{st.st_mtime_ns}:{st.st_size}")
+        except OSError:
+            partes.append("-")
+    return "|".join(partes)
+
+
+def _asis_con_cache(fn):
+    def envoltura(**kwargs):
+        clave = (fn.__name__, json.dumps(kwargs, sort_keys=True, default=str),
+                 date.today().isoformat(), _asis_huella_datos())
+        resultado = _asis_cache_herramientas.get(clave)
+        if resultado is None:
+            resultado = fn(**kwargs)
+            _asis_cache_herramientas.set(clave, resultado)
+        return resultado
+    return envoltura
+
+
 ASISTENTE_HERRAMIENTAS = {
-    "resumen_general": asis_resumen_general,
-    "buscar_solicitudes": asis_buscar_solicitudes,
-    "detalle_solicitud": asis_detalle_solicitud,
-    "totales_agrupados": asis_totales_agrupados,
-    "posibles_duplicados": asis_posibles_duplicados,
-    "proponer_cambio_estado": asis_proponer_cambio_estado,
+    "resumen_general": _asis_con_cache(asis_resumen_general),
+    "buscar_solicitudes": _asis_con_cache(asis_buscar_solicitudes),
+    "detalle_solicitud": _asis_con_cache(asis_detalle_solicitud),
+    "totales_agrupados": _asis_con_cache(asis_totales_agrupados),
+    "posibles_duplicados": _asis_con_cache(asis_posibles_duplicados),
+    "proponer_cambio_estado": asis_proponer_cambio_estado,   # sin caché: cada propuesta es nueva
 }
 
 _DIAS_ES = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
@@ -9990,15 +10090,37 @@ def asistente_chat():
         mensaje = "Revisa los archivos adjuntos y dime qué contienen."
 
     ahora = datetime.now()
-    hoy = f"{_DIAS_ES[ahora.weekday()]} {ahora.day} de {_MESES_ES[ahora.month - 1]} de {ahora.year}"
+    hoy = f"{_DIAS_ES[ahora.weekday()]} {ahora.day} de {_MESES_ES[ahora.month - 1]} de {ahora.year} ({ahora:%Y-%m-%d})"
+    usuario = session.get("username") or "admin"
+
+    # Pregunta suelta (sin conversación previa ni archivos) que ya se respondió
+    # hoy y la base no ha cambiado desde entonces: se reutiliza la respuesta.
+    clave_cache = None
+    previos = [m for m in historial if not m.get("error") and (str(m.get("texto") or "").strip() or m.get("adjuntos"))]
+    if not previos and not adjuntos:
+        clave_cache = (usuario, " ".join(mensaje.lower().split()).strip("¿?¡!. "),
+                       f"{ahora:%Y-%m-%d}", _asis_huella_datos())
+        guardada = _asis_cache_respuestas.get(clave_cache)
+        if guardada:
+            print(f"[asistente] {usuario}: respuesta reutilizada del caché (0 tokens)")
+            return jsonify({"ok": True, "configured": True, "respuesta": guardada,
+                            "acciones": [], "adjuntos": [], "cache": True})
+
+    transcripciones = [_ASIS_TAREAS.submit(_asis_transcribir, a["id"]) for a in adjuntos]
     try:
-        entrada = asistente_ia.construir_entrada(historial, mensaje, adjuntos, _asis_cargar_adjunto)
-        res = asistente_ia.conversar(entrada, ASISTENTE_HERRAMIENTAS,
-                                     usuario=session.get("username") or "admin", hoy_texto=hoy)
+        entrada = asistente_ia.construir_entrada(historial, mensaje, adjuntos, _asis_cargar_adjunto, _asis_transcripcion)
+        res = asistente_ia.conversar(entrada, ASISTENTE_HERRAMIENTAS, usuario=usuario, hoy_texto=hoy)
     except asistente_ia.AsistenteError as e:
         return jsonify({"ok": False, "configured": True, "respuesta": str(e), "adjuntos": adjuntos}), 502
-    print(f"[asistente] {session.get('username')}: {len(adjuntos)} adjunto(s), "
-          f"{len(res['acciones'])} propuesta(s), {res['tokens']} tokens")
+    # Normalmente ya terminaron; si alguna tarda más sigue en segundo plano.
+    _esperar(transcripciones, timeout=20)
+    tokens_archivos = sum(f.result() for f in transcripciones if f.done())
+    if clave_cache and not res["acciones"]:
+        _asis_cache_respuestas.set(clave_cache, res["respuesta"])
+    u = res["uso"]
+    print(f"[asistente] {usuario}: {u['rondas']} ronda(s), entrada {u['entrada']} (caché {u['cache']}), "
+          f"salida {u['salida']} (razonamiento {u['razonamiento']}), transcripción {tokens_archivos}, "
+          f"{len(adjuntos)} adjunto(s), {len(res['acciones'])} propuesta(s)")
     return jsonify({"ok": True, "configured": True, "respuesta": res["respuesta"],
                     "acciones": res["acciones"], "adjuntos": adjuntos})
 

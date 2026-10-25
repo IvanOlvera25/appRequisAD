@@ -889,7 +889,7 @@ body.ai-open .ai-backdrop { opacity: 1; visibility: visible; }
 .bubble.rich .ai-list { display: flex; flex-direction: column; gap: .4rem; margin: .3rem 0 .7rem; }
 .bubble.rich .ai-item { display: flex; justify-content: space-between; align-items: center; gap: .75rem; padding: .55rem .7rem; border-radius: 11px; background: var(--surface); border: 1px solid var(--border); }
 .bubble.rich .ai-item-main { display: flex; flex-direction: column; min-width: 0; }
-.bubble.rich .ai-item-main strong { font-size: .84rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bubble.rich .ai-item-main strong { font-size: .84rem; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
 .bubble.rich .ai-item-side { display: flex; flex-direction: column; align-items: flex-end; gap: .2rem; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: .86rem; }
 .ai-msg.error .bubble { background: color-mix(in srgb, var(--warning) 9%, var(--surface)); border-color: color-mix(in srgb, var(--warning) 30%, transparent); }
 .ai-typing { display: inline-flex; gap: 4px; padding: .2rem 0; }

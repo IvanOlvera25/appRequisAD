@@ -3,7 +3,7 @@
 
    /asistente/chat
      petición  multipart: mensaje, historial (JSON), archivos[]
-     respuesta { ok, respuesta (HTML o Markdown), acciones: [...], adjuntos: [{id, nombre, tipo, mime, tamano}] }
+     respuesta { ok, respuesta (formato compacto, ver markdownToHtml), acciones: [...], adjuntos: [...], cache? }
    Las acciones NUNCA se ejecutan solas: el usuario confirma en la tarjeta y se
    envían a /asistente/accion.
 
@@ -127,14 +127,42 @@
     return frag;
   }
 
-  /* ---------- Markdown (respaldo si la IA no manda HTML) ---------- */
+  /* ---------- Formato compacto de la IA -> HTML con diseño ----------
+     La IA escribe Markdown (párrafos, **negritas**, listas, ####, tablas) más:
+       ::kpi Etiqueta | valor | detalle              (líneas seguidas = fila de indicadores)
+       ::item Principal | detalle | monto [[Estado]] (líneas seguidas = lista de solicitudes)
+       ::aviso tono | texto      ::nota texto
+       [[Estado]] = etiqueta de estado      [#2620] = enlace a la solicitud
+     Cuesta mucho menos que pedirle el HTML; el resultado pasa igual por sanitize(). */
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
+  function slug(s) {
+    return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/\s+/g, '-');
+  }
   function inline(s) {
-    return s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code>$1</code>');
+    return s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\[\[([^\[\]]{2,40})\]\]/g, function (_, e) { return '<span class="status-pill" data-c="' + slug(e) + '">' + e + '</span>'; })
+      .replace(/\[\s*#\s*(\d{1,9})\s*\]/g, '<a data-sid="$1">#$1</a>');
+  }
+  function directiva(tipo, partes, crudo) {
+    var p = partes.map(function (x) { return inline(x.trim()); });
+    if (tipo === 'kpi') {
+      return '<div class="ai-kpi"><span class="ai-kpi-label">' + (p[0] || '') + '</span><span class="ai-kpi-value">' +
+        (p[1] || '') + '</span>' + (p[2] ? '<span class="ai-kpi-sub">' + p.slice(2).join(' · ') + '</span>' : '') + '</div>';
+    }
+    if (tipo === 'item') {
+      return '<div class="ai-item"><div class="ai-item-main"><strong>' + (p[0] || '') + '</strong>' +
+        (p[1] ? '<small class="ai-muted">' + p[1] + '</small>' : '') + '</div><div class="ai-item-side">' + p.slice(2).join(' ') + '</div></div>';
+    }
+    if (tipo === 'aviso') {
+      var tono = (partes[0] || '').trim().toLowerCase();
+      return TONES[tono] ? '<div class="ai-callout" data-tone="' + tono + '">' + p.slice(1).join(' | ') + '</div>'
+                         : '<div class="ai-callout" data-tone="info">' + inline(crudo) + '</div>';
+    }
+    return '<p><small class="ai-muted">' + inline(crudo) + '</small></p>';
   }
   function celdas(ln) {
     return ln.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(function (c) { return c.trim(); });
@@ -154,10 +182,24 @@
   }
   function markdownToHtml(texto) {
     var lineas = escapeHtml(texto).split(/\r?\n/);
-    var html = [], lista = null, tabla = [];
+    var html = [], lista = null, tabla = [], grupo = null;
     function cerrarLista() { if (lista) { html.push('</' + lista + '>'); lista = null; } }
     function cerrarTabla() { if (tabla.length) { html.push(renderTabla(tabla)); tabla = []; } }
+    function cerrarGrupo() { if (grupo) { html.push('</div>'); grupo = null; } }
     lineas.forEach(function (ln) {
+      var d = ln.match(/^\s*::(kpi|item|aviso|nota)\s+(.*)$/i);
+      if (d) {
+        var tipo = d[1].toLowerCase();
+        cerrarLista(); cerrarTabla();
+        if (tipo === 'kpi' || tipo === 'item') {
+          if (grupo !== tipo) { cerrarGrupo(); html.push('<div class="' + (tipo === 'kpi' ? 'ai-kpis' : 'ai-list') + '">'); grupo = tipo; }
+        } else {
+          cerrarGrupo();
+        }
+        html.push(directiva(tipo, d[2].split('|'), d[2]));
+        return;
+      }
+      cerrarGrupo();
       if (/^\s*\|.*\|\s*$/.test(ln)) { cerrarLista(); tabla.push(ln); return; }
       cerrarTabla();
       var ul = ln.match(/^\s*[-*•]\s+(.*)$/), ol = ln.match(/^\s*\d+[.)]\s+(.*)$/), h = ln.match(/^\s*#{1,4}\s+(.*)$/);
@@ -171,11 +213,11 @@
         else if (ln.trim()) html.push('<p>' + inline(ln) + '</p>');
       }
     });
-    cerrarLista(); cerrarTabla();
+    cerrarLista(); cerrarTabla(); cerrarGrupo();
     return html.join('');
   }
   function renderBot(texto) {
-    var t = String(texto || '').trim().replace(/^```(?:html)?\s*/i, '').replace(/```\s*$/, '');
+    var t = String(texto || '').trim().replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/, '');
     var esHtml = /<(p|div|table|ul|ol|strong|span|h4|br)\b/i.test(t);
     return sanitize(esHtml ? t : markdownToHtml(t));
   }
@@ -291,7 +333,12 @@
   }
 
   /* ---------- Persistencia de la conversación (por pestaña) ---------- */
-  function save() { try { sessionStorage.setItem(STORE, JSON.stringify(history.slice(-30))); } catch (e) {} }
+  // Se recorta de 16 en 16 (no uno por uno): el servidor arma la ventana de
+  // contexto por posición y así el inicio no se mueve y OpenAI lo reutiliza del caché.
+  function save() {
+    while (history.length > 40) history = history.slice(16);
+    try { sessionStorage.setItem(STORE, JSON.stringify(history)); } catch (e) {}
+  }
   function restore() {
     try { history = JSON.parse(sessionStorage.getItem(STORE) || '[]'); } catch (e) { history = []; }
     history.forEach(function (m) { bubble(m.rol, m.texto, { error: m.error, adjuntos: m.adjuntos }); });
@@ -386,7 +433,7 @@
 
     var fd = new FormData();
     fd.append('mensaje', text);
-    fd.append('historial', JSON.stringify(history.slice(-12)));
+    fd.append('historial', JSON.stringify(history));   // el servidor elige la ventana (asistente_ia.ventana)
     archivos.forEach(function (p) { fd.append('archivos', p.file, p.file.name); });
 
     fetch('/asistente/chat', { method: 'POST', credentials: 'same-origin', body: fd })
