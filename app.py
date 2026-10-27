@@ -2072,6 +2072,18 @@ COORDINADOR_PASS = "05360"
 capital_total = 100000.0
 
 def read_employees():
+    """
+    Personal que puede solicitar pagos (formulario y comisiones): empleados
+    activos de RH en el NAS (AD17_RH.empleados_activos), con el área como
+    departamento. Se sirve con la caché tolerante a fallas del NAS
+    (_datos_remotos_cached: se refresca cada 10 min y, si el NAS no responde,
+    se usa la última copia buena). Si nunca se ha podido leer, data/empleados.csv.
+    """
+    empleados = _datos_remotos_cached("empleados_activos", _fetch_empleados_nas)
+    return empleados or _read_employees_csv()
+
+
+def _read_employees_csv():
     employees = []
     csv_file_path = os.path.join("data", "empleados.csv")
     if os.path.exists(csv_file_path):
@@ -2864,6 +2876,19 @@ def _fetch_conceptos_indirectos():
                            WHERE habilitado = 1
                            ORDER BY concepto ASC""")
             return cur.fetchall()
+    finally:
+        c.close()
+
+
+def _fetch_empleados_nas():
+    c = _conn_nas_rapida("AD17_RH")
+    try:
+        with c.cursor() as cur:
+            cur.execute("""SELECT id, nomPropio, titulo_area
+                           FROM AD17_RH.empleados_activos
+                           ORDER BY nomPropio ASC""")
+            return [{"id": r["id"], "nombre": r["nomPropio"].strip(), "departamento": (r["titulo_area"] or "").strip()}
+                    for r in cur.fetchall() if (r["nomPropio"] or "").strip()]
     finally:
         c.close()
 
