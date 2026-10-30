@@ -843,13 +843,14 @@ ESTADOS_CERRADOS = ("Liquidado", "Liquidacion total", "Declinada")
 
 
 def _panel_where(estado_filtro="", busqueda="", criterio="todos", tipo_pago="", departamento="",
-                 desde="", hasta="", vence="", sid=None):
+                 desde="", hasta="", vence="", sid=None, ids=None):
     """
     WHERE de los filtros del panel admin (estado + búsqueda por criterio).
     Lo usan el panel y la exportación a Excel para que traigan lo mismo.
     Filtros opcionales: tipo_pago, departamento, desde/hasta (fecha de solicitud,
-    YYYY-MM-DD), vence (vencidas | hoy | semana | mes, solo solicitudes abiertas)
-    y sid (id exacto).
+    YYYY-MM-DD), vence (vencidas | hoy | semana | mes, solo solicitudes abiertas),
+    estado "Abiertas" (todas menos las cerradas),
+    sid (id exacto) e ids (lista de ids, p. ej. las que abre el asistente IA).
     """
     where_clauses = []
     params = []
@@ -857,6 +858,9 @@ def _panel_where(estado_filtro="", busqueda="", criterio="todos", tipo_pago="", 
     if sid:
         where_clauses.append("id = ?")
         params.append(sid)
+    if ids:
+        where_clauses.append(f"id IN ({','.join('?' * len(ids))})")
+        params.extend(ids)
     if tipo_pago:
         where_clauses.append("tipo_pago = ?")
         params.append(tipo_pago)
@@ -885,7 +889,10 @@ def _panel_where(estado_filtro="", busqueda="", criterio="todos", tipo_pago="", 
             where_clauses.append("substr(fecha_limite, 1, 10) BETWEEN ? AND ?")
             params.extend([hoy, (datetime.now() + timedelta(days=dias)).strftime("%Y-%m-%d")])
 
-    if estado_filtro:
+    if estado_filtro == "Abiertas":   # todas menos las cerradas
+        where_clauses.append(f"estado NOT IN ({','.join('?' * len(ESTADOS_CERRADOS))})")
+        params.extend(ESTADOS_CERRADOS)
+    elif estado_filtro:
         where_clauses.append("estado = ?")
         params.append(estado_filtro)
 
@@ -938,7 +945,7 @@ def query_solicitudes_paginated(page=1, page_size=PAGE_SIZE_DEFAULT, estado_filt
     """
     Consulta paginada de solicitudes con filtros, búsqueda y contadores por estado.
     Incluye soporte para los 3 nuevos tipos de archivos.
-    filtros: tipo_pago, departamento, desde, hasta, vence, sid (ver _panel_where).
+    filtros: tipo_pago, departamento, desde, hasta, vence, sid, ids (ver _panel_where).
     """
     conn = get_db_connection()
     where_sql, params = _panel_where(estado_filtro, busqueda, criterio, **filtros)
@@ -3485,6 +3492,8 @@ def _filtros_extra_request():
         sid = int(request.args.get("sid") or 0) or None
     except ValueError:
         sid = None
+    # ids=4071,4072,4073 (máx. 200, sin repetir)
+    ids = list(dict.fromkeys(int(x) for x in (request.args.get("ids") or "").split(",") if x.strip().isdigit()))[:200]
     vence = (request.args.get("vence") or "").strip().lower()
     return {
         "tipo_pago": (request.args.get("tipo_pago") or "").strip(),
@@ -3493,6 +3502,7 @@ def _filtros_extra_request():
         "hasta": _fecha(request.args.get("hasta")),
         "vence": vence if vence in ("vencidas", "hoy", "semana", "mes") else "",
         "sid": sid,
+        "ids": ids or None,
     }
 
 
@@ -4169,6 +4179,8 @@ def exportar_solicitudes():
     etiquetas = {"tipo_pago": "Tipo de pago", "departamento": "Departamento", "desde": "Desde",
                  "hasta": "Hasta", "vence": "Vencimiento"}
     filtros.extend(f"{etiquetas[k]}: {v}" for k, v in extra.items() if v and k in etiquetas)
+    if extra.get("ids"):
+        filtros.append("Solicitudes: " + ", ".join(f"#{i}" for i in extra["ids"]))
     ws.write_string(0, 0, "Concentrado de solicitudes de pago", f_titulo)
     ws.write_string(1, 0, f"{' · '.join(filtros)} · {len(rows)} registros · generado {datetime.now():%Y-%m-%d %H:%M}", f_sub)
 
@@ -9733,7 +9745,6 @@ import uuid as _uuid
 from concurrent.futures import ThreadPoolExecutor, wait as _esperar
 
 _ASIS_COLS = "id, fp, nombre, destinatario, monto, estado, fecha, fecha_limite, tipo_pago, departamento, descripcion, anticipo"
-_ASIS_CERRADOS = ("Liquidado", "Liquidacion total", "Declinada")
 
 
 def _asistente_autorizado():
@@ -9754,23 +9765,18 @@ def _asis_fila(r, corta=True):
 
 def _asis_filtros(estado=None, vence=None, desde=None, hasta=None, texto=None, criterio=None,
                   tipo_pago=None, departamento=None, flexible=False):
-    """Filtros del panel más estado 'Abiertas' (todas menos las cerradas) y,
-    con flexible=True, texto comparado sin espacios ni mayúsculas
-    ("Totalplay" encuentra "TOTAL PLAY")."""
+    """Filtros del panel (estado 'Abiertas' incluido) y, con flexible=True,
+    texto comparado sin espacios ni mayúsculas ("Totalplay" encuentra "TOTAL PLAY")."""
     def fecha_ok(v):
         try:
             return datetime.strptime(v, "%Y-%m-%d").strftime("%Y-%m-%d") if v else ""
         except ValueError:
             return ""
-    abiertas = estado == "Abiertas"
     texto = (texto or "").strip()
-    where, params = _panel_where("" if abiertas else (estado or ""), "" if flexible else texto, (criterio or "todos"),
+    where, params = _panel_where(estado or "", "" if flexible else texto, (criterio or "todos"),
                                  tipo_pago=tipo_pago or "", departamento=departamento or "",
                                  desde=fecha_ok(desde), hasta=fecha_ok(hasta), vence=vence or "")
     extra = []
-    if abiertas:
-        extra.append(f"estado NOT IN ({','.join('?' * len(_ASIS_CERRADOS))})")
-        params += list(_ASIS_CERRADOS)
     if flexible and texto:
         campo = {"fp": "fp", "nombre": "nombre", "destinatario": "destinatario", "descripcion": "descripcion"}.get(
             criterio, "COALESCE(fp,'') || ' ' || COALESCE(nombre,'') || ' ' || COALESCE(destinatario,'') || ' ' || COALESCE(descripcion,'')")
@@ -9799,25 +9805,36 @@ def asis_buscar_solicitudes(texto=None, criterio=None, estado=None, vence=None, 
     orden_sql = ORDENES_PANEL.get(orden or "recientes", ORDENES_PANEL["recientes"])
     conn = get_db_connection()
     try:
-        def consultar(flexible):
-            where, params = _asis_filtros(estado, vence, desde, hasta, texto, criterio, tipo_pago, departamento, flexible)
+        for flexible, crit in _asis_intentos_texto(texto, criterio):
+            where, params = _asis_filtros(estado, vence, desde, hasta, texto, crit, tipo_pago, departamento, flexible)
             tot = conn.execute(f"SELECT COUNT(*) n, COALESCE(SUM(monto),0) t FROM solicitudes {where}", params).fetchone()
-            filas = conn.execute(f"SELECT {_ASIS_COLS} FROM solicitudes {where} ORDER BY {orden_sql} LIMIT ?",
-                                 params + [limite]).fetchall()
-            return tot, filas
-        tot, filas = consultar(False)
-        # Sin coincidencias exactas: se reintenta aquí mismo ignorando espacios y
-        # mayúsculas, en lugar de gastar otra ronda del modelo.
-        flexible = not tot["n"] and bool((texto or "").strip()) and criterio != "monto"
-        if flexible:
-            tot, filas = consultar(True)
+            if tot["n"]:
+                break
+        filas = conn.execute(f"SELECT {_ASIS_COLS} FROM solicitudes {where} ORDER BY {orden_sql} LIMIT ?",
+                             params + [limite]).fetchall()
     finally:
         conn.close()
     out = {"total_coincidencias": tot["n"], "suma_montos": round(float(tot["t"] or 0), 2),
            "mostradas": len(filas), "solicitudes": [_asis_fila(f) for f in filas]}
-    if flexible and tot["n"]:
-        out["busqueda"] = f"{tot['n']} coincidencia(s) comparando sin espacios ni mayúsculas"
+    if tot["n"] and (flexible or crit != (criterio or "todos")):
+        out["busqueda"] = (f"Sin coincidencias exactas en '{criterio}'; {tot['n']} al buscar"
+                           f"{' en todos los campos' if crit != (criterio or 'todos') else ''}"
+                           f"{' sin espacios ni mayúsculas' if flexible else ''}")
     return out
+
+
+def _asis_intentos_texto(texto, criterio):
+    """Orden de búsqueda del texto, de más a menos estricto, para no gastar rondas
+    del modelo en reintentos: exacto en el campo pedido, sin espacios ni
+    mayúsculas, y luego igual en todos los campos (el modelo a veces busca un
+    destinatario como solicitante)."""
+    criterio = criterio or "todos"
+    if not (texto or "").strip() or criterio == "monto":
+        return [(False, criterio)]
+    intentos = [(False, criterio), (True, criterio)]
+    if criterio != "todos":
+        intentos += [(False, "todos"), (True, "todos")]
+    return intentos
 
 
 def asis_detalle_solicitud(solicitud_id):
@@ -9913,6 +9930,62 @@ def asis_proponer_cambio_estado(solicitud_id, estado_nuevo, motivo=None):
         "destinatario": d.get("destinatario"), "monto": round(float(d.get("monto") or 0), 2),
         "estado_actual": d.get("estado"), "estado_nuevo": estado_nuevo, "motivo": motivo or "",
     }}
+
+
+def asis_abrir_en_panel(ids=None, seleccionar=None, texto=None, criterio=None, estado=None, vence=None,
+                        tipo_pago=None, departamento=None, desde=None, hasta=None, orden=None, titulo=None):
+    """
+    URL del panel con esos filtros (o esas solicitudes por id). No navega: la
+    interfaz lleva al usuario cuando termina la respuesta. Se cuenta antes
+    cuántas solicitudes verá para no mandarlo a una pantalla vacía.
+    """
+    ids = list(dict.fromkeys(int(i) for i in (ids or []) if int(i) > 0))[:200]
+    texto = (texto or "").strip()
+    criterio = criterio if criterio in ("fp", "monto", "nombre", "destinatario", "descripcion") else "todos"
+    estado = estado if estado in asistente_ia.ESTADOS + ["Abiertas"] else ""
+    vence = vence if vence in ("vencidas", "hoy", "semana", "mes") else ""
+    orden = orden if orden in ORDENES_PANEL else ""
+
+    def where_con(flexible, lista, crit=None):
+        where, params = _asis_filtros(estado, vence, desde, hasta, texto, crit or criterio, tipo_pago, departamento, flexible)
+        if lista:
+            where = (where + " AND " if where else "WHERE ") + f"id IN ({','.join('?' * len(lista))})"
+            params += lista
+        return where, params
+
+    conn = get_db_connection()
+    try:
+        encontradas = {r[0] for r in conn.execute(
+            f"SELECT id FROM solicitudes WHERE id IN ({','.join('?' * len(ids))})", ids)} if ids else set()
+        no_existen = [i for i in ids if i not in encontradas]
+        ids = [i for i in ids if i in encontradas]
+        where, params = where_con(False, ids)
+        n = conn.execute(f"SELECT COUNT(*) FROM solicitudes {where}", params).fetchone()[0]
+        for flexible, crit in _asis_intentos_texto(texto, criterio)[1:]:
+            if n:
+                break
+            # El buscador del panel es exacto ("Totalplay" no encuentra "TOTAL PLAY"):
+            # lo que se encuentre con un intento más flexible se abre por id.
+            where, params = where_con(flexible, ids, crit)
+            encontrados = [r[0] for r in conn.execute(
+                f"SELECT id FROM solicitudes {where} ORDER BY {ORDENES_PANEL.get(orden or 'recientes')} LIMIT 200", params)]
+            if encontrados:
+                ids, n, texto = encontrados, len(encontrados), ""
+    finally:
+        conn.close()
+    if not n:
+        return {"error": "Con esos filtros el panel no muestra ninguna solicitud. Si buscabas por nombre, "
+                         "usa los ids que ya consultaste."}
+    args = {"ids": ",".join(map(str, ids)), "sel": "1" if seleccionar and ids else "",
+            "busqueda": texto, "criterio_busqueda": criterio if texto and criterio != "todos" else "",
+            "estado": estado, "vence": vence, "tipo_pago": (tipo_pago or "").strip(),
+            "departamento": (departamento or "").strip(), "desde": desde or "", "hasta": hasta or "", "orden": orden}
+    url = url_for("admin_dashboard", **{k: v for k, v in args.items() if v})
+    out = {"navegacion": {"url": url, "titulo": (titulo or "").strip()[:80] or "Ver en el panel",
+                          "resultados": n, "seleccionadas": len(ids) if args["sel"] else 0}}
+    if no_existen:
+        out["navegacion"]["no_existen"] = no_existen
+    return out
 
 
 # --- Archivos adjuntos al asistente ---
@@ -10064,6 +10137,7 @@ ASISTENTE_HERRAMIENTAS = {
     "totales_agrupados": _asis_con_cache(asis_totales_agrupados),
     "posibles_duplicados": _asis_con_cache(asis_posibles_duplicados),
     "proponer_cambio_estado": asis_proponer_cambio_estado,   # sin caché: cada propuesta es nueva
+    "abrir_en_panel": asis_abrir_en_panel,
 }
 
 _DIAS_ES = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
@@ -10140,14 +10214,14 @@ def asistente_chat():
     # Normalmente ya terminaron; si alguna tarda más sigue en segundo plano.
     _esperar(transcripciones, timeout=20)
     tokens_archivos = sum(f.result() for f in transcripciones if f.done())
-    if clave_cache and not res["acciones"]:
+    if clave_cache and not res["acciones"] and not res.get("navegar"):
         _asis_cache_respuestas.set(clave_cache, res["respuesta"])
     u = res["uso"]
     print(f"[asistente] {usuario}: {u['rondas']} ronda(s), entrada {u['entrada']} (caché {u['cache']}), "
           f"salida {u['salida']} (razonamiento {u['razonamiento']}), transcripción {tokens_archivos}, "
           f"{len(adjuntos)} adjunto(s), {len(res['acciones'])} propuesta(s)")
     return jsonify({"ok": True, "configured": True, "respuesta": res["respuesta"],
-                    "acciones": res["acciones"], "adjuntos": adjuntos})
+                    "acciones": res["acciones"], "navegar": res.get("navegar"), "adjuntos": adjuntos})
 
 
 @app.route("/asistente/accion", methods=["POST"])

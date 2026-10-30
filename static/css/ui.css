@@ -885,6 +885,12 @@ body.ai-open .ai-backdrop { opacity: 1; visibility: visible; }
 .bubble.rich .ai-callout[data-tone="success"] { --c: var(--success); }
 .bubble.rich .ai-callout[data-tone="warning"] { --c: var(--warning); }
 .bubble.rich .ai-callout[data-tone="danger"] { --c: var(--danger); }
+.bubble.rich .ai-nav { display: flex; align-items: center; gap: .7rem; margin-top: .65rem; padding: .6rem .8rem; border-radius: 11px; text-decoration: none;
+  color: var(--brand); background: var(--brand-50); border: 1px solid var(--brand-100); transition: background .2s, transform .2s; }
+.bubble.rich .ai-nav:hover { background: var(--brand-100); transform: translateY(-1px); }
+.bubble.rich .ai-nav .ai-nav-txt { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.bubble.rich .ai-nav strong { font-size: .86rem; color: var(--text); }
+.bubble.rich .ai-nav small { font-size: .76rem; color: var(--muted); }
 /* Lista de solicitudes */
 .bubble.rich .ai-list { display: flex; flex-direction: column; gap: .4rem; margin: .3rem 0 .7rem; }
 .bubble.rich .ai-item { display: flex; justify-content: space-between; align-items: center; gap: .75rem; padding: .55rem .7rem; border-radius: 11px; background: var(--surface); border: 1px solid var(--border); }

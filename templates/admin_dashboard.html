@@ -470,6 +470,15 @@
       <a class="btn btn-secondary btn-sm" href="{{ url_for('admin_dashboard') }}">Ver todas</a>
     </div>
   {% endif %}
+  {% if filtros.ids %}
+    {% set n_ids = filtros.ids|length %}
+    <div class="sid-banner" id="idsBanner" data-ids="{{ filtros.ids|join(',') }}" data-sel="{{ '1' if request.args.get('sel') == '1' }}">
+      <span><i class="fa-solid fa-thumbtack"></i>
+        Mostrando {{ n_ids }} solicitud{{ 'es' if n_ids != 1 }} específica{{ 's' if n_ids != 1 }}:
+        {% for i in filtros.ids[:12] %}#{{ i }}{{ ', ' if not loop.last }}{% endfor %}{{ ' …' if n_ids > 12 }}</span>
+      <a class="btn btn-secondary btn-sm" href="{{ url_for('admin_dashboard') }}">Ver todas</a>
+    </div>
+  {% endif %}
 
   {% if solicitudes %}
   <div class="table-wrap">
@@ -1034,6 +1043,18 @@ document.addEventListener('DOMContentLoaded', function () {
       updateSelectedCount();
     });
   });
+  // Llegada desde el asistente con sel=1: la selección queda exactamente en esas solicitudes
+  const idsBanner = document.getElementById('idsBanner');
+  if (idsBanner && idsBanner.dataset.sel === '1') {
+    const ids = idsBanner.dataset.ids.split(',');
+    clearStoredSelection();
+    solicitudesSeleccionadas = new Set(ids);
+    document.querySelectorAll('.select-solicitud').forEach(cb => setRowSelected(cb, ids.includes(cb.value)));
+    saveStoredSelection(solicitudesSeleccionadas);
+    const url = new URL(location.href);
+    url.searchParams.delete('sel');   // que recargar no vuelva a reemplazar la selección
+    history.replaceState(null, '', url);
+  }
   updateSelectedCount();
 
   // Mostrar nombre del comprobante elegido por fila
@@ -1083,10 +1104,10 @@ document.addEventListener('DOMContentLoaded', function () {
       const summary = e.target.closest('tr.summary-row');
       if (summary) toggleRow(summary);
     });
-    // Si se abrió una solicitud específica (desde "Próximos a vencer"), mostrar su detalle
+    // Si se abrió una sola solicitud (desde "Próximos a vencer" o el asistente), mostrar su detalle
     if (document.querySelector('.sid-banner')) {
-      const unica = tbody.querySelector('tr.summary-row');
-      if (unica) toggleRow(unica, true);
+      const filas = tbody.querySelectorAll('tr.summary-row');
+      if (filas.length === 1) toggleRow(filas[0], true);
     }
   }
 

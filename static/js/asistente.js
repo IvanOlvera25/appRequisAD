@@ -3,7 +3,10 @@
 
    /asistente/chat
      petición  multipart: mensaje, historial (JSON), archivos[]
-     respuesta { ok, respuesta (formato compacto, ver markdownToHtml), acciones: [...], adjuntos: [...], cache? }
+     respuesta { ok, respuesta (formato compacto, ver markdownToHtml), acciones: [...], adjuntos: [...],
+                 navegar: { url, titulo, resultados } | null, cache? }
+   `navegar` (herramienta abrir_en_panel): al terminar la respuesta se abre esa
+   vista del panel y, en escritorio, el chat se vuelve a abrir al llegar.
    Las acciones NUNCA se ejecutan solas: el usuario confirma en la tarjeta y se
    envían a /asistente/accion.
 
@@ -263,7 +266,11 @@
     }
     var b = document.createElement('div');
     b.className = 'bubble';
-    if (role === 'bot') { b.classList.add('rich'); b.appendChild(renderBot(text)); }
+    if (role === 'bot') {
+      b.classList.add('rich');
+      b.appendChild(renderBot(text));
+      if (opts.nav) b.appendChild(navButton(opts.nav));
+    }
     else {
       if (opts.adjuntos && opts.adjuntos.length) b.appendChild(chipsAdjuntos(opts.adjuntos, opts.urls));
       if (text) { var t = document.createElement('div'); t.textContent = text; b.appendChild(t); }
@@ -273,6 +280,28 @@
     scrollDown();
     return b;
   }
+  /* ---------- Ir al panel con un filtro (herramienta abrir_en_panel) ---------- */
+  function navSegura(nav) {   // solo vistas del panel de este mismo sitio
+    return nav && /^\/admin_dashboard(\?[^#\s]*)?$/.test(nav.url || '') ? nav : null;
+  }
+  function irAlPanel(nav) {
+    try { sessionStorage.setItem('ai-reopen', '1'); } catch (e) {}
+    if (document.body.classList.contains('ai-full')) setFull(false);   // que se vea el panel al llegar
+    location.href = nav.url;
+  }
+  function navButton(nav) {
+    var a = document.createElement('a');
+    a.className = 'ai-nav';
+    a.href = nav.url;
+    a.innerHTML = '<i class="fa-solid fa-table-list"></i><span class="ai-nav-txt"><strong></strong><small></small></span>' +
+      '<i class="fa-solid fa-arrow-right"></i>';
+    a.querySelector('strong').textContent = nav.titulo || 'Ver en el panel';
+    a.querySelector('small').textContent = nav.resultados
+      ? nav.resultados + (nav.resultados === 1 ? ' solicitud' : ' solicitudes') + ' en el panel' : 'Abrir en el panel';
+    a.addEventListener('click', function (e) { e.preventDefault(); irAlPanel(nav); });
+    return a;
+  }
+
   function typing(conArchivos) {
     hideIntro();
     var wrap = document.createElement('div');
@@ -341,7 +370,7 @@
   }
   function restore() {
     try { history = JSON.parse(sessionStorage.getItem(STORE) || '[]'); } catch (e) { history = []; }
-    history.forEach(function (m) { bubble(m.rol, m.texto, { error: m.error, adjuntos: m.adjuntos }); });
+    history.forEach(function (m) { bubble(m.rol, m.texto, { error: m.error, adjuntos: m.adjuntos, nav: navSegura(m.nav) }); });
   }
   document.getElementById('aiReset').addEventListener('click', function () {
     history = []; save();
@@ -444,11 +473,14 @@
         entrada.adjuntos = (d.adjuntos || []).map(function (a) { return { id: a.id, nombre: a.nombre, tipo: a.tipo }; });
         history.push(entrada);
         var msg = d.respuesta || (res.ok ? '' : 'No pude procesar tu mensaje.');
-        bubble('bot', msg, { error: !res.ok });
-        history.push({ rol: 'bot', texto: msg, error: !res.ok });
+        var nav = res.ok ? navSegura(d.navegar) : null;
+        if (nav) nav = { url: nav.url, titulo: nav.titulo, resultados: nav.resultados };
+        bubble('bot', msg, { error: !res.ok, nav: nav });
+        history.push(nav ? { rol: 'bot', texto: msg, error: false, nav: nav } : { rol: 'bot', texto: msg, error: !res.ok });
         save();
         if (d.configured === false) setStatus(false, 'Sin conexión');
         (d.acciones || []).forEach(actionCard);
+        if (nav) setTimeout(function () { irAlPanel(nav); }, 900);   // deja leer la respuesta un momento
       })
       .catch(function () {
         t.remove();
@@ -476,4 +508,14 @@
   });
 
   restore();
+  // Se llegó aquí desde el chat (abrir_en_panel): se baja al listado filtrado y,
+  // en escritorio, el chat se reabre al lado.
+  try {
+    if (sessionStorage.getItem('ai-reopen') === '1') {
+      sessionStorage.removeItem('ai-reopen');
+      var lista = document.querySelector('.list-card');
+      if (lista) window.scrollTo({ top: lista.getBoundingClientRect().top + window.scrollY - 80 });
+      if (window.matchMedia('(min-width: 1024px)').matches) { open(); scrollDown(); }
+    }
+  } catch (e) {}
 })();
